@@ -339,7 +339,7 @@ local function specialView(s, spellID, pet, noBonus)
   local view = withEstimate(s, spellID, pet, nil, noBonus)
   if view then
     view.perAttack, view.perBlock, view.every, view.perRage, view.hits = s.perAttack, s.perBlock, s.every, s.perRage, s.hits
-    view.perStrike = s.perStrike
+    view.perStrike, view.first = s.perStrike, s.first
   end
   return view
 end

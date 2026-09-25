@@ -891,6 +891,15 @@ local function specialEN(t)
   lo, hi, n, dur = match(t, "heals a friendly target for (" .. NUM .. ") to (" .. NUM .. "), an additional ("
     .. NUM .. ") over (" .. NUM .. ") sec")
   if lo then return { heal = D(lo, hi), hot = { total = num(n), duration = num(dur) } } end
+  -- Forever's Consecration: "doing 24 Holy damage over 8 sec to enemies who enter the area The
+  -- first 4 enemies who enter the area will take an additional 56 damage over 8 sec". Its German
+  -- gives the two amounts the other way round; both say the first 4 take 24 + 56, which is shown.
+  local extra, first
+  n, school, dur, first, extra = match(t, "doing (" .. NUM .. ") ([a-z]+) damage over (" .. NUM .. ") sec to enemies who enter "
+    .. "the area%.? +the first (" .. NUM .. ") enemies who enter the area will take an additional (" .. NUM .. ") damage")
+  if n then
+    return { dot = { total = num(n) + num(extra), duration = num(dur) }, school = SCHOOL_EN[school], first = num(first) }
+  end
   n, school, dur = match(t, "doing (" .. NUM .. ") ([a-z]+) damage over (" .. NUM .. ") sec")
   if n then return { dot = { total = num(n), duration = num(dur) }, school = SCHOOL_EN[school] } end
   -- Tranquility: "Regenerates all nearby party members within 20 yards for 87 every 2 sec for 10 sec"
@@ -972,6 +981,15 @@ local function specialDE(t)
   if n then return { direct = D(n), school = SCHOOL_DE[school], perStrike = true } end
   -- Forever's Consecration: "Gegner, die das Gebiet betreten, erleiden im Verlauf von 8 Sek. 56
   -- Heiligschaden"
+  -- Heiligschaden. Die ersten 4 Gegner, die das Gebiet betreten, erleiden im Verlauf von 8 Sek.
+  -- zusätzlich 24 Schaden": the first 4 take both, as in English
+  local first, extra
+  dur, n, school, first, extra = match(t, "erleiden im verlauf von (" .. NUM .. ") sek%.? (" .. NUM .. ") ([a-z]*)schaden%. +die "
+    .. "ersten (" .. NUM .. ") gegner, die das gebiet betreten, erleiden im verlauf von " .. NUM .. " sek%.? zus" .. AE
+    .. "tzlich (" .. NUM .. ") schaden")
+  if n then
+    return { dot = { total = num(n) + num(extra), duration = num(dur) }, school = SCHOOL_DE[school], first = num(first) }
+  end
   dur, n, school = match(t, "erleiden im verlauf von (" .. NUM .. ") sek%.? (" .. NUM .. ") ([a-z]*)schaden")
   if n then return { dot = { total = num(n), duration = num(dur) }, school = SCHOOL_DE[school] } end
   -- Lacerate: "was im Verlauf von 15 Sek. 149 Blutungsschaden ... verursacht"
@@ -1102,7 +1120,7 @@ end
 -- per extra rage, several hits; or where it reads a part Parse missed (Forever's German Holy
 -- Shock, whose damage Parse does not find beside the heal). Where both read the same numbers
 -- (Rend, Blizzard), Parse stays.
-local SPECIAL_FLAGS = { "absorb", "healMaxHealth", "perAttack", "perBlock", "perStrike", "every", "perRage", "hits" }
+local SPECIAL_FLAGS = { "absorb", "healMaxHealth", "perAttack", "perBlock", "perStrike", "every", "perRage", "hits", "first" }
 local SLOTS = { "direct", "dot", "heal", "hot" }
 
 local function specialWins(s, parsed)

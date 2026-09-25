@@ -13,6 +13,11 @@
 --    shows the numbers of its own build. An English text with "?" for its numbers
 --    (foreverchanges.pro's Contingency Plan) is no reference.
 -- 3. SpellIDs.lua lists every spell id of the corpus, the ids /sdi dump all asks for.
+-- 4. The same client in German and in English: where a spell's two texts state the same numbers,
+--    the two readings are the same, number for number. Where they do not (a low rank whose
+--    numbers grew with the character's level between the two dumps), the pair is counted, not
+--    compared; on 2026-09-25 each of the 55 was looked at: 41 read the same anyway (the numbers
+--    that differ are rank notes, counts, mana), 14 read their own text's grown numbers.
 
 package.path = "tests/lib/?.lua;" .. package.path
 local T = require("testlib")
@@ -49,7 +54,7 @@ for _, r in ipairs(corpus) do byID[r.id] = r end
 
 -- what is shown, whichever reader found it
 local PARTS = { "direct", "dot", "heal", "hot", "absorb", "healMaxHealth", "perAttack", "perBlock", "perStrike", "every",
-  "perRage", "hits" }
+  "perRage", "hits", "first" }
 local function kind(e)
   local parts = { tostring(e.show) }
   if e.show == "parsed" or e.show == "special" then
@@ -134,11 +139,60 @@ T.check(tranquility >= 4, "the Tranquility ranks were checked: " .. tranquility)
 
 -- An English text of the German client: its German numbers and units the English way
 local dark
-for _, c in ipairs(client) do if c.id == 1277327 then dark = c.text end end
+for _, c in ipairs(client) do if c.id == 1277327 and c.lang == "de" then dark = c.text end end
 T.check(dark and P._englishNumbers(dark):find("Cannibalize 1290 of your own Health over 15 sec to gain 1320 Mana", 1, true),
   "Dunkles Opfer r4's 1.290, 1.320 and 15 Sek. read the English way")
 
+-- 4. German against English, the same client
+local function canon(v)
+  if type(v) == "number" then return string.format("%.2f", v) end
+  if type(v) ~= "table" then return tostring(v) end
+  local keys, out = {}, {}
+  for k in pairs(v) do keys[#keys + 1] = k end
+  table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+  for _, k in ipairs(keys) do out[#out + 1] = tostring(k) .. "=" .. canon(v[k]) end
+  return "{" .. table.concat(out, ",") .. "}"
+end
+-- what the player sees; which reader found a number does not matter
+local function seen(e)
+  local label = (e.show == "parsed" or e.show == "special") and "number" or tostring(e.show)
+  local v = e.show and e[e.show == "judgement" and "isJudgement" or e.show]
+  return label .. " " .. canon(v) .. " " .. canon(e.reduction) .. " " .. canon(e.proc)
+end
+-- the numbers a text states, sorted, in the client's own number format
+local function numbers(text, lang)
+  local t = text
+  if lang == "de" then
+    t = t:gsub("(%d)%.(%d%d%d)", "%1%2"):gsub("(%d),(%d)", "%1.%2")
+  else
+    t = t:gsub("(%d),(%d%d%d)", "%1%2")
+  end
+  local list = {}
+  for v in t:gmatch("%d+%.?%d*") do list[#list + 1] = tonumber(v) end
+  table.sort(list)
+  return canon(list)
+end
+local pairsByID = {}
+for _, c in ipairs(client) do
+  pairsByID[c.id] = pairsByID[c.id] or {}
+  pairsByID[c.id][c.lang] = c
+end
+local sameNumbers, otherNumbers = 0, 0
+for id, p in pairs(pairsByID) do
+  if p.de and p.en then
+    if numbers(p.de.text, "de") == numbers(p.en.text, "en") then
+      local de, en = seen(P.Read(p.de.text, "de")), seen(P.Read(p.en.text, "en"))
+      T.check(de == en, ("%s / %s %d: German reads %s, English %s"):format(p.de.name, p.en.name, id, de, en))
+      sameNumbers = sameNumbers + 1
+    else
+      otherNumbers = otherNumbers + 1
+    end
+  end
+end
+T.check(sameNumbers >= 1400, ("most German and English pairs state the same numbers: %d, %d do not"):format(sameNumbers, otherNumbers))
+
 print(("Client texts: %d (%d show a number, %d English on a German client), %d compared with Forever's English, %d not "
-  .. "(its English has no numbers); language checked on %d German and %d English corpus texts; SpellIDs.lua lists %d ids"):format(
-  #client, shown, englishOnGerman, compared, noNumbers, german, english, count))
+  .. "(its English has no numbers); German against English of the same client: %d pairs read the same, %d state other "
+  .. "numbers; language checked on %d German and %d English corpus texts; SpellIDs.lua lists %d ids"):format(
+  #client, shown, englishOnGerman, compared, noNumbers, sameNumbers, otherNumbers, german, english, count))
 T.finish("test_client_texts")

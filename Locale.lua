@@ -70,6 +70,7 @@ Locales.en = {
   PER_BLOCK = " per block",
   EVERY = " every %s sec",
   HITS = " in %d hits",
+  FIRST = " for the first %d enemies",
   HEAL_MAX = " (your maximum health)",
   PER_RAGE = "Plus %s for each extra point of rage",
   FINISHER_NOTE = "At %d combo points, attack power not included; 1-%d: %s",
@@ -184,6 +185,7 @@ Locales.de = {
   PER_BLOCK = " pro Block",
   EVERY = " alle %s Sek.",
   HITS = " in %d Treffern",
+  FIRST = " f\195\188r die ersten %d Gegner",
   HEAL_MAX = " (Eure maximale Gesundheit)",
   PER_RAGE = "Plus %s f\195\188r jeden zus\195\164tzlichen Wutpunkt",
   FINISHER_NOTE = "Bei %d Combopunkten, ohne Angriffskraft; 1-%d: %s",
@@ -447,6 +449,7 @@ function Format.TooltipLines(view, L)
   elseif view.perStrike then note = L.PER_STRIKE
   elseif view.every then note = string.format(L.EVERY, Format.Seconds(view.every, L))
   elseif view.hits then note = string.format(L.HITS, view.hits)
+  elseif view.first then note = string.format(L.FIRST, view.first)
   elseif view.healMax then note = L.HEAL_MAX end
   local function add(label, body, added, color)
     lines[#lines + 1] = { label .. ": " .. body .. note .. suffix(added, L), color[1], color[2], color[3] }

@@ -275,6 +275,9 @@ for _, id in ipairs({ 20293, 20920, 20271, 10901, 10310, 10438, 10463, 20662, 31
 end
 -- Forever's German client shows some spells in English: Lightning Bolt r2 in Forever's English
 for _, r in ipairs(allRows) do if r.id == 529 then descriptions[529] = r.forever_en_description end end
+-- Consecration r1 as the German Forever client shows it (from /sdi dump all)
+local clientRows = json.decode(T.readFile("tests/fixtures/forever_client_texts.json"))
+for _, r in ipairs(clientRows) do if r.id == 20116 and r.lang == "de" then descriptions[20116] = r.text end end
 
 -- Attack power 1000 + 200 - 50, a warrior with 3000 health in no form.
 function UnitAttackPower(unit) if unit == "player" then return 1000, 200, -50 end end
@@ -321,7 +324,7 @@ local actions = {
   [70] = { "spell", 10310 }, [71] = { "spell", 10438 }, [72] = { "spell", 10463 }, [74] = { "spell", 20662 },
   [75] = { "spell", 31016 }, [76] = { "spell", 23894 }, [77] = { "spell", 407632 }, [78] = { "spell", 25361 },
   [79] = { "spell", 25359 }, [80] = { "spell", 16362 }, [81] = { "spell", 10614 }, [82] = { "spell", 20349 },
-  [83] = { "spell", 17953 }, [84] = { "spell", 529 }, [85] = { "spell", 20308 },
+  [83] = { "spell", 17953 }, [84] = { "spell", 529 }, [85] = { "spell", 20308 }, [86] = { "spell", 20116 },
 }
 function GetActionInfo(slot) local a = actions[slot]; if a then return a[1], a[2] end end
 local counts = { [2] = 5, [3] = SECRET } -- a reagent count on Shadow Bolt's slot; a secret one on Immolate's
@@ -796,6 +799,11 @@ T.check(hasLine(tipFor(17953), "Schaden: 80-120"), "the Firestone's own range, n
 T.eq(shown(MultiBarLeftButton1), "+43", "Siegel des Kreuzfahrers: 326 / 14 x 2.6 / 1.4")
 T.eq(tipFor(20308)[1], "Angriffskraft +326: etwa +43 Schaden pro Treffer (Waffe 40 % schneller, 1,9 Sek.), gesch\195\164tzt",
   "Seal of the Crusader tooltip")
+
+-- Consecration: its German and English give the two amounts the other way round; both say the
+-- first 4 enemies take 56 + 24
+T.eq(shown(MultiBarLeftButton2), "80", "Weihe: 56 + 24 over 8 sec")
+T.eq(tipFor(20116)[1], "Schaden \195\188ber Zeit: 80 in 8 Sek. f\195\188r die ersten 4 Gegner", "and the tooltip says for whom")
 
 -- An English text on the German client is read as English
 T.eq(shown(MultiBarBottomRightButton12), "29", "Lightning Bolt in English on a German client: 27-31")
