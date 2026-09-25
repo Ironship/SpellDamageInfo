@@ -40,23 +40,68 @@ local KNOWN_EVENTS = {
 
 local eventFrames = {}
 
+-- Widgets. Only the methods listed here exist: calling any other method (a capitalised key)
+-- errors, so the addon cannot use a widget API this stub does not model.
+local function strict(obj, kind)
+  return setmetatable(obj, { __index = function(_, k)
+    if type(k) == "string" and k:match("^%u") then error(kind .. " has no method " .. k .. " in this stub", 2) end
+    return nil
+  end })
+end
+
+-- What every region (texture, font string, frame) has.
+local function addRegion(r, parent)
+  r.parent, r.points, r.shown, r.alpha = parent, {}, true, 1
+  function r:SetPoint(...) self.points[#self.points + 1] = { ... } end
+  function r:ClearAllPoints() self.points = {} end
+  function r:SetAllPoints(target) self.points = { { "ALL", target or self.parent } } end
+  function r:SetSize(w, h) self.width, self.height = w, h end
+  function r:SetWidth(w) self.width = w end
+  function r:SetHeight(h) self.height = h end
+  function r:GetHeight() return self.height or 36 end
+  function r:GetWidth() return self.width or self.height or 36 end
+  function r:SetAlpha(a) self.alpha = a end
+  function r:GetAlpha() return self.alpha end
+  function r:GetParent() return self.parent end
+  function r:IsShown() return self.shown end
+  function r:Show()
+    if self.shown then return end
+    self.shown = true
+    if self.scripts and self.scripts.OnShow then self.scripts.OnShow(self) end
+  end
+  function r:Hide()
+    if not self.shown then return end
+    self.shown = false
+    if self.scripts and self.scripts.OnHide then self.scripts.OnHide(self) end
+  end
+  function r:SetShown(v) if v then self:Show() else self:Hide() end end
+  return r
+end
+
+local function newTexture(parent, layer)
+  local t = addRegion({ layer = layer }, parent)
+  function t:SetTexture(file) self.file = file end
+  function t:SetColorTexture(r, g, b, a) self.rgba = { r, g, b, a } end
+  function t:SetTexCoord(...) self.coords = { ... } end
+  function t:SetVertexColor(...) self.vertex = { ... } end
+  return strict(t, "Texture")
+end
+
 local function newFontString(parent, template)
-  local fs = { parent = parent, template = template, points = {}, shown = true, text = nil }
-  function fs:SetPoint(...) self.points[#self.points + 1] = { ... } end
-  function fs:ClearAllPoints() self.points = {} end
+  local fs = addRegion({ template = template, text = nil }, parent)
   function fs:SetJustifyH(j) self.justify = j end
   function fs:SetFont(file, size, flags) self.font = { file = file, size = size, flags = flags }; return true end
   -- Arial Narrow digits are about half as wide as the font size
   function fs:GetStringWidth() return #(self.text or "") * (self.font and self.font.size or 12) * 0.55 end
   function fs:SetText(t) self.text = t end
+  function fs:GetText() return self.text end
   function fs:SetTextColor(r, g, b) self.color = { r, g, b } end
-  function fs:Show() self.shown = true end
-  function fs:Hide() self.shown = false end
-  return fs
+  return strict(fs, "FontString")
 end
 
-local function newFrame()
-  local f = { events = {}, scripts = {}, fontStrings = {} }
+local function newFrame(kind, parent, template)
+  local f = addRegion({ kind = kind or "Frame", template = template, events = {}, scripts = {}, fontStrings = {},
+    textures = {}, strata = "MEDIUM", level = 1, scale = 1, mouse = false }, parent)
   function f:RegisterEvent(e)
     if not KNOWN_EVENTS[e] then error("Attempt to register unknown event \"" .. e .. "\"") end
     self.events[e] = true
@@ -66,20 +111,90 @@ local function newFrame()
     self.events[e] = unit
   end
   function f:SetScript(name, fn) self.scripts[name] = fn end
+  function f:GetScript(name) return self.scripts[name] end
   function f:HookScript(name, fn) self.scripts[name] = fn end
   function f:GetID() return self.id or 0 end
-  function f:GetHeight() return self.height or 36 end
-  function f:GetWidth() return self.height or 36 end
   function f:CreateFontString(_, _, template)
     local fs = newFontString(self, template)
     self.fontStrings[#self.fontStrings + 1] = fs
     return fs
   end
-  return f
+  function f:CreateTexture(_, layer)
+    local t = newTexture(self, layer)
+    self.textures[#self.textures + 1] = t
+    return t
+  end
+  function f:EnableMouse(v) self.mouse = v end
+  function f:EnableMouseWheel(v) self.wheel = v end
+  function f:IsMouseOver() return false end
+  function f:SetMovable(v) self.movable = v end
+  function f:RegisterForDrag(...) self.drag = { ... } end
+  function f:StartMoving() self.moving = true end
+  function f:StopMovingOrSizing() self.moving = false end
+  function f:SetFrameStrata(s) self.strata = s end
+  function f:GetFrameStrata() return self.strata end
+  function f:SetFrameLevel(l) self.level = l end
+  function f:GetFrameLevel() return self.level end
+  function f:SetToplevel(v) self.toplevel = v end
+  function f:SetClampedToScreen(v) self.clamped = v end
+  function f:SetScale(s) self.scale = s end
+  function f:GetScale() return self.scale end
+  if template == "BackdropTemplate" then
+    function f:SetBackdrop(b) self.backdrop = b end
+    function f:SetBackdropColor(...) self.backdropColor = { ... } end
+    function f:SetBackdropBorderColor(...) self.backdropBorder = { ... } end
+  end
+  if kind == "Button" or kind == "CheckButton" then
+    f.enabled = true
+    function f:SetText(t) self.text = t end
+    function f:GetText() return self.text end
+    function f:SetEnabled(v) self.enabled = v and true or false end
+    function f:IsEnabled() return self.enabled end
+    -- a click as the client does it: a check button flips first, then OnClick runs
+    function f:Click()
+      if not self.enabled then return end
+      if self.kind == "CheckButton" then self.checked = not self.checked end
+      if self.scripts.OnClick then self.scripts.OnClick(self, "LeftButton") end
+    end
+  end
+  if kind == "CheckButton" then
+    function f:SetNormalTexture(file) self.normal = file end
+    function f:SetPushedTexture(file) self.pushed = file end
+    function f:SetHighlightTexture(file) self.highlight = file end
+    function f:SetCheckedTexture(file) self.checkedTexture = file end
+    function f:SetChecked(v) self.checked = v and true or false end
+    function f:GetChecked() return self.checked end
+  end
+  if kind == "Slider" then
+    f.thumb = newTexture(f, "OVERLAY")
+    function f:SetOrientation(o) self.orientation = o end
+    function f:SetMinMaxValues(lo, hi) self.min, self.max = lo, hi end
+    function f:GetMinMaxValues() return self.min, self.max end
+    function f:SetValueStep(s) self.step = s end
+    function f:SetObeyStepOnDrag(v) self.obeyStep = v end
+    function f:SetThumbTexture(file) self.thumb.file = file end
+    function f:GetThumbTexture() return self.thumb end
+    function f:GetValue() return self.value end
+    -- clamps to the range and runs OnValueChanged when the value changes, as the client does
+    function f:SetValue(v)
+      if self.min and v < self.min then v = self.min end
+      if self.max and v > self.max then v = self.max end
+      if v == self.value then return end
+      self.value = v
+      if self.scripts.OnValueChanged then self.scripts.OnValueChanged(self, v, false) end
+    end
+  end
+  return strict(f, kind or "Frame")
 end
 
-function CreateFrame()
-  local f = newFrame()
+local namedFrames = {}
+function CreateFrame(kind, name, parent, template)
+  local f = newFrame(kind, parent, template)
+  if template == "UIPanelCloseButton" then f.scripts.OnClick = function(self) self.parent:Hide() end end
+  if name then
+    namedFrames[name] = f
+    rawset(_G, name, f) -- the client makes a named frame a global; the addon itself does not write it
+  end
   eventFrames[#eventFrames + 1] = f
   return f
 end
@@ -219,6 +334,31 @@ DEFAULT_CHAT_FRAME = { AddMessage = function(_, m) messages[#messages + 1] = m e
 SlashCmdList = {}
 local slashTable = SlashCmdList
 
+-- What the options window uses: tooltips on its rows, UIParent, Escape closing, combat state,
+-- and Blizzard's options (Settings on current clients, InterfaceOptions_AddCategory on old ones).
+function GameTooltip:SetOwner(owner, anchor) self.owner, self.anchor = owner, anchor; self.lines = {} end
+function GameTooltip:SetText(t) self.lines = { t } end
+function GameTooltip:Hide() self.hidden = true end
+UIParent = newFrame("Frame")
+UISpecialFrames = {}
+local inCombat = false
+function InCombatLockdown() return inCombat end
+local hiddenPanels = {}
+function HideUIPanel(frame) hiddenPanels[#hiddenPanels + 1] = frame; frame:Hide() end
+SettingsPanel = newFrame("Frame")
+SettingsPanel:Hide()
+local registered = { canvas = {}, addon = {}, interface = {} }
+local SettingsStub = {
+  RegisterCanvasLayoutCategory = function(panel, name)
+    local category = { panel = panel, name = name }
+    registered.canvas[#registered.canvas + 1] = category
+    return category
+  end,
+  RegisterAddOnCategory = function(category) registered.addon[#registered.addon + 1] = category end,
+}
+Settings = SettingsStub
+local function interfaceAddCategory(panel) registered.interface[#registered.interface + 1] = panel end
+
 ---------------------------------------------------------------------------------------------
 -- Watch globals: which ones the addon writes, and which ones it reads that are not stubbed
 ---------------------------------------------------------------------------------------------
@@ -240,7 +380,8 @@ for line in toc:gmatch("[^\r\n]+") do
     loaded[#loaded + 1] = line
   end
 end
-T.check(#loaded == 4, "toc lists four files")
+T.check(#loaded == 5, "toc lists five files")
+T.eq(loaded[5], "Options.lua", "Options.lua loads after Core.lua")
 T.check(ns.lang == "de", "German client detected")
 
 local function label(button) return ns._labels[button] end
@@ -442,8 +583,9 @@ local before = #messages
 SlashCmdList.SPELLDAMAGEINFO("button sideways")
 T.check(#messages == before + 1 and messages[#messages]:find("Unbekannte Option"), "bad option answered in German")
 before = #messages
-SlashCmdList.SPELLDAMAGEINFO("")
-T.check(#messages == before + 8, "help prints eight lines")
+SlashCmdList.SPELLDAMAGEINFO("help")
+T.check(#messages == before + 10, "/sdi help prints ten lines")
+T.check(messages[before + 2] and messages[before + 2]:find("^|cff66ccffSpellDamageInfo|r: /sdi %- "), "help names bare /sdi first")
 
 -- Reduction, size and position settings
 SlashCmdList.SPELLDAMAGEINFO("reduction off")
@@ -482,6 +624,275 @@ SlashCmdList.SPELLDAMAGEINFO("position bottom")
 SlashCmdList.SPELLDAMAGEINFO("size 100")
 flush()
 T.eq(font(ActionButton1).size, 16, "back to the default size")
+
+---------------------------------------------------------------------------------------------
+-- Options window
+---------------------------------------------------------------------------------------------
+local DE = ns.Locales.de
+
+-- Options > AddOns: registered at login through Settings, and through InterfaceOptions_AddCategory
+-- where Settings does not exist
+T.eq(#registered.canvas, 1, "options page registered as a canvas category at login")
+T.check(registered.canvas[1] and registered.canvas[1].name == "SpellDamageInfo"
+  and registered.canvas[1].panel == ns._optionsPanel, "canvas category holds our page")
+T.check(registered.addon[1] ~= nil and registered.addon[1] == registered.canvas[1], "category added to AddOns")
+T.eq(#registered.interface, 0, "no fallback registration while Settings exists")
+rawset(_G, "Settings", nil)
+rawset(_G, "InterfaceOptions_AddCategory", interfaceAddCategory)
+T.eq(ns.RegisterOptions(), "interface", "without Settings: InterfaceOptions_AddCategory")
+T.eq(#registered.interface, 1, "fallback registered once")
+T.check(registered.interface[1] == ns._optionsPanel and ns._optionsPanel.name == "SpellDamageInfo", "fallback page named")
+T.eq(#registered.canvas, 1, "fallback path does not touch Settings")
+rawset(_G, "InterfaceOptions_AddCategory", nil)
+T.eq(ns.RegisterOptions(), nil, "neither API: nothing registered, no error")
+rawset(_G, "Settings", SettingsStub)
+T.eq(ns.RegisterOptions(), "settings", "Settings path again")
+T.eq(ns._optionsPanel.fontStrings[2].text, DE.OPT_PANEL_TEXT, "page text in German")
+T.eq(ns._optionsOpenButton.text, DE.OPT_OPEN, "page button in German")
+
+-- /sdi opens and closes the window
+T.eq(ns._optionsWindow(), nil, "window built only when first opened")
+SlashCmdList.SPELLDAMAGEINFO("")
+local win = ns._optionsWindow()
+T.check(win ~= nil and win.shown, "/sdi opens the window")
+T.check(win.parent == UIParent and win.strata == "DIALOG" and win.movable and win.scripts.OnDragStart ~= nil,
+  "window: child of UIParent, dialog strata, movable")
+T.check(#win.points >= 1, "window is anchored")
+T.eq(rawget(_G, "SpellDamageInfoOptions"), win, "window named for Escape")
+T.eq(UISpecialFrames[#UISpecialFrames], "SpellDamageInfoOptions", "Escape closes it")
+SlashCmdList.SPELLDAMAGEINFO("")
+T.check(not win.shown, "/sdi again closes it")
+SlashCmdList.SPELLDAMAGEINFO("options")
+T.check(win.shown, "/sdi options opens it")
+
+-- Every control, localized, with a tooltip
+local rows = win.rows
+local KEYS = { button = DE.OPT_BUTTON, size = DE.OPT_SIZE, position = DE.OPT_POSITION, estimate = DE.OPT_ESTIMATE,
+  tooltip = DE.OPT_TOOLTIP, reduction = DE.OPT_REDUCTION }
+for key, text in pairs(KEYS) do
+  local row = rows[key]
+  T.check(row ~= nil and row.widget ~= nil, "control for " .. key)
+  if row then
+    T.eq(row.label.text, text, "label for " .. key .. " in German")
+    T.check(#row.points >= 1, "row anchored: " .. key)
+    row.scripts.OnEnter(row)
+    T.check(GameTooltip.lines[1] == text and type(GameTooltip.lines[2]) == "string" and #GameTooltip.lines[2] > 20,
+      "tooltip for " .. key)
+    row.scripts.OnLeave(row)
+  end
+end
+T.eq(rows.estimate.widget.kind, "CheckButton", "estimate is a check box")
+T.eq(rows.size.widget.kind, "Slider", "size is a slider")
+T.eq(rows.button.widget.kind, "Button", "button mode is a choice")
+T.eq(win.reset.text, DE.OPT_RESET, "reset button in German")
+T.eq(rows.button.text.text, DE.OPT_BUTTON_TOTAL, "choice shows the current mode")
+T.eq(rows.position.text.text, DE.OPT_POS_BOTTOM, "choice shows the current position")
+T.eq(rows.size.widget.value, 100, "slider at the current size")
+T.check(rows.estimate.widget.checked and rows.tooltip.widget.checked and rows.reduction.widget.checked, "boxes checked")
+
+-- The preview: three mock buttons of our own, drawn like the real ones
+local mocks = win.mocks
+T.eq(#mocks, 3, "three mock buttons")
+local isReal = {}
+for _, b in ipairs(ns._buttons) do isReal[b] = true end
+for _, b in ipairs(ns._petButtons) do isReal[b] = true end
+for i, m in ipairs(mocks) do
+  T.check(not isReal[m] and rawget(m, "action") == nil, "mock " .. i .. " is not an action button")
+  T.check(m.main.parent == m and m.textures[1] and m.textures[1].file and m.textures[1].file:find("^Interface\\Icons\\"),
+    "mock " .. i .. " has a spell icon and its own label")
+end
+local function mockText(i) local fs = mocks[i].main; return fs.shown and fs.text or nil end
+local function mockSide(i) local fs = mocks[i].side; return fs.shown and fs.text or nil end
+-- ActionButton3 holds Immolate with 50 fire spell power and no count: what the first mock shows
+local function sameAsBar(what)
+  local real, mock = label(ActionButton3), mocks[1].main
+  T.eq(mockText(1), shown(ActionButton3), what .. ": preview text as on the bar")
+  if real and real.shown and mock.shown then
+    T.eq(mock.font.size, real.font.size, what .. ": preview font size as on the bar")
+    T.eq(anchor(mock), anchor(real), what .. ": preview anchor as on the bar")
+    T.eq(mock.justify, real.justify, what .. ": preview justify as on the bar")
+  end
+end
+T.eq(mockText(1), "831", "preview: Immolate with the estimate")
+sameAsBar("defaults")
+T.eq(mockText(2), "36", "preview: Screech damage")
+T.eq(mockSide(2), "-100", "preview: Screech reduction next to it")
+T.check(mocks[2].side.color[1] == 1 and mocks[2].side.color[2] < 0.5, "preview: reduction label is red")
+T.eq(mockSide(2), ns._sideLabels[ActionButton10].text, "preview reduction as on the bar")
+T.eq(mocks[2].side.font.size, ns._sideLabels[ActionButton10].font.size, "preview reduction size as on the bar")
+T.eq(mockText(3), "-3", "preview: Curse of Weakness")
+T.check(mocks[3].main.color[1] == 1 and mocks[3].main.color[2] < 0.5, "preview: a lone reduction is red")
+
+-- Each control writes its setting, refreshes the real buttons and the preview
+-- flushed first, so the queue is empty before the click (dropping a queued refresh instead
+-- would leave Core waiting for it forever)
+local function clicked(widget) flush(); widget:Click() end
+local function queued() return #timers > 0 end
+
+clicked(rows.estimate.widget)
+T.eq(SpellDamageInfoDB.estimate, false, "estimate box: setting off")
+T.check(queued(), "estimate box: refresh queued")
+T.eq(mockText(1), "789", "estimate box: preview without the estimate")
+flush()
+T.eq(shown(ActionButton3), "789", "estimate box: bar without the estimate")
+sameAsBar("estimate off")
+clicked(rows.estimate.widget)
+flush()
+T.eq(SpellDamageInfoDB.estimate, true, "estimate box: on again")
+T.eq(shown(ActionButton3), "831", "estimate box: bar with the estimate again")
+
+clicked(rows.tooltip.widget)
+T.eq(SpellDamageInfoDB.tooltip, false, "tooltip box: setting off")
+T.check(queued(), "tooltip box: refresh queued")
+flush()
+tip.lines = {}
+postCalls[1].fn(tip, { id = 172, type = 1 })
+T.eq(#tip.lines, 0, "tooltip box: no tooltip lines")
+clicked(rows.tooltip.widget)
+flush()
+tip.lines = {}
+postCalls[1].fn(tip, { id = 172, type = 1 })
+T.eq(#tip.lines, 1, "tooltip box: lines back")
+
+clicked(rows.reduction.widget)
+T.eq(SpellDamageInfoDB.reduction, false, "reduction box: setting off")
+T.check(queued(), "reduction box: refresh queued")
+T.eq(mockText(3), nil, "reduction box: preview Curse of Weakness empty")
+T.eq(mockSide(2), nil, "reduction box: preview side label gone")
+T.eq(mockText(2), "36", "reduction box: preview damage stays")
+flush()
+T.eq(shown(ActionButton9), nil, "reduction box: bar Curse of Weakness empty")
+clicked(rows.reduction.widget)
+flush()
+T.eq(SpellDamageInfoDB.reduction, true, "reduction box: on again")
+T.eq(mockText(3), "-3", "reduction box: preview back")
+
+-- the button mode menu
+local function pick(row, index)
+  flush()
+  row.widget:Click()
+  local menu = ns._optionsMenu()
+  T.check(menu and menu.shown and menu.owner == row.widget, "menu opens under its control")
+  local b = menu and menu.buttons[index]
+  if b then b:Click() end
+  T.check(menu and not menu.shown, "menu closes after a pick")
+end
+pick(rows.button, 2)
+T.eq(SpellDamageInfoDB.button, "direct", "button menu: direct")
+T.check(queued(), "button menu: refresh queued")
+T.eq(rows.button.text.text, DE.OPT_BUTTON_DIRECT, "button menu: shows the pick")
+T.eq(mockText(1), "289", "button menu: preview Immolate direct part")
+flush()
+sameAsBar("direct")
+pick(rows.button, 3)
+T.eq(SpellDamageInfoDB.button, "off", "button menu: off")
+T.eq(mockText(1), nil, "button off: preview empty")
+T.eq(mockText(3), nil, "button off: no reduction either, as on the bar")
+T.check(win.offNote.shown, "button off: the preview says so")
+T.check(rows.size.alpha < 1 and rows.position.alpha < 1 and rows.size.widget.mouse == false, "button off: size and position greyed")
+T.check(rows.estimate.alpha == 1, "button off: the other settings stay")
+flush()
+T.eq(shown(ActionButton3), nil, "button off: bar empty")
+pick(rows.button, 1)
+T.eq(SpellDamageInfoDB.button, "total", "button menu: total")
+T.check(not win.offNote.shown and rows.size.alpha == 1, "button total: note gone, size enabled")
+flush()
+
+-- the size slider
+local bar = rows.size.widget
+flush()
+bar:SetValue(150)
+T.eq(SpellDamageInfoDB.size, 150, "slider: size 150")
+T.check(queued(), "slider: refresh queued")
+T.eq(rows.size.fontStrings[2].text, "150%", "slider: value shown")
+flush()
+sameAsBar("size 150")
+T.check(mocks[1].main.font.size < 24, "size 150: the preview number shrank to fit, as on the bar")
+T.eq(mocks[3].main.font.size, 24, "size 150: short text at 36 x 0.45 x 1.5")
+bar.scripts.OnMouseWheel(bar, 1)
+T.eq(SpellDamageInfoDB.size, 155, "slider: mouse wheel up one step")
+bar:SetValue(137)
+T.eq(SpellDamageInfoDB.size, 135, "slider: snaps to its step")
+bar:SetValue(20)
+T.eq(SpellDamageInfoDB.size, 50, "slider: kept in range")
+flush()
+sameAsBar("size 50")
+SlashCmdList.SPELLDAMAGEINFO("size 123")
+T.eq(bar.value, 123, "/sdi size moves the open window's slider")
+T.eq(rows.size.fontStrings[2].text, "123%", "/sdi size: the exact value shown")
+
+-- the position menu
+pick(rows.position, 2)
+T.eq(SpellDamageInfoDB.position, "center", "position menu: center")
+T.eq(anchor(mocks[1].main), "CENTER", "position center: preview")
+flush()
+sameAsBar("center")
+pick(rows.position, 3)
+T.eq(SpellDamageInfoDB.position, "top", "position menu: top")
+T.eq(anchor(mocks[1].main), "TOPLEFT", "position top: preview")
+T.eq(anchor(mocks[2].side), "BOTTOMLEFT", "position top: preview reduction moves to the bottom")
+flush()
+sameAsBar("top")
+T.eq(anchor(ns._sideLabels[ActionButton10]), anchor(mocks[2].side), "position top: reduction as on the bar")
+SlashCmdList.SPELLDAMAGEINFO("position bottom")
+T.eq(rows.position.text.text, DE.OPT_POS_BOTTOM, "/sdi position updates the open window")
+T.eq(anchor(mocks[1].main), "BOTTOM", "/sdi position updates the preview")
+
+-- Reset to defaults
+SpellDamageInfoDB.estimate, SpellDamageInfoDB.button, SpellDamageInfoDB.tooltip = false, "direct", false
+SpellDamageInfoDB.reduction, SpellDamageInfoDB.size, SpellDamageInfoDB.position = false, 180, "top"
+before = #messages
+clicked(win.reset)
+for k, v in pairs(ns.DEFAULTS) do T.eq(SpellDamageInfoDB[k], v, "reset: " .. k) end
+T.check(queued(), "reset: refresh queued")
+T.check(#messages == before + 1 and messages[#messages]:find(DE.OPT_RESET_DONE, 1, true), "reset: says so")
+T.check(rows.estimate.widget.checked and rows.tooltip.widget.checked and rows.reduction.widget.checked, "reset: boxes checked")
+T.eq(rows.button.text.text, DE.OPT_BUTTON_TOTAL, "reset: button menu shows total")
+T.eq(bar.value, 100, "reset: slider back")
+T.eq(mockText(1), "831", "reset: preview back")
+flush()
+sameAsBar("reset")
+
+-- Opening from Options > AddOns: Blizzard's panel closes out of combat; in combat it is left
+-- alone and the window opens above it
+win:Hide()
+SettingsPanel:Show()
+hiddenPanels = {}
+ns._optionsOpenButton:Click()
+T.check(hiddenPanels[1] == SettingsPanel and not SettingsPanel.shown, "page button closes Blizzard's options")
+T.check(win.shown and win.strata == "DIALOG", "page button opens the window")
+win:Hide()
+SettingsPanel:Show()
+hiddenPanels = {}
+inCombat = true
+ns._optionsOpenButton:Click()
+T.eq(#hiddenPanels, 0, "in combat: Blizzard's options are left alone")
+T.check(win.shown and win.strata == "FULLSCREEN_DIALOG", "in combat: the window opens above them")
+rows.button.widget:Click()
+T.eq(ns._optionsMenu().strata, "TOOLTIP", "in combat: the menu opens above the window")
+ns._optionsMenu().buttons[2]:Click()
+T.eq(SpellDamageInfoDB.button, "direct", "in combat: the controls work")
+clicked(rows.estimate.widget)
+T.eq(SpellDamageInfoDB.estimate, false, "in combat: check boxes work")
+flush()
+T.eq(shown(ActionButton3), "279", "in combat: the bar follows (direct, no estimate)")
+T.eq(mockText(1), "279", "in combat: the preview follows")
+clicked(win.reset)
+flush()
+inCombat = false
+SettingsPanel:Hide()
+
+-- The close button hides the window and any open menu
+rows.position.widget:Click()
+T.check(ns._optionsMenu().shown, "menu open")
+local closeButton
+for _, f in ipairs(eventFrames) do
+  if f.template == "UIPanelCloseButton" and f.parent == win then closeButton = f end
+end
+T.check(closeButton ~= nil and #closeButton.points >= 1, "close button placed")
+if closeButton then closeButton:Click() end
+T.check(not win.shown, "close button hides the window")
+T.check(not ns._optionsMenu().shown, "closing the window closes the menu")
 
 -- Bad saved values are repaired on load
 SpellDamageInfoDB.size, SpellDamageInfoDB.position, SpellDamageInfoDB.reduction = 999, "left", "yes"

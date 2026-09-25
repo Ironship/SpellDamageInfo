@@ -1,4 +1,4 @@
-"""Builds dist/SpellDamageInfo-<version>.zip: one top folder, the .toc and the files it lists.
+"""Builds dist/SpellDamageInfo-<version>.zip: one top folder, the .toc, the files it lists and the icon.
 
     python tools/build_zip.py
 
@@ -14,6 +14,8 @@ toc_path = root / "SpellDamageInfo.toc"
 toc = toc_path.read_text(encoding="utf-8")
 version = re.search(r"^## Version:\s*(\S+)", toc, re.M).group(1)
 files = ["SpellDamageInfo.toc"] + [l.strip() for l in toc.splitlines() if l.strip() and not l.startswith("##")]
+# the icon the .toc names in "## IconTexture" (tools/make_icon.py draws it)
+files.append("icon.tga")
 
 dist = root / "dist"
 dist.mkdir(exist_ok=True)

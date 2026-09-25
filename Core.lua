@@ -342,16 +342,13 @@ local function petSpellOnSlot(slot)
 end
 ns.PetSpellOnSlot = petSpellOnSlot
 
-local function updateButton(button, pet)
-  local value, kind, reduction
-  if db.button ~= "off" then
-    local spellID
-    if pet then spellID = petSpellOnSlot(petSlots[button]) else spellID = spellOnSlot(button.action) end
-    if spellID then
-      value, kind = Estimate.ButtonValue(ns.Compute(spellID, pet), db.button)
-      if db.reduction then reduction = ns.Reduction(spellID) end
-    end
-  end
+-- The text on a button for a view from ns.Compute and a reduction from ns.Reduction (either may
+-- be nil), under the current settings: main text, its colour, and the smaller reduction text
+-- next to it (or nil). The options window's preview draws its sample spells through this too.
+local function buttonText(view, reduction)
+  if db.button == "off" then return nil end
+  if not db.reduction then reduction = nil end
+  local value, kind = Estimate.ButtonValue(view, db.button)
   if value and value < 0.5 then value = nil end
 
   local mainText, mainColor, sideText
@@ -366,22 +363,26 @@ local function updateButton(button, pet)
     mainText = Format.ReductionText(reduction, ns.L)
     mainColor = Format.REDUCTION_COLOR
   end
+  return mainText, mainColor, sideText
+end
+ns.ButtonText = buttonText
 
+-- Draws the text from buttonText on a button: fs is the main FontString, side the reduction's
+-- (may be nil when there is no sideText). countShown: the button shows a count bottom right.
+local function drawNumber(button, fs, side, mainText, mainColor, sideText, countShown)
   if not mainText then
-    hide(labels[button])
-    hide(sideLabels[button])
+    hide(fs)
+    hide(side)
     return
   end
-  local fs = getLabel(button)
-  placeMain(fs, button, not pet and hasCount(button.action))
+  placeMain(fs, button, countShown)
   setFont(fs, fontSize(button, 1))
   fs:SetTextColor(mainColor[1], mainColor[2], mainColor[3])
   fs:SetText(mainText)
   fitWidth(fs, button)
   fs:Show()
 
-  if sideText then
-    local side = getSideLabel(button)
+  if sideText and side then
     placeSide(side, button)
     setFont(side, fontSize(button, SIDE_SHARE))
     local c = Format.REDUCTION_COLOR
@@ -389,8 +390,30 @@ local function updateButton(button, pet)
     side:SetText(sideText)
     side:Show()
   else
-    hide(sideLabels[button])
+    hide(side)
   end
+end
+ns.DrawNumber = drawNumber
+ns.NewLabel = newLabel
+
+local function updateButton(button, pet)
+  local view, reduction
+  if db.button ~= "off" then
+    local spellID
+    if pet then spellID = petSpellOnSlot(petSlots[button]) else spellID = spellOnSlot(button.action) end
+    if spellID then
+      view = ns.Compute(spellID, pet)
+      if db.reduction then reduction = ns.Reduction(spellID) end
+    end
+  end
+  local mainText, mainColor, sideText = buttonText(view, reduction)
+  if not mainText then
+    hide(labels[button])
+    hide(sideLabels[button])
+    return
+  end
+  local side = sideText and getSideLabel(button) or sideLabels[button]
+  drawNumber(button, getLabel(button), side, mainText, mainColor, sideText, not pet and hasCount(button.action))
 end
 
 local function updateAllButtons()
@@ -410,6 +433,7 @@ local function requestUpdate()
   -- A short delay lets Blizzard's own handlers set button.action after a page change first.
   if C_Timer and type(C_Timer.After) == "function" then C_Timer.After(0.1, run) else run() end
 end
+ns.Refresh = requestUpdate
 
 ---------------------------------------------------------------------------------------------
 -- Tooltip
@@ -506,9 +530,45 @@ local function toggleArg(arg, current)
   return nil
 end
 
+-- Is value valid for setting key? Used by the options window; the slash handler checks its own.
+local function validSetting(key, value)
+  if key == "button" then return BUTTON_MODES[value] == true end
+  if key == "position" then return POSITIONS[value] == true end
+  if key == "size" then return type(value) == "number" and value >= SIZE_MIN and value <= SIZE_MAX end
+  if key == "estimate" or key == "tooltip" or key == "reduction" then return type(value) == "boolean" end
+  return false
+end
+
+-- Settings changed from outside the options window (/sdi): the window, when open, shows them.
+local function settingsChanged()
+  if type(ns.OptionsChanged) == "function" then ns.OptionsChanged() end
+end
+
+-- For Options.lua: the live settings table (loadSettings replaces it), a checked write, and
+-- a reset. Both writes refresh the buttons.
+ns.DEFAULTS, ns.SIZE_MIN, ns.SIZE_MAX = DEFAULTS, SIZE_MIN, SIZE_MAX
+function ns.GetSettings() return db end
+
+function ns.SetSetting(key, value)
+  if not validSetting(key, value) then return false end
+  if key == "size" then value = math.floor(value + 0.5) end
+  db[key] = value
+  requestUpdate()
+  return true
+end
+
+function ns.ResetSettings()
+  for k, v in pairs(DEFAULTS) do db[k] = v end
+  requestUpdate()
+end
+
 local function slash(msg)
   msg = type(msg) == "string" and msg:lower() or ""
   local cmd, arg = msg:match("^%s*(%S*)%s*(%S*)")
+  if (cmd == "" or cmd == "options" or cmd == "config") and type(ns.OpenOptions) == "function" then
+    ns.OpenOptions()
+    return
+  end
   if cmd == "" or cmd == "help" or cmd == "hilfe" then
     for _, line in ipairs(L.HELP) do say(line) end
     return
@@ -534,6 +594,7 @@ local function slash(msg)
   say(string.format(L.STATUS, onOff(db.estimate), db.button, onOff(db.tooltip), onOff(db.reduction), db.size,
     db.position))
   requestUpdate()
+  settingsChanged()
 end
 
 SLASH_SPELLDAMAGEINFO1 = "/sdi"
