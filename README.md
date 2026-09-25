@@ -7,6 +7,6 @@ A World of Warcraft addon for WoW: Forever and Classic Era. It puts the damage (
 
 The pet bar shows the pet's spells too (the Imp's Firebolt, for example), with the numbers from the description only, since the pet has its own spell power.
 
-**Install:** unzip `SpellDamageInfo-0.4.0.zip` into `Interface\AddOns` of your game folder (`_classic_beta_` for Forever, `_classic_era_` for Classic Era), then restart the game: a new addon folder is only picked up at start. Type `/sdi` (or open Options > AddOns > SpellDamageInfo) for the settings window, with a live preview of the numbers on a sample button; `/sdi help` lists the commands, such as the size (`/sdi size 50-200`) and place (`/sdi position bottom|center|top`) of the numbers.
+**Install:** unzip `SpellDamageInfo-0.4.1.zip` into `Interface\AddOns` of your game folder (`_classic_beta_` for Forever, `_classic_era_` for Classic Era), then restart the game: a new addon folder is only picked up at start. Type `/sdi` (or open Options > AddOns > SpellDamageInfo) for the settings window, with a live preview of the numbers on a sample button; `/sdi help` lists the commands, such as the size (`/sdi size 50-200`) and place (`/sdi position bottom|center|top`) of the numbers.
 
 Inspired by DrDamage by Gagorian. The options window is adapted from DoesItDie by Joe Greive (MIT). Licence: MIT (see `LICENSE`).
