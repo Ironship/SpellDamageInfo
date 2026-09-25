@@ -51,11 +51,24 @@ local function getDescription(spellID)
   return text
 end
 
+local loadRequested = {} -- [spellID] = true once the client was asked to load the spell's text
+
+local function requestLoad(spellID)
+  if loadRequested[spellID] then return end
+  loadRequested[spellID] = true
+  if C_Spell and type(C_Spell.RequestLoadSpellData) == "function" then
+    pcall(C_Spell.RequestLoadSpellData, spellID)
+  end
+end
+
 local function getEntry(spellID)
   local entry = parsedCache[spellID]
   if entry then return entry end
   local text = getDescription(spellID)
-  if not text then return nil end -- not loaded yet; SPELL_TEXT_UPDATE will ask again
+  if not text then -- not loaded yet; SPELL_TEXT_UPDATE will ask again
+    requestLoad(spellID)
+    return nil
+  end
   entry = {
     parsed = Parser.Parse(text, ns.lang) or false,
     reduction = Parser.ParseReduction(text, ns.lang) or false,
@@ -102,11 +115,12 @@ local function readBonus()
   end
 end
 
--- What to show for a spell: the view from Estimate.Apply, or nil.
-function ns.Compute(spellID)
+-- What to show for a spell: the view from Estimate.Apply, or nil. A pet's spell gets the
+-- description's numbers only: the pet has its own spell power, and the player's would be wrong.
+function ns.Compute(spellID, pet)
   local parsed = getParsed(spellID)
   if not parsed then return nil end
-  if not db.estimate then return Estimate.Apply(parsed, nil, nil, nil) end
+  if pet or not db.estimate then return Estimate.Apply(parsed, nil, nil, nil) end
   local castTime = getCastTime(spellID)
   return Estimate.Apply(parsed, castTime, Estimate.DamageBonus(parsed.school, bonus.damage), bonus.heal)
 end
@@ -153,6 +167,42 @@ local function collectButtons()
       if type(b) == "table" and not seen[b] and type(b.CreateFontString) == "function" then
         seen[b] = true
         buttons[#buttons + 1] = b
+      end
+    end
+  end
+end
+
+-- The pet bar: PetActionButton1..10 on Classic Era and Forever (Forever's bar frame is
+-- PetActionBar, as on Retail, and lists its buttons in actionButtons). [button] = pet action slot.
+local petButtons = {}
+local petSlots = {}
+
+local function readID(button)
+  if type(button.GetID) ~= "function" then return nil end
+  local ok, id = pcall(button.GetID, button)
+  if ok and not isSecret(id) and type(id) == "number" and id >= 1 then return id end
+  return nil
+end
+
+local function collectPetButtons()
+  local main = {}
+  for _, b in ipairs(buttons) do main[b] = true end
+  local function add(b, slot)
+    if type(b) == "table" and not petSlots[b] and not main[b] and type(b.CreateFontString) == "function" and slot then
+      petSlots[b] = slot
+      petButtons[#petButtons + 1] = b
+    end
+  end
+  local n = NUM_PET_ACTION_SLOTS
+  if isSecret(n) or type(n) ~= "number" or n < 1 or n > 20 then n = 10 end
+  for i = 1, n do
+    local b = _G["PetActionButton" .. i]
+    if type(b) == "table" then add(b, readID(b) or i) end
+  end
+  for _, bar in ipairs({ PetActionBar, PetActionBarFrame }) do
+    if type(bar) == "table" and type(bar.actionButtons) == "table" then
+      for i, b in ipairs(bar.actionButtons) do
+        if type(b) == "table" then add(b, readID(b) or i) end
       end
     end
   end
@@ -280,12 +330,25 @@ local function spellOnSlot(slot)
   return nil
 end
 
-local function updateButton(button)
+-- The spell on a pet action slot, or nil for an empty slot, a command (Attack, Follow, Stay and
+-- the stances are tokens) or anything the client hides. GetPetActionInfo returns name, texture,
+-- isToken, isActive, autoCastAllowed, autoCastEnabled, spellID.
+local function petSpellOnSlot(slot)
+  if isSecret(slot) or type(slot) ~= "number" or type(GetPetActionInfo) ~= "function" then return nil end
+  local ok, name, _, isToken, _, _, _, spellID = pcall(GetPetActionInfo, slot)
+  if not ok or isSecret(name) or name == nil or isSecret(isToken) or isToken then return nil end
+  if isSecret(spellID) or type(spellID) ~= "number" or spellID <= 0 then return nil end
+  return spellID
+end
+ns.PetSpellOnSlot = petSpellOnSlot
+
+local function updateButton(button, pet)
   local value, kind, reduction
   if db.button ~= "off" then
-    local spellID = spellOnSlot(button.action)
+    local spellID
+    if pet then spellID = petSpellOnSlot(petSlots[button]) else spellID = spellOnSlot(button.action) end
     if spellID then
-      value, kind = Estimate.ButtonValue(ns.Compute(spellID), db.button)
+      value, kind = Estimate.ButtonValue(ns.Compute(spellID, pet), db.button)
       if db.reduction then reduction = ns.Reduction(spellID) end
     end
   end
@@ -310,7 +373,7 @@ local function updateButton(button)
     return
   end
   local fs = getLabel(button)
-  placeMain(fs, button, hasCount(button.action))
+  placeMain(fs, button, not pet and hasCount(button.action))
   setFont(fs, fontSize(button, 1))
   fs:SetTextColor(mainColor[1], mainColor[2], mainColor[3])
   fs:SetText(mainText)
@@ -331,7 +394,8 @@ local function updateButton(button)
 end
 
 local function updateAllButtons()
-  for _, b in ipairs(buttons) do updateButton(b) end
+  for _, b in ipairs(buttons) do updateButton(b, false) end
+  for _, b in ipairs(petButtons) do updateButton(b, true) end
 end
 
 local pending = false
@@ -351,27 +415,80 @@ end
 -- Tooltip
 ---------------------------------------------------------------------------------------------
 
-local function addTooltipLines(tooltip, spellID)
-  if not db.tooltip or isSecret(spellID) or type(spellID) ~= "number" then return end
-  local lines = Format.TooltipLines(ns.Compute(spellID), L)
+-- Adds our lines; returns how many. A pet's spell says so at the end of each line.
+local function addTooltipLines(tooltip, spellID, pet)
+  if not db.tooltip or isSecret(spellID) or type(spellID) ~= "number" then return 0 end
+  local lines = Format.TooltipLines(ns.Compute(spellID, pet), L)
   if db.reduction then
     local reduction = ns.Reduction(spellID)
     if reduction then lines[#lines + 1] = Format.ReductionLine(reduction, L) end
   end
-  for _, line in ipairs(lines) do tooltip:AddLine(line[1], line[2], line[3], line[4]) end
+  for _, line in ipairs(lines) do
+    local text = pet and (line[1] .. " (" .. L.PET .. ")") or line[1]
+    tooltip:AddLine(text, line[2], line[3], line[4])
+  end
+  return #lines
 end
 ns.AddTooltipLines = addTooltipLines
 
+-- The pet action slot of the button a tooltip belongs to, or nil.
+local function ownerPetSlot(tooltip)
+  if type(tooltip.GetOwner) ~= "function" then return nil end
+  local ok, owner = pcall(tooltip.GetOwner, tooltip)
+  if ok and type(owner) == "table" then return petSlots[owner] end
+  return nil
+end
+
+-- A pet action tooltip can reach us twice: through a tooltip data post-call (on clients that
+-- build tooltips from data, and again when the tooltip refreshes) and through the SetPetAction
+-- hook right after it. The post-call marks the tooltip so the hook does not add the lines again.
+local petLinesDone = {} -- [tooltip] = true
+
+local function addPetLines(tooltip, slot)
+  return addTooltipLines(tooltip, petSpellOnSlot(slot), true)
+end
+
 local function hookTooltips()
-  if type(TooltipDataProcessor) == "table" and type(TooltipDataProcessor.AddTooltipPostCall) == "function"
-    and type(Enum) == "table" and type(Enum.TooltipDataType) == "table" and Enum.TooltipDataType.Spell then
+  local postCalls = type(TooltipDataProcessor) == "table" and type(TooltipDataProcessor.AddTooltipPostCall) == "function"
+    and type(Enum) == "table" and type(Enum.TooltipDataType) == "table"
+  if postCalls and Enum.TooltipDataType.Spell then
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Spell, function(tooltip, data)
-      if type(data) == "table" then addTooltipLines(tooltip, data.id) end
+      local slot = ownerPetSlot(tooltip)
+      if slot then
+        addPetLines(tooltip, slot)
+        petLinesDone[tooltip] = true
+      elseif type(data) == "table" then
+        addTooltipLines(tooltip, data.id, false)
+      end
     end)
   elseif GameTooltip and type(GameTooltip.HookScript) == "function" then
     GameTooltip:HookScript("OnTooltipSetSpell", function(tooltip)
+      if ownerPetSlot(tooltip) then return end -- the SetPetAction hook below handles it
       local _, spellID = tooltip:GetSpell()
-      addTooltipLines(tooltip, spellID)
+      addTooltipLines(tooltip, spellID, false)
+    end)
+  end
+  if postCalls and Enum.TooltipDataType.PetAction and Enum.TooltipDataType.PetAction ~= Enum.TooltipDataType.Spell then
+    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.PetAction, function(tooltip)
+      local slot = ownerPetSlot(tooltip)
+      if slot then
+        addPetLines(tooltip, slot)
+        petLinesDone[tooltip] = true
+      end
+    end)
+  end
+  if type(hooksecurefunc) == "function" and GameTooltip and type(GameTooltip.SetPetAction) == "function" then
+    if type(GameTooltip.HookScript) == "function" then
+      -- SetPetAction clears the tooltip before the post-calls run, so a mark left by an earlier
+      -- tooltip is gone by then
+      pcall(GameTooltip.HookScript, GameTooltip, "OnTooltipCleared", function(tooltip) petLinesDone[tooltip] = nil end)
+    end
+    hooksecurefunc(GameTooltip, "SetPetAction", function(tooltip, slot)
+      if petLinesDone[tooltip] then
+        petLinesDone[tooltip] = nil
+        return
+      end
+      if addPetLines(tooltip, slot) > 0 and type(tooltip.Show) == "function" then tooltip:Show() end
     end)
   end
 end
@@ -450,7 +567,7 @@ local frame = CreateFrame("Frame")
 
 local UPDATE_EVENTS = {
   "ACTIONBAR_SLOT_CHANGED", "ACTIONBAR_PAGE_CHANGED", "UPDATE_BONUS_ACTIONBAR", "UPDATE_SHAPESHIFT_FORM",
-  "PLAYER_EQUIPMENT_CHANGED", "PLAYER_REGEN_ENABLED",
+  "PLAYER_EQUIPMENT_CHANGED", "PLAYER_REGEN_ENABLED", "PET_BAR_UPDATE", "PET_BAR_UPDATE_USABLE",
 }
 local RESET_EVENTS = { "SPELLS_CHANGED", "CHARACTER_POINTS_CHANGED", "PLAYER_TALENT_UPDATE" }
 
@@ -469,22 +586,33 @@ frame:SetScript("OnEvent", function(_, event, arg1)
     if arg1 == ADDON then loadSettings() end
   elseif event == "PLAYER_LOGIN" then
     collectButtons()
+    collectPetButtons()
     hookTooltips()
     for _, e in ipairs(UPDATE_EVENTS) do register(e) end
     for _, e in ipairs(RESET_EVENTS) do register(e) end
     register("SPELL_TEXT_UPDATE")
-    if type(frame.RegisterUnitEvent) == "function" then
-      pcall(frame.RegisterUnitEvent, frame, "UNIT_AURA", "player")
-    else
-      register("UNIT_AURA")
+    for _, e in ipairs({ "UNIT_AURA", "UNIT_PET" }) do
+      if type(frame.RegisterUnitEvent) == "function" then
+        pcall(frame.RegisterUnitEvent, frame, e, "player")
+      else
+        register(e)
+      end
+    end
+    for _, bar in ipairs({ PetActionBar, PetActionBarFrame }) do
+      if type(bar) == "table" and type(bar.HookScript) == "function" then
+        pcall(bar.HookScript, bar, "OnShow", requestUpdate)
+      end
     end
     readBonus()
     requestUpdate()
   elseif event == "SPELL_TEXT_UPDATE" then
     if not isSecret(arg1) and type(arg1) == "number" then parsedCache[arg1] = nil end
     requestUpdate()
-  elseif event == "UNIT_AURA" then
+  elseif event == "UNIT_AURA" or event == "UNIT_PET" then
     if not isSecret(arg1) and arg1 == "player" then requestUpdate() end
+  elseif event == "PET_BAR_UPDATE" then
+    collectPetButtons()
+    requestUpdate()
   else
     if isReset[event] then clearCache() end
     requestUpdate()
@@ -493,4 +621,5 @@ end)
 
 -- For the tests.
 ns._buttons, ns._labels, ns._sideLabels, ns._bonus = buttons, labels, sideLabels, bonus
+ns._petButtons, ns._petSlots = petButtons, petSlots
 ns._settings = function() return db end

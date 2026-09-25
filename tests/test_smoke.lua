@@ -33,8 +33,9 @@ local KNOWN_EVENTS = {
   ADDON_LOADED = true, PLAYER_LOGIN = true, ACTIONBAR_SLOT_CHANGED = true, ACTIONBAR_PAGE_CHANGED = true,
   UPDATE_BONUS_ACTIONBAR = true, UPDATE_SHAPESHIFT_FORM = true, PLAYER_EQUIPMENT_CHANGED = true,
   PLAYER_REGEN_ENABLED = true, SPELLS_CHANGED = true, CHARACTER_POINTS_CHANGED = true,
-  SPELL_TEXT_UPDATE = true, UNIT_AURA = true,
-  -- PLAYER_TALENT_UPDATE is left out on purpose: registering it must not break loading
+  SPELL_TEXT_UPDATE = true, UNIT_AURA = true, PET_BAR_UPDATE = true, UNIT_PET = true,
+  -- PLAYER_TALENT_UPDATE and PET_BAR_UPDATE_USABLE are left out on purpose: registering an
+  -- event the client does not know must not break loading
 }
 
 local eventFrames = {}
@@ -65,6 +66,8 @@ local function newFrame()
     self.events[e] = unit
   end
   function f:SetScript(name, fn) self.scripts[name] = fn end
+  function f:HookScript(name, fn) self.scripts[name] = fn end
+  function f:GetID() return self.id or 0 end
   function f:GetHeight() return self.height or 36 end
   function f:GetWidth() return self.height or 36 end
   function f:CreateFontString(_, _, template)
@@ -112,9 +115,12 @@ local descriptions = {
   [702] = "Der vom Ziel verursachte Schaden wird 2 Min. lang um 3 reduziert. Es kann immer nur jeweils ein Fluch pro Hexenmeister auf einem beliebigen Ziel aktiv sein.",
   [24579] = "Ein Ziel erleidet 26 bis 46 Schaden, zusätzlich erfahren alle feindlichen Ziele in Nahkampfreichweite eine Reduzierung ihrer Nahkampfangriffskraft um 100. Dieser Effekt hält 4 Sek. lang an.",
   [90001] = "Verursacht 120 Schattenschaden und verringert den vom Ziel verursachten Schaden um 12,5%.",
+  -- the Imp's Firebolt, rank 1, as the owner's German Forever client shows it
+  [3110] = "F\195\188gt dem Ziel 3 bis 6 Feuerschaden zu.",
+  [7799] = "F\195\188gt dem Ziel 7 bis 10 Feuerschaden zu.", -- rank 2, after the pet levels
 }
 local castTimes = { [172] = 2000, [686] = 3000, [348] = 2000, [5138] = 0, [689] = 0, [755] = 0, [999] = 1500,
-  [702] = 0, [24579] = 0, [90001] = 0 }
+  [702] = 0, [24579] = 0, [90001] = 0, [3110] = 2000, [7799] = 2000 }
 
 C_Spell = {
   GetSpellDescription = function(id) return descriptions[id] end,
@@ -152,8 +158,58 @@ end
 ActionButton12.action = 130 -- holds a spell whose id reads as secret
 MultiBar5Button1.action = SECRET
 
+-- The pet bar as Forever has it: PetActionButton1..10, also listed in PetActionBar.actionButtons.
+-- GetPetActionInfo(slot): name, texture, isToken, isActive, autoCastAllowed, autoCastEnabled, spellID
+NUM_PET_ACTION_SLOTS = 10
+PetActionBar = newFrame()
+PetActionBar.actionButtons = {}
+for i = 1, 10 do
+  local b = newFrame()
+  b.id, b.name, b.height = i, "PetActionButton" .. i, 30
+  _G["PetActionButton" .. i] = b
+  PetActionBar.actionButtons[i] = b
+end
+local petActions = {
+  [1] = { "PET_ACTION_ATTACK", 132152, true, false, false, false, nil }, -- a command
+  [2] = nil,                                                           -- empty slot
+  [3] = { "Feuerblitz", 135809, false, false, true, true, 3110 },
+  [4] = { "Feuerblitz", 135809, false, false, true, true, SECRET },    -- secret spell id
+  [5] = { "Blutpakt", 136168, SECRET, false, false, false, 6307 },     -- secret token flag
+  [6] = { "Feuerschild", 135806, false, false, false, false, 2947 },   -- no description text
+  [7] = { "PET_MODE_DEFENSIVE", 132110, true, true, false, false, 3110 }, -- a token carrying an id
+}
+function GetPetActionInfo(slot)
+  local a = petActions[slot]
+  if a then return a[1], a[2], a[3], a[4], a[5], a[6], a[7] end
+end
+
+-- GameTooltip for the pet action hooks. dataDriven: SetPetAction runs the PetAction post-call
+-- itself, as on clients that build tooltips from data; otherwise it only fills the tooltip.
 local postCalls = {}
-Enum = { TooltipDataType = { Spell = 1, Item = 0 } }
+local function runPostCalls(kind, tooltip, data)
+  for _, p in ipairs(postCalls) do if p.kind == kind then p.fn(tooltip, data) end end
+end
+GameTooltip = { lines = {}, scripts = {}, shows = 0, dataDriven = true }
+function GameTooltip:AddLine(t) self.lines[#self.lines + 1] = t end
+function GameTooltip:Show() self.shows = self.shows + 1 end
+function GameTooltip:GetOwner() return self.owner end
+function GameTooltip:HookScript(name, fn) self.scripts[name] = fn end
+function GameTooltip:SetPetAction(slot)
+  self.lines = { "blizzard text" }
+  if self.scripts.OnTooltipCleared then self.scripts.OnTooltipCleared(self) end
+  if self.dataDriven then runPostCalls(Enum.TooltipDataType.PetAction, self, { id = slot, type = 11 }) end
+  return true
+end
+function hooksecurefunc(t, key, fn)
+  local orig = t[key]
+  t[key] = function(...)
+    local r = orig(...)
+    fn(...)
+    return r
+  end
+end
+
+Enum = { TooltipDataType = { Spell = 1, Item = 0, PetAction = 11 } }
 TooltipDataProcessor = { AddTooltipPostCall = function(kind, fn) postCalls[#postCalls + 1] = { kind = kind, fn = fn } end }
 NumberFontNormalSmall = {}
 NumberFontNormal = { GetFont = function() return "Fonts\\ARIALN.TTF", 14, "OUTLINE" end }
@@ -254,8 +310,27 @@ T.eq(shown(ActionButton11), "163", "damage 120 + 100 x 1.5/3.5 wins over a long 
 T.check(not (ns._sideLabels[ActionButton11] and ns._sideLabels[ActionButton11].shown), "-12,5% does not fit next to it")
 T.eq(ns._sideLabels[ActionButton1], nil, "no side label where there is no reduction")
 
+-- Pet bar: the description's numbers, no spell power estimate (fire power is 50, which would
+-- make Firebolt 4.5 + 50 x 2/3.5 = 33)
+T.eq(#(ns._petButtons or {}), 10, "found the ten pet buttons once, though PetActionBar lists them too")
+T.eq(shown(PetActionButton3), "5", "Imp's Firebolt: 3-6 fire, average 4.5, no estimate")
+T.check(label(PetActionButton3) ~= nil and label(PetActionButton3).color[1] == 1 and label(PetActionButton3).color[2] > 0.5,
+  "pet damage in the damage colour")
+T.eq(font(PetActionButton3).size, 14, "pet button number sized like the other 30 px buttons")
+T.eq(anchor(label(PetActionButton3)), "BOTTOM", "pet number bottom centre")
+T.check(label(PetActionButton3) ~= nil and label(PetActionButton3).parent == PetActionButton3
+  and label(PetActionButton3).points[1][2] == PetActionButton3, "pet label is a child of its button and anchored to it")
+T.eq(shown(PetActionButton1), nil, "Attack command: no number")
+T.eq(shown(PetActionButton2), nil, "empty pet slot: no number")
+T.eq(shown(PetActionButton4), nil, "secret pet spell id: no number, no error")
+T.eq(shown(PetActionButton5), nil, "secret token flag: no number, no error")
+T.eq(shown(PetActionButton6), nil, "pet spell without text: no number")
+T.eq(shown(PetActionButton7), nil, "a stance token is skipped even when it carries a spell id")
+T.eq(ns._labels[PetActionButton1], nil, "no label made on a command slot")
+
 -- Tooltip
-T.check(#postCalls == 1 and postCalls[1].kind == Enum.TooltipDataType.Spell, "one spell tooltip post-call")
+T.check(#postCalls == 2 and postCalls[1].kind == Enum.TooltipDataType.Spell
+  and postCalls[2].kind == Enum.TooltipDataType.PetAction, "spell and pet action tooltip post-calls")
 local tip = { lines = {} }
 function tip:AddLine(t) self.lines[#self.lines + 1] = t end
 postCalls[1].fn(tip, { id = 172, type = 1 })
@@ -277,6 +352,51 @@ T.eq(tip.lines[2], "Schaden des Gegners: -12,5%", "tooltip: percent reduction in
 tip.lines = {}
 postCalls[1].fn(tip, { id = SECRET, type = 1 })
 T.eq(#tip.lines, 0, "secret tooltip id: nothing added, no error")
+
+-- Pet action tooltip, built from data: the post-call adds the line, the hook does not repeat it
+local PET_LINE = "Schaden: 3-6 (Begleiter)"
+GameTooltip.owner = PetActionButton3
+ok, err = pcall(GameTooltip.SetPetAction, GameTooltip, 3)
+T.check(ok, "SetPetAction runs: " .. tostring(err))
+T.eq(GameTooltip.lines[2], PET_LINE, "pet tooltip: Firebolt 3-6, no estimate, says pet")
+T.eq(#GameTooltip.lines, 2, "pet tooltip: the line is added once")
+-- the tooltip refreshing (post-call alone) and then shown again
+runPostCalls(Enum.TooltipDataType.PetAction, GameTooltip, { id = 3, type = 11 })
+T.eq(#GameTooltip.lines, 3, "a refresh adds the line to the refreshed text")
+GameTooltip:SetPetAction(3)
+T.eq(#GameTooltip.lines, 2, "shown again after a refresh: still once")
+-- a refresh, then the tooltip of a pet bar the addon does not know: the refresh's mark must not
+-- stop the hook
+runPostCalls(Enum.TooltipDataType.PetAction, GameTooltip, { id = 3, type = 11 })
+GameTooltip.owner = nil
+GameTooltip:SetPetAction(3)
+T.eq(GameTooltip.lines[2], PET_LINE, "unknown owner after a refresh: the hook adds the line")
+T.eq(#GameTooltip.lines, 2, "unknown owner after a refresh: once")
+GameTooltip.owner = PetActionButton3
+-- a client that fills the tooltip without the data post-call: the SetPetAction hook adds it
+GameTooltip.dataDriven = false
+local shows = GameTooltip.shows
+GameTooltip:SetPetAction(3)
+T.eq(GameTooltip.lines[2], PET_LINE, "SetPetAction hook: pet line")
+T.eq(#GameTooltip.lines, 2, "SetPetAction hook: once")
+T.eq(GameTooltip.shows, shows + 1, "SetPetAction hook resizes the tooltip")
+GameTooltip.owner = nil -- a pet bar of another addon: the slot from the call is enough
+GameTooltip:SetPetAction(3)
+T.eq(GameTooltip.lines[2], PET_LINE, "SetPetAction hook works without a known owner")
+for _, slot in ipairs({ 1, 2, 4, 5, 7, SECRET }) do
+  ok, err = pcall(GameTooltip.SetPetAction, GameTooltip, slot)
+  T.check(ok and #GameTooltip.lines == 1, "pet slot " .. (rawequal(slot, SECRET) and "secret" or tostring(slot))
+    .. ": nothing added, no error " .. tostring(err))
+end
+GameTooltip.dataDriven = true
+-- a client that reports a pet spell as a Spell tooltip: still the pet's line, without estimate
+tip = { lines = {}, GetOwner = function() return PetActionButton3 end }
+function tip:AddLine(t) self.lines[#self.lines + 1] = t end
+postCalls[1].fn(tip, { id = 3110, type = 1 })
+T.eq(tip.lines[1], PET_LINE, "Spell tooltip on a pet button: pet line")
+T.eq(#tip.lines, 1, "Spell tooltip on a pet button: one line")
+tip = { lines = {} }
+function tip:AddLine(t) self.lines[#self.lines + 1] = t end
 
 -- Spell power turns secret in combat: keep the last readable value
 spellPower[6] = SECRET
@@ -392,6 +512,29 @@ ActionButton1.action = 200 -- empty slot
 fire("ACTIONBAR_PAGE_CHANGED")
 flush()
 T.eq(shown(ActionButton1), nil, "empty slot hides the number")
+
+-- Pet bar changes: a new rank, a dismissed pet, a new summon, the bar being shown
+petActions[3] = { "Feuerblitz", 135809, false, false, true, true, 7799 }
+fire("PET_BAR_UPDATE")
+flush()
+T.eq(shown(PetActionButton3), "9", "PET_BAR_UPDATE: Firebolt rank 2 (7-10)")
+petActions[3] = nil
+fire("UNIT_PET", "target")
+flush()
+T.eq(shown(PetActionButton3), "9", "UNIT_PET for another unit is ignored")
+fire("UNIT_PET", "player")
+flush()
+T.eq(shown(PetActionButton3), nil, "UNIT_PET: pet dismissed, number gone")
+petActions[3] = { "Feuerblitz", 135809, false, false, true, true, 3110 }
+T.check(type(PetActionBar.scripts.OnShow) == "function", "hooked the pet bar's OnShow")
+if type(PetActionBar.scripts.OnShow) == "function" then PetActionBar.scripts.OnShow(PetActionBar) end
+flush()
+T.eq(shown(PetActionButton3), "5", "pet bar shown: numbers updated")
+SlashCmdList.SPELLDAMAGEINFO("button off")
+flush()
+T.eq(shown(PetActionButton3), nil, "button off hides the pet number too")
+SlashCmdList.SPELLDAMAGEINFO("button total")
+flush()
 
 -- Talents or new ranks re-read the text
 descriptions[686] = "Schleudert einen Schattenblitz auf den Feind, der 500 bis 600 Punkt(e) Schattenschaden verursacht."
