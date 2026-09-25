@@ -114,42 +114,4 @@ function Estimate.ButtonValue(view, mode)
   return nil
 end
 
----------------------------------------------------------------------------------------------
--- Weapon and attack power ability estimates (new in 0.5.0)
----------------------------------------------------------------------------------------------
-
--- Estimates damage from a weapon ability given player stats. Returns { direct = { min, max }, weapon_ability = true }
--- weaponDamage, attackPower, weaponSpeed: player stats (cached out-of-combat)
--- bonus: from parsed result (e.g., weapon_damage = 35 from "weapon damage plus 35")
-function Estimate.WeaponDamage(weaponDamage, attackPower, weaponSpeed, bonus)
-  if not weaponDamage or not weaponSpeed or not bonus then return nil end
-  -- Formula: weapon_avg_dmg + (AP/14) * speed + bonus
-  local apFactor = (attackPower or 0) / 14
-  local totalDamage = weaponDamage + apFactor * weaponSpeed + bonus
-  return { direct = { min = totalDamage, max = totalDamage }, weapon_ability = true }
-end
-
--- Estimates damage from an attack power buff. Returns a small note about AP value.
--- apAmount: from parsed result (e.g., ap_buff = 20 from "increases attack power by 20")
-function Estimate.APBuff(apAmount)
-  if not apAmount then return nil end
-  -- Just show the AP amount as flat damage (approximately ap/14 damage per hit)
-  local estimatedDamage = apAmount / 14
-  return { direct = { min = estimatedDamage, max = estimatedDamage }, weapon_ability = true, ap_bonus_amount = apAmount }
-end
-
--- Estimates damage from a next attack bonus. Returns direct damage.
--- bonus: from parsed result (e.g., next_attack_bonus = 157 from "increases melee damage by 157")
-function Estimate.NextAttackBonus(bonus)
-  if not bonus then return nil end
-  return { direct = { min = bonus, max = bonus }, weapon_ability = true }
-end
-
--- Estimates damage from an imbue or seal. Returns direct damage range.
--- min, max: from parsed result
-function Estimate.ImbueDamage(min, max)
-  if not min or not max then return nil end
-  return { direct = { min = min, max = max }, weapon_ability = true }
-end
-
 return Estimate

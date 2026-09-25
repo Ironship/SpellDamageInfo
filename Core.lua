@@ -12,10 +12,10 @@ local L, Parser, Estimate, Format = ns.L, ns.Parser, ns.Estimate, ns.Format
 local DEFAULTS = {
   estimate = true, button = "total", tooltip = true,
   reduction = true,     -- show by how much a debuff lowers the enemy's damage, in red
-  weapon = true,        -- show weapon abilities and attack power buffs
   size = 100,           -- button number size in percent of the default (SIZE_MIN..SIZE_MAX)
   position = "bottom",  -- where the number sits on the button: bottom, center or top
   interfaceLang = "auto",  -- interface language: "auto", "en", "de"
+  weapon = true,        -- potential damage of weapon abilities and attack power spells, in blue
 }
 local BUTTON_MODES = { total = true, direct = true, off = true }
 local POSITIONS = { bottom = true, center = true, top = true }
@@ -38,7 +38,8 @@ end
 -- Spell data
 ---------------------------------------------------------------------------------------------
 
--- [spellID] = { parsed = table or false, reduction = table or false }
+-- [spellID] = { parsed = table or false, reduction = table or false, weapon = table or false,
+--               text = the description }
 local parsedCache = {}
 
 local function clearCache()
@@ -74,6 +75,8 @@ local function getEntry(spellID)
   entry = {
     parsed = Parser.Parse(text, ns.DescriptionLang()) or false,
     reduction = Parser.ParseReduction(text, ns.DescriptionLang()) or false,
+    weapon = Parser.ParseWeapon(text, ns.DescriptionLang()) or false,
+    text = text,
   }
   parsedCache[spellID] = entry
   return entry
@@ -104,10 +107,6 @@ end
 -- return secret values; then the last value read out of combat stays in use.
 local bonus = { damage = {}, heal = nil }
 
--- Cached weapon stats: avg damage, speed, and attack power (main hand for melee, ranged for ranged).
--- Read out of combat; in combat, last cached value is used.
-local weaponStats = { damage = 0, speed = 1, attackPower = 0 }
-
 local function readBonus()
   if type(GetSpellBonusDamage) == "function" then
     for i = 2, 7 do
@@ -121,56 +120,70 @@ local function readBonus()
   end
 end
 
-local function readWeaponStats()
-  -- Main hand weapon average damage: (min + max) / 2
+-- The player's weapons, as the client reports them: the average hit (the character sheet's
+-- damage, which already holds attack power and form) and the time between swings, for the
+-- melee and the ranged weapon. WoW: Forever hides attack power in combat and these come from
+-- it, so in combat the last numbers read out of combat stay in use.
+local weaponStats = {}
+
+local function readWeapon()
   if type(UnitDamage) == "function" then
-    local ok, min, max, offhandMin, offhandMax = pcall(UnitDamage, "player")
-    if ok and not isSecret(min) and not isSecret(max) and type(min) == "number" and type(max) == "number" then
-      weaponStats.damage = (min + max) / 2
+    local ok, lo, hi = pcall(UnitDamage, "player")
+    if ok and not isSecret(lo) and not isSecret(hi) and type(lo) == "number" and type(hi) == "number" and hi > 0 then
+      weaponStats.melee = (lo + hi) / 2
     end
   end
-  -- Attack power
-  if type(UnitAttackPower) == "function" then
-    local ok, ap = pcall(UnitAttackPower, "player")
-    if ok and not isSecret(ap) and type(ap) == "number" then weaponStats.attackPower = ap end
-  end
-  -- Attack speed (in seconds)
   if type(UnitAttackSpeed) == "function" then
     local ok, speed = pcall(UnitAttackSpeed, "player")
-    if ok and not isSecret(speed) and type(speed) == "number" then weaponStats.speed = speed end
+    if ok and not isSecret(speed) and type(speed) == "number" and speed > 0 then weaponStats.meleeSpeed = speed end
+  end
+  if type(UnitRangedDamage) == "function" then
+    local ok, speed, lo, hi = pcall(UnitRangedDamage, "player")
+    if ok and not isSecret(speed) and not isSecret(lo) and not isSecret(hi) and type(speed) == "number"
+      and type(lo) == "number" and type(hi) == "number" and speed > 0 and hi > 0 then
+      weaponStats.ranged, weaponStats.rangedSpeed = (lo + hi) / 2, speed
+    end
   end
 end
 
--- What to show for a spell: the view from Estimate.Apply, or nil (for weapon abilities, specific estimate).
--- A pet's spell gets the description's numbers only: the pet has its own spell power, and the player's would be wrong.
+-- What a result of Parser.ParseWeapon is worth per hit with the weapon in stats ({ melee,
+-- meleeSpeed, ranged, rangedSpeed }): { value, hit, pct, bonus, bonusMax, ranged } for an attack,
+-- { gain, amount, speed, ranged, plusAgility } for attack power, or nil while a number it needs
+-- is not known. Classic's rule: 14 attack power add 1 damage for each second of weapon speed.
+-- Two things make it an estimate, and the tooltip says so: the speed is the one the client
+-- reports, which haste shortens, and instant attacks count attack power at a normalised weapon
+-- speed rather than the real one; either moves the number by a few percent. Cat Form's
+-- "plus Agility" is left out of the gain and named in the tooltip.
+function ns.WeaponView(w, stats)
+  if type(w) ~= "table" or type(stats) ~= "table" then return nil end
+  local hit = w.ranged and stats.ranged or stats.melee
+  local speed = w.ranged and stats.rangedSpeed or stats.meleeSpeed
+  if w.kind == "ap" then
+    if not speed then return nil end
+    return { gain = w.amount / 14 * speed, amount = w.amount, speed = speed, ranged = w.ranged, plusAgility = w.plusAgility }
+  end
+  if not hit then return nil end
+  local pct = w.pct or 100
+  local bonusAvg = w.bonusMax and (w.bonus + w.bonusMax) / 2 or w.bonus or 0
+  return { value = hit * pct / 100 + bonusAvg, hit = hit, pct = pct, bonus = w.bonus or 0, bonusMax = w.bonusMax,
+    ranged = w.ranged }
+end
+
+-- What to show for a spell: the view from Estimate.Apply, a weapon view ({ weapon = ... }), or
+-- nil. A pet's spell gets the description's numbers only: the pet has its own spell power, and
+-- the player's would be wrong; the player's weapon means nothing to it either.
 function ns.Compute(spellID, pet)
   local entry = getEntry(spellID)
   if not entry then return nil end
+  -- An ability the parser reads as a weapon attack is shown that way or not at all: the number
+  -- Parse finds in some of them ("causing 115 additional damage") is only the part on top.
+  if entry.weapon then
+    if pet or not db.weapon then return nil end
+    local w = ns.WeaponView(entry.weapon, weaponStats)
+    return w and { weapon = w } or nil
+  end
   local parsed = entry.parsed
   if not parsed then return nil end
-
-  -- Handle weapon ability estimates
-  if not db.weapon then
-    -- Weapon abilities disabled in settings
-    if parsed.weapon_damage or parsed.next_attack_bonus or parsed.ap_buff or parsed.imbue_seal then
-      return nil
-    end
-  end
-
-  if parsed.weapon_damage then
-    return Estimate.WeaponDamage(weaponStats.damage, weaponStats.attackPower, weaponStats.speed, parsed.weapon_damage)
-  end
-  if parsed.next_attack_bonus then
-    return Estimate.NextAttackBonus(parsed.next_attack_bonus)
-  end
-  if parsed.ap_buff then
-    return Estimate.APBuff(parsed.ap_buff)
-  end
-  if parsed.imbue_seal then
-    return Estimate.ImbueDamage(parsed.imbue_seal.min, parsed.imbue_seal.max)
-  end
-
-  -- Spell power abilities (existing path)
   if pet or not db.estimate then return Estimate.Apply(parsed, nil, nil, nil) end
   local castTime = getCastTime(spellID)
   return Estimate.Apply(parsed, castTime, Estimate.DamageBonus(parsed.school, bonus.damage), bonus.heal)
@@ -403,14 +416,21 @@ local function buttonText(view, reduction)
   if value and value < 0.5 then value = nil end
 
   local mainText, mainColor, sideText
-  if value then
-    mainText = Format.Short(value)
-    -- Determine color: weapon abilities get cyan, others use standard colors
-    if view.weapon_ability then
-      mainColor = Format.WEAPON_COLOR
-    else
-      mainColor = (kind == "heal") and Format.HEAL_COLOR or Format.DAMAGE_COLOR
+  local w = view and view.weapon
+  if w then
+    value = w.gain or w.value
+    if value and value < 0.5 then value = nil end
+  end
+  if value and w then
+    mainText = (w.gain and "+" or "") .. Format.Short(value)
+    mainColor = Format.WEAPON_COLOR
+    if reduction then
+      local t = Format.ReductionText(reduction, ns.L)
+      if #t <= SIDE_MAX_CHARS then sideText = t end
     end
+  elseif value then
+    mainText = Format.Short(value)
+    mainColor = (kind == "heal") and Format.HEAL_COLOR or Format.DAMAGE_COLOR
     if reduction then
       local t = Format.ReductionText(reduction, ns.L)
       if #t <= SIDE_MAX_CHARS then sideText = t end
@@ -452,6 +472,36 @@ end
 ns.DrawNumber = drawNumber
 ns.NewLabel = newLabel
 
+-- Spells on the bars that give no number at all, each kept once, so the player's own client
+-- can say which wordings are still not read (/sdi misses). Kept in the saved variables and
+-- capped; /sdi misses clear empties the list. Utility spells land here too, which is fine:
+-- the list is read by a person.
+local MISSES_MAX = 200
+local missSeen, missCount = {}, 0
+
+local function spellName(spellID)
+  local fn = (C_Spell and C_Spell.GetSpellName) or GetSpellInfo
+  if type(fn) ~= "function" then return nil end
+  local ok, name = pcall(fn, spellID)
+  if ok and not isSecret(name) and type(name) == "string" then return name end
+  return nil
+end
+
+local function noteMiss(spellID)
+  if missSeen[spellID] or missCount >= MISSES_MAX or type(db.misses) ~= "table" then return end
+  local entry = parsedCache[spellID]
+  if not entry or entry.parsed or entry.reduction or entry.weapon then return end
+  missSeen[spellID] = true
+  missCount = missCount + 1
+  local build
+  if type(GetBuildInfo) == "function" then
+    local ok, _, b = pcall(GetBuildInfo)
+    if ok and not isSecret(b) then build = b end
+  end
+  db.misses[#db.misses + 1] = { id = spellID, name = spellName(spellID), text = entry.text,
+    lang = ns.DescriptionLang(), build = build }
+end
+
 local function updateButton(button, pet)
   local view, reduction
   if db.button ~= "off" then
@@ -460,6 +510,7 @@ local function updateButton(button, pet)
     if spellID then
       view = ns.Compute(spellID, pet)
       if db.reduction then reduction = ns.Reduction(spellID) end
+      noteMiss(spellID)
     end
   end
   local mainText, mainColor, sideText = buttonText(view, reduction)
@@ -484,6 +535,7 @@ local function requestUpdate()
   local function run()
     pending = false
     readBonus()
+    readWeapon()
     updateAllButtons()
   end
   -- A short delay lets Blizzard's own handlers set button.action after a page change first.
@@ -637,6 +689,21 @@ local function slash(msg)
     for _, line in ipairs(L.HELP) do say(line) end
     return
   end
+  if cmd == "misses" then
+    if arg == "clear" then
+      db.misses = {}
+      missSeen, missCount = {}, 0
+      say(L.MISSES_CLEARED)
+      return
+    end
+    if #db.misses == 0 then say(L.MISSES_NONE) return end
+    say(string.format(L.MISSES_HEAD, #db.misses))
+    for _, m in ipairs(db.misses) do
+      local text = type(m.text) == "string" and m.text:gsub("[\r\n]+", " ") or "?"
+      say(tostring(m.id) .. " " .. tostring(m.name or "?") .. ": " .. text)
+    end
+    return
+  end
   if cmd == "estimate" or cmd == "tooltip" or cmd == "reduction" or cmd == "weapon" then
     local v = toggleArg(arg, db[cmd])
     if v == nil then say(L.BAD_ARG) return end
@@ -659,8 +726,8 @@ local function slash(msg)
     say(L.BAD_ARG)
     return
   end
-  say(string.format(L.STATUS, onOff(db.estimate), db.button, onOff(db.tooltip), onOff(db.reduction), onOff(db.weapon), db.size,
-    db.position, langLabel(db.interfaceLang)))
+  say(string.format(L.STATUS, onOff(db.estimate), db.button, onOff(db.tooltip), onOff(db.reduction), onOff(db.weapon),
+    db.size, db.position, langLabel(db.interfaceLang)))
   requestUpdate()
   settingsChanged()
 end
@@ -679,6 +746,18 @@ local function loadSettings()
   if type(db.tooltip) ~= "boolean" then db.tooltip = DEFAULTS.tooltip end
   if type(db.reduction) ~= "boolean" then db.reduction = DEFAULTS.reduction end
   if type(db.weapon) ~= "boolean" then db.weapon = DEFAULTS.weapon end
+  -- Not a setting: Reset leaves it alone. Rebuilt into the lookup noteMiss uses.
+  if type(db.misses) ~= "table" then db.misses = {} end
+  missSeen, missCount = {}, 0
+  for i = #db.misses, 1, -1 do
+    local m = db.misses[i]
+    if type(m) ~= "table" or type(m.id) ~= "number" or missSeen[m.id] then
+      table.remove(db.misses, i)
+    else
+      missSeen[m.id] = true
+      missCount = missCount + 1
+    end
+  end
   if not POSITIONS[db.position] then db.position = DEFAULTS.position end
   if db.interfaceLang ~= "auto" and db.interfaceLang ~= "en" and db.interfaceLang ~= "de" then
     db.interfaceLang = DEFAULTS.interfaceLang
@@ -728,7 +807,9 @@ frame:SetScript("OnEvent", function(_, event, arg1)
     for _, e in ipairs(UPDATE_EVENTS) do register(e) end
     for _, e in ipairs(RESET_EVENTS) do register(e) end
     register("SPELL_TEXT_UPDATE")
-    for _, e in ipairs({ "UNIT_AURA", "UNIT_PET" }) do
+    -- The weapon's numbers change with gear, forms and buffs; these say so for the player.
+    for _, e in ipairs({ "UNIT_AURA", "UNIT_PET", "UNIT_ATTACK_POWER", "UNIT_RANGED_ATTACK_POWER", "UNIT_DAMAGE",
+      "UNIT_ATTACK_SPEED", "UNIT_RANGEDDAMAGE" }) do
       if type(frame.RegisterUnitEvent) == "function" then
         pcall(frame.RegisterUnitEvent, frame, e, "player")
       else
@@ -741,19 +822,16 @@ frame:SetScript("OnEvent", function(_, event, arg1)
       end
     end
     readBonus()
-    readWeaponStats()
+    readWeapon()
     requestUpdate()
   elseif event == "SPELL_TEXT_UPDATE" then
     if not isSecret(arg1) and type(arg1) == "number" then parsedCache[arg1] = nil end
     requestUpdate()
-  elseif event == "UNIT_AURA" or event == "UNIT_PET" then
+  elseif event == "UNIT_AURA" or event == "UNIT_PET" or event == "UNIT_ATTACK_POWER" or event == "UNIT_RANGED_ATTACK_POWER"
+    or event == "UNIT_DAMAGE" or event == "UNIT_ATTACK_SPEED" or event == "UNIT_RANGEDDAMAGE" then
     if not isSecret(arg1) and arg1 == "player" then requestUpdate() end
   elseif event == "PET_BAR_UPDATE" then
     collectPetButtons()
-    requestUpdate()
-  elseif event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_EQUIPMENT_CHANGED" or event == "UPDATE_SHAPESHIFT_FORM" then
-    readBonus()
-    readWeaponStats()
     requestUpdate()
   else
     if isReset[event] then clearCache() end
@@ -765,3 +843,5 @@ end)
 ns._buttons, ns._labels, ns._sideLabels, ns._bonus = buttons, labels, sideLabels, bonus
 ns._petButtons, ns._petSlots = petButtons, petSlots
 ns._settings = function() return db end
+ns._weaponStats, ns._readWeapon = weaponStats, readWeapon
+ns._noteMiss, ns._parsedCache = noteMiss, parsedCache

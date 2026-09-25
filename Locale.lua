@@ -33,10 +33,24 @@ Locales.en = {
     "/sdi size 50-200 - size of the button numbers in percent (100 = default)",
     "/sdi position bottom|center|top - where the number sits on the button",
     "/sdi lang auto|en|de - addon interface language",
+    "/sdi weapon [on|off] - potential damage of weapon abilities and attack power buffs (blue)",
+    "/sdi misses [clear] - spells on your bars that give no number",
     "/sdi status - show the settings",
   },
   STATUS = "estimate: %s, button: %s, tooltip: %s, reduction: %s, weapon: %s, size: %d%%, position: %s, language: %s",
   BAD_ARG = "Unknown option. Type /sdi help for the commands.",
+  WEAPON_LINE = "Potential damage: about %s (%s, estimate)",
+  WEAPON_HIT = "weapon hit %s",
+  WEAPON_HIT_RANGED = "ranged hit %s",
+  WEAPON_PCT = "%s%% of %s",
+  WEAPON_PLUS = "%s + %s",
+  AP_LINE = "Attack power +%s%s: about +%s damage per hit (%s %s sec), estimate",
+  AP_PLUS_AGILITY = " plus Agility",
+  AP_WEAPON = "weapon",
+  AP_RANGED = "ranged weapon",
+  MISSES_NONE = "No spells without a number recorded.",
+  MISSES_HEAD = "%d spells on your bars give no number:",
+  MISSES_CLEARED = "List of spells without a number cleared.",
   LANG_AUTO = "Auto (game)",
   LANG_EN = "English",
   LANG_DE = "Deutsch",
@@ -44,11 +58,13 @@ Locales.en = {
   OPT_LANGUAGE = "Language",
   OPT_LANGUAGE_TIP = "Addon interface language: Auto follows the game language, or choose English or German.",
   OPT_PREVIEW = "Live preview",
-  OPT_PREVIEW_HINT = "Sample spells with 50 spell power, drawn by the same code as the numbers on your action bars.",
+  OPT_PREVIEW_HINT = "Sample spells with 50 spell power and a 2.6 sec weapon hitting for 120, drawn by the same code as the numbers on your action bars.",
   OPT_PREVIEW_OFF = "No numbers on the buttons.",
   OPT_SAMPLE_1 = "Immolate",
   OPT_SAMPLE_2 = "Screech",
   OPT_SAMPLE_3 = "Curse of Weakness",
+  OPT_SAMPLE_4 = "Heroic Strike",
+  OPT_SAMPLE_5 = "Rockbiter Weapon",
   OPT_BUTTON = "Number on buttons",
   OPT_BUTTON_TIP = "What the number on your action buttons shows: all the damage or healing (direct and over time), the direct part only, or nothing.",
   OPT_BUTTON_TOTAL = "Total",
@@ -67,6 +83,8 @@ Locales.en = {
   OPT_TOOLTIP_TIP = "Adds the damage and healing to the spell's tooltip.",
   OPT_REDUCTION = "Enemy damage reductions in red",
   OPT_REDUCTION_TIP = "Shows in red, on the button and in the tooltip, by how much a debuff such as Curse of Weakness lowers the enemy's damage or attack power.",
+  OPT_WEAPON = "Weapon abilities and attack power",
+  OPT_WEAPON_TIP = "Shows in blue what an ability that hits with your weapon, or a spell that raises attack power, is worth per hit: estimated from your weapon's average hit and speed, read out of combat.",
   OPT_RESET = "Reset to defaults",
   OPT_RESET_DONE = "Settings reset to defaults.",
   OPT_LANG_CHANGED = "Addon interface language changed. Type /reload to update the settings window's labels.",
@@ -100,10 +118,24 @@ Locales.de = {
     "/sdi size 50-200 - Gr\195\182\195\159e der Zahlen auf den Tasten in Prozent (100 = Standard)",
     "/sdi position bottom|center|top - wo die Zahl auf der Taste steht",
     "/sdi lang auto|en|de - Sprache der Addon-Oberfl\195\164che",
+    "/sdi weapon [on|off] - m\195\182glicher Schaden von Waffenf\195\164higkeiten und Angriffskraft-Buffs (blau)",
+    "/sdi misses [clear] - Zauber auf Euren Leisten, die keine Zahl ergeben",
     "/sdi status - Einstellungen anzeigen",
   },
-  STATUS = "Sch\195\164tzung: %s, Tasten: %s, Tooltip: %s, Schw\195\164chung: %s, Waffen: %s, Gr\195\182\195\159e: %d%%, Position: %s, Sprache: %s",
+  STATUS = "Sch\195\164tzung: %s, Tasten: %s, Tooltip: %s, Schw\195\164chung: %s, Waffe: %s, Gr\195\182\195\159e: %d%%, Position: %s, Sprache: %s",
   BAD_ARG = "Unbekannte Option. /sdi help zeigt die Befehle.",
+  WEAPON_LINE = "M\195\182glicher Schaden: etwa %s (%s, gesch\195\164tzt)",
+  WEAPON_HIT = "Waffentreffer %s",
+  WEAPON_HIT_RANGED = "Distanztreffer %s",
+  WEAPON_PCT = "%s %% von %s",
+  WEAPON_PLUS = "%s + %s",
+  AP_LINE = "Angriffskraft +%s%s: etwa +%s Schaden pro Treffer (%s %s Sek.), gesch\195\164tzt",
+  AP_PLUS_AGILITY = " plus Beweglichkeit",
+  AP_WEAPON = "Waffe",
+  AP_RANGED = "Distanzwaffe",
+  MISSES_NONE = "Keine Zauber ohne Zahl erfasst.",
+  MISSES_HEAD = "%d Zauber auf Euren Leisten ergeben keine Zahl:",
+  MISSES_CLEARED = "Liste der Zauber ohne Zahl geleert.",
   LANG_AUTO = "Auto (Spiel)",
   LANG_EN = "English",
   LANG_DE = "Deutsch",
@@ -111,11 +143,13 @@ Locales.de = {
   OPT_LANGUAGE = "Sprache",
   OPT_LANGUAGE_TIP = "Sprache der Addon-Oberfl\195\164che: Auto folgt der Spielsprache, oder w\195\164hlt English oder Deutsch.",
   OPT_PREVIEW = "Vorschau",
-  OPT_PREVIEW_HINT = "Beispielzauber mit 50 Zaubermacht, gezeichnet vom selben Code wie die Zahlen auf Euren Aktionsleisten.",
+  OPT_PREVIEW_HINT = "Beispielzauber mit 50 Zaubermacht und einer 2,6-Sek.-Waffe mit 120 Schaden pro Treffer, gezeichnet vom selben Code wie die Zahlen auf Euren Aktionsleisten.",
   OPT_PREVIEW_OFF = "Keine Zahlen auf den Tasten.",
   OPT_SAMPLE_1 = "Feuerbrand",
   OPT_SAMPLE_2 = "Kreischen",
   OPT_SAMPLE_3 = "Fluch der Schw\195\164che",
+  OPT_SAMPLE_4 = "Heldenhafter Sto\195\159",
+  OPT_SAMPLE_5 = "Waffe des Felsbei\195\159ers",
   OPT_BUTTON = "Zahl auf den Tasten",
   OPT_BUTTON_TIP = "Was die Zahl auf den Aktionstasten zeigt: den ganzen Schaden oder die ganze Heilung (direkt und \195\188ber Zeit), nur den direkten Teil oder nichts.",
   OPT_BUTTON_TOTAL = "Gesamt",
@@ -134,6 +168,8 @@ Locales.de = {
   OPT_TOOLTIP_TIP = "F\195\188gt dem Zauber-Tooltip Schaden und Heilung hinzu.",
   OPT_REDUCTION = "Schw\195\164chung des Gegners in Rot",
   OPT_REDUCTION_TIP = "Zeigt in Rot, auf der Taste und im Tooltip, um wie viel ein Schw\195\164chungszauber wie Fluch der Schw\195\164che den Schaden oder die Angriffskraft des Gegners senkt.",
+  OPT_WEAPON = "Waffenf\195\164higkeiten und Angriffskraft",
+  OPT_WEAPON_TIP = "Zeigt in Blau, was eine F\195\164higkeit mit Eurer Waffe oder ein Zauber, der die Angriffskraft erh\195\182ht, pro Treffer ausmacht: gesch\195\164tzt aus dem durchschnittlichen Treffer und dem Tempo Eurer Waffe, au\195\159erhalb des Kampfes gelesen.",
   OPT_RESET = "Standard wiederherstellen",
   OPT_RESET_DONE = "Einstellungen auf Standard zur\195\188ckgesetzt.",
   OPT_LANG_CHANGED = "Sprache der Addon-Oberfl\195\164che ge\195\164ndert. Gebt /reload ein, um die Beschriftungen des Einstellungsfensters zu aktualisieren.",
@@ -247,9 +283,11 @@ local function suffix(added, L)
 end
 
 local DAMAGE_COLOR = { 1, 0.82, 0.3 }
+-- Potential damage from the weapon and attack power: its own colour, because it is an estimate
+-- from the weapon's numbers rather than a figure the spell itself states.
+local WEAPON_COLOR = { 0.45, 0.85, 1 }
 local HEAL_COLOR = { 0.4, 1, 0.4 }
 local REDUCTION_COLOR = { 1, 0.25, 0.25 }
-local WEAPON_COLOR = { 0.7, 1, 1 }  -- cyan for weapon/AP abilities
 
 -- A reduction from Parser.ParseReduction as button text: "-3", "-146", "-10%", "-7.5%".
 -- L (optional) gives the decimal mark.
@@ -271,9 +309,33 @@ function Format.ReductionLine(r, L)
 end
 
 -- Tooltip lines for a view from Estimate.Apply: a list of { text, r, g, b }.
+-- The tooltip line for a weapon view from ns.WeaponView: { text, r, g, b }.
+--   "Potential damage: about 412 (225% of weapon hit 103 + 180, estimate)"
+--   "Attack power +554: about +103 damage per hit (weapon 2.6 sec), estimate"
+function Format.WeaponLine(w, L)
+  local c = WEAPON_COLOR
+  if w.gain then
+    local text = string.format(L.AP_LINE, Format.Thousands(w.amount, L), w.plusAgility and L.AP_PLUS_AGILITY or "",
+      Format.Thousands(w.gain, L), w.ranged and L.AP_RANGED or L.AP_WEAPON, Format.Seconds(w.speed, L))
+    return { text, c[1], c[2], c[3] }
+  end
+  local body = string.format(w.ranged and L.WEAPON_HIT_RANGED or L.WEAPON_HIT, Format.Thousands(w.hit, L))
+  if w.pct ~= 100 then body = string.format(L.WEAPON_PCT, Format.Thousands(w.pct, L), body) end
+  if w.bonusMax then
+    body = string.format(L.WEAPON_PLUS, body, Format.Thousands(w.bonus, L) .. "-" .. Format.Thousands(w.bonusMax, L))
+  elseif w.bonus > 0 then
+    body = string.format(L.WEAPON_PLUS, body, Format.Thousands(w.bonus, L))
+  end
+  return { string.format(L.WEAPON_LINE, Format.Thousands(w.value, L), body), c[1], c[2], c[3] }
+end
+
 function Format.TooltipLines(view, L)
   local lines = {}
   if not view then return lines end
+  if view.weapon then
+    lines[1] = Format.WeaponLine(view.weapon, L)
+    return lines
+  end
   local function add(label, body, added, color)
     lines[#lines + 1] = { label .. ": " .. body .. suffix(added, L), color[1], color[2], color[3] }
   end

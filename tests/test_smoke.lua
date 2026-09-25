@@ -34,6 +34,8 @@ local KNOWN_EVENTS = {
   UPDATE_BONUS_ACTIONBAR = true, UPDATE_SHAPESHIFT_FORM = true, PLAYER_EQUIPMENT_CHANGED = true,
   PLAYER_REGEN_ENABLED = true, SPELLS_CHANGED = true, CHARACTER_POINTS_CHANGED = true,
   SPELL_TEXT_UPDATE = true, UNIT_AURA = true, PET_BAR_UPDATE = true, UNIT_PET = true,
+  UNIT_ATTACK_POWER = true, UNIT_RANGED_ATTACK_POWER = true, UNIT_DAMAGE = true, UNIT_ATTACK_SPEED = true,
+  UNIT_RANGEDDAMAGE = true,
   -- PLAYER_TALENT_UPDATE and PET_BAR_UPDATE_USABLE are left out on purpose: registering an
   -- event the client does not know must not break loading
 }
@@ -239,12 +241,32 @@ local descriptions = {
   [3110] = "F\195\188gt dem Ziel 3 bis 6 Feuerschaden zu.",
   [7799] = "F\195\188gt dem Ziel 7 bis 10 Feuerschaden zu.", -- rank 2, after the pet levels
 }
+-- Four weapon abilities as the German client shows them, read from the weapon fixture (Wowhead
+-- Classic German): Heldenhafter Stoß r9 (next attack +157), Waffe des Felsbeißers r7 (+653
+-- attack power), Klaue r5 (115 on top of the normal hit), Gezielter Schuss r6 (ranged +600).
+local json = require("json")
+local weaponRows = json.decode(T.readFile("tests/fixtures/attack_power_weapon_damage.json"))
+local function weaponText(id)
+  for _, r in ipairs(weaponRows) do if r.id == id then return r.de_description end end
+  error("weapon fixture has no spell " .. id)
+end
+for _, id in ipairs({ 25286, 16316, 9850, 20904 }) do descriptions[id] = weaponText(id) end
+
+-- The player's weapons: a 2.6 sec melee weapon hitting for 100-140, a 3.0 sec bow for 150-170.
+local weapon = { lo = 100, hi = 140, speed = 2.6, rSpeed = 3.0, rLo = 150, rHi = 170 }
+function UnitDamage(unit) if unit == "player" then return weapon.lo, weapon.hi end end
+function UnitAttackSpeed(unit) if unit == "player" then return weapon.speed end end
+function UnitRangedDamage(unit) if unit == "player" then return weapon.rSpeed, weapon.rLo, weapon.rHi end end
+function GetBuildInfo() return "1.60.1", "70009", "Sep 23 2026", 16001 end
+local spellNames = { [5138] = "Mana entziehen" }
+
 local castTimes = { [172] = 2000, [686] = 3000, [348] = 2000, [5138] = 0, [689] = 0, [755] = 0, [999] = 1500,
   [702] = 0, [24579] = 0, [90001] = 0, [3110] = 2000, [7799] = 2000 }
 
 C_Spell = {
   GetSpellDescription = function(id) return descriptions[id] end,
   GetSpellInfo = function(id) return castTimes[id] and { castTime = castTimes[id], spellID = id } or nil end,
+  GetSpellName = function(id) return spellNames[id] end,
 }
 
 local spellPower = { [2] = 0, [3] = 50, [4] = 0, [5] = 0, [6] = 100, [7] = 0 }
@@ -256,6 +278,7 @@ local actions = {
   [5] = { "spell", 5138 }, [6] = { "spell", 689 }, [7] = { "spell", 755 }, [8] = { "spell", 999 },
   [9] = { "spell", 702 }, [10] = { "spell", 24579 }, [11] = { "spell", 90001 },
   [61] = { "spell", 172 }, [73] = { "spell", 686 }, [130] = { "spell", SECRET },
+  [62] = { "spell", 25286 }, [63] = { "spell", 16316 }, [64] = { "spell", 9850 }, [65] = { "spell", 20904 },
 }
 function GetActionInfo(slot) local a = actions[slot]; if a then return a[1], a[2] end end
 local counts = { [2] = 5, [3] = SECRET } -- a reagent count on Shadow Bolt's slot; a secret one on Immolate's
@@ -547,6 +570,99 @@ T.eq(#tip.lines, 1, "Spell tooltip on a pet button: one line")
 tip = { lines = {} }
 function tip:AddLine(t) self.lines[#self.lines + 1] = t end
 
+-- Weapon abilities and attack power: blue, from the weapon's average hit and speed
+local WEAPON = ns.Format.WEAPON_COLOR
+local function weaponColoured(button)
+  local fs = label(button)
+  return fs and fs.color[1] == WEAPON[1] and fs.color[2] == WEAPON[2] and fs.color[3] == WEAPON[3]
+end
+T.eq(shown(MultiBarBottomLeftButton2), "277", "Heldenhafter Stoß: average hit 120 + 157")
+T.check(weaponColoured(MultiBarBottomLeftButton2), "weapon numbers are blue")
+T.eq(shown(MultiBarBottomLeftButton3), "+121", "Waffe des Felsbeißers: 653 / 14 x 2.6 per hit")
+T.check(weaponColoured(MultiBarBottomLeftButton3), "attack power gain is blue")
+T.eq(shown(MultiBarBottomLeftButton4), "235", "Klaue: the normal hit 120 + 115, not the 115 alone")
+T.eq(shown(MultiBarBottomLeftButton5), "760", "Gezielter Schuss: ranged hit 160 + 600")
+tip.lines = {}
+postCalls[1].fn(tip, { id = 25286, type = 1 })
+T.eq(tip.lines[1], "Möglicher Schaden: etwa 277 (Waffentreffer 120 + 157, geschätzt)", "weapon tooltip line")
+tip.lines = {}
+postCalls[1].fn(tip, { id = 16316, type = 1 })
+T.eq(tip.lines[1], "Angriffskraft +653: etwa +121 Schaden pro Treffer (Waffe 2,6 Sek.), geschätzt",
+  "attack power tooltip line")
+tip.lines = {}
+postCalls[1].fn(tip, { id = 20904, type = 1 })
+T.eq(tip.lines[1], "Möglicher Schaden: etwa 760 (Distanztreffer 160 + 600, geschätzt)", "ranged tooltip line")
+
+-- In combat the weapon's numbers turn secret: the last ones read stay in use
+weapon.lo, weapon.hi, weapon.speed = SECRET, SECRET, SECRET
+weapon.rSpeed, weapon.rLo, weapon.rHi = SECRET, SECRET, SECRET
+ok, err = pcall(function() fire("UNIT_ATTACK_POWER", "player"); flush() end)
+T.check(ok, "secret weapon numbers do not error: " .. tostring(err))
+T.eq(shown(MultiBarBottomLeftButton2), "277", "secret weapon numbers: last hit kept")
+T.eq(shown(MultiBarBottomLeftButton3), "+121", "secret weapon numbers: last speed kept")
+T.eq(shown(MultiBarBottomLeftButton5), "760", "secret weapon numbers: last ranged hit kept")
+weapon.lo, weapon.hi, weapon.speed = 130, 170, 2.6
+weapon.rSpeed, weapon.rLo, weapon.rHi = 3.0, 150, 170
+fire("UNIT_DAMAGE", "player")
+flush()
+T.eq(shown(MultiBarBottomLeftButton2), "307", "a better weapon: 150 + 157")
+weapon.lo, weapon.hi = 100, 140
+fire("PLAYER_EQUIPMENT_CHANGED")
+flush()
+T.eq(shown(MultiBarBottomLeftButton2), "277", "and back")
+
+-- The setting: off hides them all, and Klaue does not fall back to its 115 on its own
+SlashCmdList.SPELLDAMAGEINFO("weapon off")
+flush()
+T.eq(shown(MultiBarBottomLeftButton2), nil, "weapon off: Heldenhafter Stoß shows nothing")
+T.eq(shown(MultiBarBottomLeftButton4), nil, "weapon off: Klaue shows nothing")
+T.check(messages[#messages]:find("Waffe: aus", 1, true), "status says the weapon numbers are off")
+SlashCmdList.SPELLDAMAGEINFO("weapon")
+flush()
+T.eq(SpellDamageInfoDB.weapon, true, "/sdi weapon toggles it back on")
+T.eq(shown(MultiBarBottomLeftButton2), "277", "weapon on again")
+
+-- The arithmetic, on its own
+local V = ns.WeaponView
+local stats = { melee = 100, meleeSpeed = 2, ranged = 50, rangedSpeed = 3 }
+T.eq(V({ kind = "weapon", pct = 225, bonus = 180 }, stats).value, 405, "225% of 100 + 180")
+T.eq(V({ kind = "weapon", pct = 50, bonus = 80, bonusMax = 100 }, stats).value, 140, "50% of 100 + 80..100 averaged")
+T.eq(V({ kind = "next", bonus = 600, ranged = true }, stats).value, 650, "ranged hit 50 + 600")
+T.eq(V({ kind = "ap", amount = 140 }, stats).gain, 20, "140 attack power on a 2 sec weapon: +20 per hit")
+T.eq(V({ kind = "ap", amount = 140, ranged = true }, stats).gain, 30, "140 ranged attack power on a 3 sec bow: +30")
+T.eq(V({ kind = "next", bonus = 10 }, {}), nil, "no weapon numbers yet: nothing")
+
+-- Spells on the bars that give no number are listed once, for /sdi misses
+local function listed(id)
+  local count = 0
+  for _, m in ipairs(SpellDamageInfoDB.misses) do if m.id == id then count = count + 1 end end
+  return count
+end
+T.eq(listed(5138), 1, "Drain Mana, on the bar with no number, is listed once")
+T.eq(listed(172), 0, "a spell with a number is not listed")
+T.eq(listed(25286), 0, "a weapon ability is not listed")
+local miss
+for _, m in ipairs(SpellDamageInfoDB.misses) do if m.id == 5138 then miss = m end end
+T.check(miss and miss.name == "Mana entziehen" and miss.text == descriptions[5138] and miss.lang == "de"
+  and miss.build == "70009", "the entry holds the name, the text, the language and the build")
+local missBefore = #messages
+SlashCmdList.SPELLDAMAGEINFO("misses")
+T.check(messages[missBefore + 1] and messages[missBefore + 1]:find("ergeben keine Zahl", 1, true), "/sdi misses: header")
+T.check(#messages > missBefore + 1 and messages[#messages]:find("5138 Mana entziehen: ", 1, true), "/sdi misses lists them")
+SlashCmdList.SPELLDAMAGEINFO("misses clear")
+T.eq(#SpellDamageInfoDB.misses, 0, "/sdi misses clear empties the list")
+fire("ACTIONBAR_SLOT_CHANGED")
+flush()
+T.eq(listed(5138), 1, "listed again after a clear, once")
+-- capped
+for id = 800001, 800300 do
+  ns._parsedCache[id] = { parsed = false, reduction = false, weapon = false, text = "-" }
+  ns._noteMiss(id)
+end
+T.eq(#SpellDamageInfoDB.misses, 200, "the list stops at 200")
+SlashCmdList.SPELLDAMAGEINFO("misses clear")
+for id = 800001, 800300 do ns._parsedCache[id] = nil end
+
 -- Spell power turns secret in combat: keep the last readable value
 spellPower[6] = SECRET
 ok, err = pcall(function() fire("UNIT_AURA", "player"); flush() end)
@@ -614,7 +730,7 @@ SlashCmdList.SPELLDAMAGEINFO("button sideways")
 T.check(#messages == before + 1 and messages[#messages]:find("Unbekannte Option"), "bad option answered in German")
 before = #messages
 SlashCmdList.SPELLDAMAGEINFO("help")
-T.check(#messages == before + 11, "/sdi help prints eleven lines")
+T.check(#messages == before + 13, "/sdi help prints thirteen lines")
 T.check(messages[before + 2] and messages[before + 2]:find("^|cff66ccffSpellDamageInfo|r: /sdi %- "), "help names bare /sdi first")
 
 -- Reduction, size and position settings
@@ -722,9 +838,9 @@ T.eq(rows.size.widget.value, 100, "slider at the current size")
 T.eq(rows.interfaceLang.text.text, DE.LANG_AUTO, "language choice shows auto")
 T.check(rows.estimate.widget.checked and rows.tooltip.widget.checked and rows.reduction.widget.checked, "boxes checked")
 
--- The preview: three mock buttons of our own, drawn like the real ones
+-- The preview: five mock buttons of our own, drawn like the real ones
 local mocks = win.mocks
-T.eq(#mocks, 3, "three mock buttons")
+T.eq(#mocks, 5, "five mock buttons")
 local isReal = {}
 for _, b in ipairs(ns._buttons) do isReal[b] = true end
 for _, b in ipairs(ns._petButtons) do isReal[b] = true end
@@ -754,6 +870,9 @@ T.eq(mockSide(2), ns._sideLabels[ActionButton10].text, "preview reduction as on 
 T.eq(mocks[2].side.font.size, ns._sideLabels[ActionButton10].font.size, "preview reduction size as on the bar")
 T.eq(mockText(3), "-3", "preview: Curse of Weakness")
 T.check(mocks[3].main.color[1] == 1 and mocks[3].main.color[2] < 0.5, "preview: a lone reduction is red")
+T.eq(mockText(4), "277", "preview: Heroic Strike on the sample weapon, 120 + 157")
+T.eq(mockText(5), "+103", "preview: Rockbiter's 554 attack power on a 2.6 sec weapon")
+T.check(mocks[4].main.color[3] == 1 and mocks[4].main.color[1] < 0.5, "preview: weapon numbers are blue")
 
 -- Each control writes its setting, refreshes the real buttons and the preview
 -- flushed first, so the queue is empty before the click (dropping a queued refresh instead

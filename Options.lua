@@ -16,7 +16,7 @@ local _, ns = ...
 local L, Estimate = ns.L, ns.Estimate
 
 local WHITE = "Interface\\Buttons\\WHITE8X8"
-local WINDOW_WIDTH, WINDOW_HEIGHT = 660, 316
+local WINDOW_WIDTH, WINDOW_HEIGHT = 660, 384
 local HEADER_HEIGHT = 46
 local PREVIEW_WIDTH = 250
 local ROW_HEIGHT = 28
@@ -28,8 +28,12 @@ local SIZE_STEP = 5
 
 -- The preview's sample spells, as the parser would read them, with 50 spell power in every
 -- school: Immolate (direct and over time, 2 sec cast), a pet's Screech (damage and a reduction
--- next to it) and Curse of Weakness (a reduction alone).
+-- next to it) and Curse of Weakness (a reduction alone); under them, with a 2.6 sec weapon
+-- that hits for 120 on average, Heroic Strike (a weapon hit plus 157) and Forever's Rockbiter
+-- Weapon (554 attack power, shown as what it adds to each hit).
 local SAMPLE_POWER = { [2] = 50, [3] = 50, [4] = 50, [5] = 50, [6] = 50, [7] = 50 }
+local SAMPLE_WEAPON = { melee = 120, meleeSpeed = 2.6 }
+local PER_ROW = 3
 local SAMPLES = {
   { name = "OPT_SAMPLE_1", icon = "Interface\\Icons\\Spell_Fire_Immolation", hotkey = "1", castTime = 2,
     parsed = { school = "fire", direct = { min = 279, max = 279 }, dot = { total = 510, duration = 15 } } },
@@ -38,6 +42,10 @@ local SAMPLES = {
     reduction = { amount = 100, percent = false, stat = "attackpower" } },
   { name = "OPT_SAMPLE_3", icon = "Interface\\Icons\\Spell_Shadow_CurseOfMannoroth", hotkey = "3",
     reduction = { amount = 3, percent = false, stat = "damage" } },
+  { name = "OPT_SAMPLE_4", icon = "Interface\\Icons\\Ability_Rogue_Ambush", hotkey = "4",
+    weapon = { kind = "next", bonus = 157 } },
+  { name = "OPT_SAMPLE_5", icon = "Interface\\Icons\\Spell_Nature_RockBiter", hotkey = "5",
+    weapon = { kind = "ap", amount = 554 } },
 }
 
 local window
@@ -75,7 +83,10 @@ end
 -- What the real bar would draw for a sample, under the current settings.
 local function sampleText(sample)
   local view
-  if sample.parsed then
+  if sample.weapon then
+    local w = db().weapon and ns.WeaponView(sample.weapon, SAMPLE_WEAPON) or nil
+    view = w and { weapon = w } or nil
+  elseif sample.parsed then
     local bonus = db().estimate and Estimate.DamageBonus(sample.parsed.school, SAMPLE_POWER) or nil
     view = Estimate.Apply(sample.parsed, sample.castTime, bonus, nil)
   end
@@ -146,9 +157,13 @@ local function buildPreview(pane)
 
   window.mocks = {}
   local span = MOCK_SIZE * MOCK_SCALE
-  local gap = (PREVIEW_WIDTH - 3 * span) / 4
+  local gap = (PREVIEW_WIDTH - PER_ROW * span) / (PER_ROW + 1)
   for i, sample in ipairs(SAMPLES) do
-    window.mocks[i] = mockButton(pane, sample, gap + (i - 1) * (span + gap), 44)
+    local row, col = math.floor((i - 1) / PER_ROW), (i - 1) % PER_ROW
+    local inRow = math.min(PER_ROW, #SAMPLES - row * PER_ROW)
+    -- a shorter row is centred under the one above it
+    local shift = (PER_ROW - inRow) * (span + gap) / 2
+    window.mocks[i] = mockButton(pane, sample, gap + shift + col * (span + gap), 44 + row * (span + 56))
   end
 
   window.offNote = pane:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -371,6 +386,7 @@ local function buildSettings(area)
   place("estimate", checkbox(area, "estimate", L.OPT_ESTIMATE, { tooltip = L.OPT_ESTIMATE_TIP }))
   place("tooltip", checkbox(area, "tooltip", L.OPT_TOOLTIP, { tooltip = L.OPT_TOOLTIP_TIP }))
   place("reduction", checkbox(area, "reduction", L.OPT_REDUCTION, { tooltip = L.OPT_REDUCTION_TIP }))
+  place("weapon", checkbox(area, "weapon", L.OPT_WEAPON, { tooltip = L.OPT_WEAPON_TIP }))
   y = y + 8
   place("interfaceLang", choice(area, "interfaceLang", L.OPT_LANGUAGE, {
     { id = "auto", label = L.LANG_AUTO },

@@ -393,128 +393,15 @@ local function prepare(text, lang)
   return normaliseNumbers(t, lang), lang
 end
 
----------------------------------------------------------------------------------------------
--- Weapon and attack power abilities (new in 0.5.0)
----------------------------------------------------------------------------------------------
-
--- "weapon damage plus N" (EN) or "Waffenschaden plus N" (DE). Returns the bonus N.
--- Also handles "% weapon damage plus N" and ranged weapon damage.
-local function tryWeaponDamage(t, lang)
-  if lang == "de" then
-    -- "waffenschaden plus N" - basic
-    local bonus = match(t, "waffenschaden plus (" .. NUM .. ")")
-    if bonus then return { weapon_damage = tonumber(bonus) } end
-  else
-    -- "weapon damage plus N" - basic
-    local bonus = match(t, "weapon damage plus (" .. NUM .. ")")
-    if bonus then return { weapon_damage = tonumber(bonus) } end
-    -- "ranged weapon damage plus N"
-    bonus = match(t, "ranged weapon damage plus (" .. NUM .. ")")
-    if bonus then return { weapon_damage = tonumber(bonus), ranged = true } end
-  end
-  return nil
-end
-
--- "increases melee damage by N" (EN) or "den Nahkampfschaden um N... erhöht" (DE).
--- Also handles "increases the druid's next attack by N damage" and ranged equivalents.
--- Returns the bonus damage N.
-local function tryNextAttack(t, lang)
-  if lang == "de" then
-    -- "den nahkampfschaden um N punkt(e) erh\195\164ht" (ä = \195\164)
-    local bonus = match(t, "den nahkampfschaden um (" .. NUM .. ")")
-    if bonus then return { next_attack_bonus = tonumber(bonus) } end
-    -- Also match "angriffsschaden" variant used by druids in bear form (Maul/Zermalmen)
-    bonus = match(t, "den %w+angriffsschaden um (" .. NUM .. ")")
-    if bonus then return { next_attack_bonus = tonumber(bonus) } end
-  else
-    -- "increases melee damage by N"
-    local bonus = match(t, "increases melee damage by (" .. NUM .. ")")
-    if bonus then return { next_attack_bonus = tonumber(bonus) } end
-    -- "increases ranged damage by N"
-    bonus = match(t, "increases ranged damage by (" .. NUM .. ")")
-    if bonus then return { next_attack_bonus = tonumber(bonus), ranged = true } end
-    -- "increases the druid's next attack by N damage" or similar
-    bonus = match(t, "next attack by (" .. NUM .. ")")
-    if bonus then return { next_attack_bonus = tonumber(bonus) } end
-  end
-  return nil
-end
-
--- "increasing ... attack power ... by N" (EN) or "die ... angriffskraft ... um N erhöht" (DE).
--- Returns the AP buff amount N. Ignore "for X min" or other conditions.
-local function tryAPBuff(t, lang)
-  if lang == "de" then
-    -- "die nahkampfangriffskraft ... um N erh\195\164ht" or "die distanzangriffskraft ... um N erh\195\164ht"
-    -- Match any text (including digits like "20 metern") between keyword and "um N"
-    local buff = match(t, "nahkampfangriffskraft [^e]* um (" .. NUM .. ")")
-    if buff then return { ap_buff = tonumber(buff) } end
-    buff = match(t, "distanzangriffskraft [^e]* um (" .. NUM .. ")")
-    if buff then return { ap_buff = tonumber(buff) } end
-  else
-    -- "increasing melee attack power by N" (simple)
-    local buff = match(t, "increasing melee attack power by (" .. NUM .. ")")
-    if buff then return { ap_buff = tonumber(buff) } end
-    -- "increasing the melee attack power ... by N"
-    buff = match(t, "increasing the melee attack power .* by (" .. NUM .. ")")
-    if buff then return { ap_buff = tonumber(buff) } end
-    -- "increasing ranged attack power by N" (simple)
-    buff = match(t, "increasing ranged attack power by (" .. NUM .. ")")
-    if buff then return { ap_buff = tonumber(buff), ranged = true } end
-    -- "increasing the ranged attack power ... by N"
-    buff = match(t, "increasing the ranged attack power .* by (" .. NUM .. ")")
-    if buff then return { ap_buff = tonumber(buff), ranged = true } end
-  end
-  return nil
-end
-
--- "granting each melee attack an additional N to M ... damage" (EN) or
--- "jedem Nahkampfangriff zusätzlichen Heiligschaden in Höhe von N - M" (DE).
--- Returns the damage range per hit and school. Ignore "chance to heal/restore" seals.
-local function tryImbue(t, lang)
-  if lang == "de" then
-    -- "jedem nahkampfangriff zus\195\164tzlichen SCHOOL schaden in h\195\182he von N - M verleiht"
-    -- (ä = \195\164, ö = \195\182)
-    -- But skip "chance to heal" type seals
-    if find(t, "chance") or find(t, "chance") or find(t, "wahrscheinlichkeit") then return nil end
-    local s, e, prefix, lo, hi
-    local pattern = "jedem nahkampfangriff zus\195\164tzlichen ([a-z]+)schaden in h\195\182he von (" .. NUM .. ") %- (" .. NUM .. ")"
-    s, e, prefix, lo, hi = find(t, pattern)
-    if s then
-      local school = SCHOOL_DE[prefix or ""]
-      return { imbue_seal = { min = tonumber(lo), max = tonumber(hi), school = school } }
-    end
-  else
-    -- Skip "chance to heal" type seals
-    if find(t, "chance") then return nil end
-    -- "granting each melee attack an additional N to M ... damage"
-    local lo, hi, after = match(t, "granting each melee attack an additional (" .. NUM .. ") to (" .. NUM .. ") (%a+) damage")
-    if lo and hi then
-      local school = SCHOOL_EN[after or "physical"]
-      return { imbue_seal = { min = tonumber(lo), max = tonumber(hi), school = school } }
-    end
-  end
-  return nil
-end
-
--- Try to parse a weapon or attack power ability. Returns parsed result or nil.
-local function tryWeaponAbility(t, lang)
-  -- Try each category in order
-  local result = tryWeaponDamage(t, lang) or tryNextAttack(t, lang) or tryAPBuff(t, lang) or tryImbue(t, lang)
-  return result
-end
-
 function Parser.Parse(text, lang)
   if type(text) ~= "string" or text == "" then return nil, "empty" end
   local t
   t, lang = prepare(text, lang)
   t = gsub(t, NUM .. " ?%%", " pct ")
 
-  -- Per-combo-point tables: weapon abilities may also say "weapon damage" but that's OK.
+  -- Per-combo-point tables and weapon-based attacks have no single number.
   if find(t, "[^0-9]1 points? *:") or find(" " .. t, "[^0-9]1 punkte? *:") then return nil, "finisher" end
-
-  -- Try weapon/attack power abilities first.
-  local weaponResult = tryWeaponAbility(t, lang)
-  if weaponResult then return weaponResult end
+  if find(t, "weapon damage") or find(t, "waffenschaden") then return nil, "weapon" end
 
   local lasts, lastsAmbiguous
   t, lasts, lastsAmbiguous = extractLasts(t, lang)
@@ -668,6 +555,130 @@ function Parser.ParseReduction(text, lang)
     end
   end
   return found
+end
+
+---------------------------------------------------------------------------------------------
+-- Abilities whose damage comes from the weapon, and spells that raise attack power
+---------------------------------------------------------------------------------------------
+-- ParseWeapon(text, lang) returns a table or nil:
+--   { kind = "next", bonus = n, ranged = bool }       the next swing, or a shot, is a weapon
+--                                                      hit plus n: Heroic Strike, Maul, Aimed Shot
+--   { kind = "weapon", pct = p, bonus = n, bonusMax = m }
+--                                                      p% of a weapon hit plus n (to m):
+--                                                      Overpower, Backstab, Shred, Sinister Strike
+--   { kind = "ap", amount = n, ranged = bool, plusAgility = bool }
+--                                                      attack power the spell adds: Battle Shout,
+--                                                      Rockbiter Weapon, Bear Form, Aspect of the Hawk
+-- Parse() leaves all of these alone (it has no weapon to add the number to), so the two never
+-- both answer for one spell. Anything with a chance in it (poisons, Windfury, Seal of Command)
+-- is not a number for every hit and gives nil, as does a sentence that lowers attack power,
+-- which is ParseReduction's. The wordings are the ones in tests/fixtures/
+-- attack_power_weapon_damage.json: Classic's English and German from Wowhead and Forever's own
+-- English, for every rank of every class.
+
+local function num(v) return v and tonumber(v) or nil end
+
+local function weaponEN(t)
+  if find(t, "chance", 1, true) or find(t, "with each weapon", 1, true) then return nil end
+  local p, a, b = match(t, "(" .. NUM .. ")%% weapon damage plus an additional (" .. NUM .. ") to (" .. NUM .. ")")
+  if p then return { kind = "weapon", pct = num(p), bonus = num(a), bonusMax = num(b) } end
+  p, a = match(t, "(" .. NUM .. ")%% weapon damage plus (" .. NUM .. ")")
+  if p then return { kind = "weapon", pct = num(p), bonus = num(a) } end
+  -- druid attacks: "225% damage plus 180", Forever's Claw "110% normal damage plus 115"
+  p, a = match(t, "(" .. NUM .. ")%% normal damage plus (" .. NUM .. ")")
+  if not p then p, a = match(t, "(" .. NUM .. ")%% damage plus (" .. NUM .. ")") end
+  if p then return { kind = "weapon", pct = num(p), bonus = num(a) } end
+  p = match(t, " for (" .. NUM .. ")%% normal damage")
+  if p then return { kind = "weapon", pct = num(p), bonus = 0 } end
+  a = match(t, "weapon damage plus (" .. NUM .. ")")
+  if a then return { kind = "weapon", pct = 100, bonus = num(a) } end
+  a = match(t, "causes (" .. NUM .. ") damage in addition to your normal weapon damage")
+  if a then return { kind = "weapon", pct = 100, bonus = num(a) } end
+  if find(t, "causing weapon damage", 1, true) then return { kind = "weapon", pct = 100, bonus = 0 } end
+  -- Classic's Claw: the claw's own damage on top of the form's normal hit
+  a = match(t, "^claw the enemy, causing (" .. NUM .. ") additional damage")
+  if a then return { kind = "weapon", pct = 100, bonus = num(a) } end
+  a = match(t, "increases melee damage by (" .. NUM .. ")")
+  if a then return { kind = "next", bonus = num(a) } end
+  a = match(t, "next attack by (" .. NUM .. ")")
+  if a then return { kind = "next", bonus = num(a) } end
+  a = match(t, "increases ranged damage by (" .. NUM .. ")")
+  if a then return { kind = "next", bonus = num(a), ranged = true } end
+  return nil
+end
+
+local AE, OE, UE = "\195\164", "\195\182", "\195\188" -- ä ö ü
+
+local function weaponDE(t)
+  if find(t, "chance", 1, true) or find(t, "mit jeder waffe", 1, true) then return nil end
+  local p, a = match(t, "(" .. NUM .. ")%% [^%.]-schaden plus (" .. NUM .. ")")
+  if p then return { kind = "weapon", pct = num(p), bonus = num(a) } end
+  p = match(t, "(" .. NUM .. ")%% des normalen schadens")
+  if p then return { kind = "weapon", pct = num(p), bonus = 0 } end
+  a = match(t, "waffenschaden plus (" .. NUM .. ")")
+  if a then return { kind = "weapon", pct = 100, bonus = num(a) } end
+  a = match(t, "waffenschaden sowie (" .. NUM .. ") zus" .. AE .. "tzlichen schaden")
+  if a then return { kind = "weapon", pct = 100, bonus = num(a) } end
+  a = match(t, "zus" .. AE .. "tzlich zu eurem normalen waffenschaden noch (" .. NUM .. ")")
+  if a then return { kind = "weapon", pct = 100, bonus = num(a) } end
+  if find(t, "verursacht waffenschaden bei jedem feind", 1, true) then
+    return { kind = "weapon", pct = 100, bonus = 0 }
+  end
+  a = match(t, "mit klauen beharken und ihm so zus" .. AE .. "tzlich (" .. NUM .. ")")
+  if a then return { kind = "weapon", pct = 100, bonus = num(a) } end
+  a = match(t, "den nahkampfschaden um (" .. NUM .. ")")
+  if a then return { kind = "next", bonus = num(a) } end
+  a = match(t, "den n" .. AE .. "chsten angriffsschaden[^%.]- um (" .. NUM .. ")")
+  if a then return { kind = "next", bonus = num(a) } end
+  a = match(t, "den distanzschaden um (" .. NUM .. ")")
+  if a then return { kind = "next", bonus = num(a), ranged = true } end
+  return nil
+end
+
+-- One sentence that raises attack power: "increasing the melee attack power of all party
+-- members within 20 yards by 185" / "wodurch sich die Nahkampfangriffskraft der Gruppe
+-- innerhalb eines Radius von 20 Metern um 185 erhöht". The number is the first "by"/"um" after
+-- the words attack power, so the 20 yards before it are passed over.
+local function attackPowerIn(sentence, lang)
+  if lang == "de" then
+    if not find(sentence, "angriffskraft", 1, true) or not find(sentence, "erh" .. OE .. "h", 1, true) then return nil end
+    if hasAny(sentence, REDUCE_VERBS.de) or find(sentence, "chance", 1, true) or find(sentence, "weniger schaden", 1, true) then
+      return nil
+    end
+    local a = match(sentence, "angriffskraft[^%.]- um (" .. NUM .. ")")
+    if not a then return nil end
+    return { kind = "ap", amount = num(a), ranged = find(sentence, "distanzangriffskraft", 1, true) ~= nil,
+      plusAgility = find(sentence, "um " .. a .. " plus beweglichkeit", 1, true) ~= nil }
+  end
+  local s = find(sentence, "attack power", 1, true)
+  if not s then return nil end
+  local before = sub(sentence, 1, s)
+  if not find(before, "increas", 1, true) then return nil end
+  if hasAny(sentence, REDUCE_VERBS.en) or find(sentence, "chance", 1, true) or find(sentence, "less damage", 1, true) then
+    return nil
+  end
+  local a = match(sentence, "attack power[^%.]- by (" .. NUM .. ")")
+  if not a then return nil end
+  return { kind = "ap", amount = num(a), ranged = find(sentence, "ranged attack power", 1, true) ~= nil,
+    plusAgility = find(sentence, "by " .. a .. " plus agility", 1, true) ~= nil }
+end
+
+function Parser.ParseWeapon(text, lang)
+  if type(text) ~= "string" or text == "" then return nil end
+  local t
+  t, lang = prepare(text, lang)
+  t = gsub(t, "^ +", "")
+  local w
+  if lang == "de" then w = weaponDE(t) else w = weaponEN(t) end
+  if w then
+    if (w.bonus and w.bonus < 0) or (w.pct and w.pct <= 0) then return nil end
+    return w
+  end
+  for _, sentence in ipairs(splitSentences(t, lang)) do
+    local ap = attackPowerIn(sentence, lang)
+    if ap and ap.amount > 0 then return ap end
+  end
+  return nil
 end
 
 -- Exposed for the tests.
