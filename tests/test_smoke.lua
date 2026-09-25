@@ -875,6 +875,22 @@ fire("PLAYER_EQUIPMENT_CHANGED")
 flush()
 T.eq(shown(ActionButton1), "922", "gear change updates")
 
+-- Resurrection Sickness: while it lasts the client's descriptions show a quarter of the damage, and when it
+-- ends no SPELL_TEXT_UPDATE comes. The number follows the text whenever the text changes.
+local corruptionText = descriptions[172]
+descriptions[172] = "Verdirbt das Ziel und verursacht 18 Sek. lang 206 Punkt(e) Schattenschaden."
+fire("UNIT_AURA", "player")
+flush()
+T.eq(shown(ActionButton1), "306", "a description changed without SPELL_TEXT_UPDATE is read again (206 + 100)")
+descriptions[172] = SECRET
+fire("UNIT_AURA", "player")
+flush()
+T.eq(shown(ActionButton1), "306", "a secret description (in combat) keeps the text read last")
+descriptions[172] = corruptionText
+fire("UNIT_AURA", "player")
+flush()
+T.eq(shown(ActionButton1), "922", "the sickness gone: the full number again, without a /reload")
+
 -- /sdi: language
 local langBefore = #messages
 SlashCmdList.SPELLDAMAGEINFO("lang en")

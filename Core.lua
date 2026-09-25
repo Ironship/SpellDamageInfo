@@ -64,10 +64,14 @@ local function requestLoad(spellID)
   end
 end
 
+-- A spell's parsed description, read again whenever its text changes. The text can change with no event
+-- saying so: Resurrection Sickness cuts the numbers in it to a quarter, and when it ends no
+-- SPELL_TEXT_UPDATE comes, so a text kept until SPELLS_CHANGED showed the sick numbers until /reload. A
+-- text that cannot be read now (secret in combat) leaves the last one in use.
 local function getEntry(spellID)
   local entry = parsedCache[spellID]
-  if entry then return entry end
   local text = getDescription(spellID)
+  if entry and (text == nil or text == entry.text) then return entry end
   if not text then -- not loaded yet; SPELL_TEXT_UPDATE will ask again
     requestLoad(spellID)
     return nil
