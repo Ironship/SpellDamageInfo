@@ -280,7 +280,8 @@ end
 local function classifyAfter(after, lang, sentence)
   if lang == "de" then
     local s = stripFillers(after, FILLERS_DE)
-    local prefix = match(s, "^([a-z]*)schaden")
+    -- the word ends there: "3 Schadensfähigkeiten" is a count of abilities
+    local prefix = match(s, "^([a-z]*)schaden$") or match(s, "^([a-z]*)schaden[^a-z]")
     if prefix and SCHOOL_DE[prefix] then return "damage", SCHOOL_DE[prefix] end
     if sub(s, 1, 10) == "gesundheit" then
       if find(sentence, "\195\188bertr\195\164gt") then return "drain", nil end
@@ -660,6 +661,10 @@ local function weaponEN(t)
   if a then return { kind = "next", bonus = num(a) } end
   a = match(t, "increases ranged damage by (" .. NUM .. ")")
   if a then return { kind = "next", bonus = num(a), ranged = true } end
+  -- Seal of the Crusader: "granting 306 melee attack power. The Paladin also attacks 40% faster,
+  -- but deals less damage with each attack": the attack power, counted per faster hit
+  a, p = match(t, "granting (" .. NUM .. ") melee attack power%. +the paladin also attacks (" .. NUM .. ")%% faster")
+  if a then return { kind = "ap", amount = num(a), faster = num(p) } end
   a = match(t, "increases the strength of [^%.]- by (" .. NUM .. ")")
   if a then return { kind = "stat", stat = "str", amount = num(a) } end
   a = match(t, "increases the agility of [^%.]- by (" .. NUM .. ")")
@@ -734,6 +739,10 @@ local function weaponDE(t)
   if a then return { kind = "next", bonus = num(a) } end
   a = match(t, "den distanzschaden um (" .. NUM .. ")")
   if a then return { kind = "next", bonus = num(a), ranged = true } end
+  -- "verleiht 306 Nahkampfangriffskraft. Außerdem greift der Paladin um 40% schneller an"
+  a, p = match(t, "verleiht (" .. NUM .. ") nahkampfangriffskraft%. +au\195\159erdem greift der paladin um (" .. NUM
+    .. ")%% schneller an")
+  if a then return { kind = "ap", amount = num(a), faster = num(p) } end
   a = match(t, "erh" .. OE .. "ht die st" .. AE .. "rke [^%.]- um (" .. NUM .. ")")
   if a then return { kind = "stat", stat = "str", amount = num(a) } end
   a = match(t, "erh" .. OE .. "ht die beweglichkeit [^%.]- um (" .. NUM .. ")")
@@ -884,6 +893,10 @@ local function specialEN(t)
   if lo then return { heal = D(lo, hi), hot = { total = num(n), duration = num(dur) } } end
   n, school, dur = match(t, "doing (" .. NUM .. ") ([a-z]+) damage over (" .. NUM .. ") sec")
   if n then return { dot = { total = num(n), duration = num(dur) }, school = SCHOOL_EN[school] } end
+  -- Tranquility: "Regenerates all nearby party members within 20 yards for 87 every 2 sec for 10 sec"
+  local every
+  n, every, dur = match(t, "regenerates [^%.]- for (" .. NUM .. ") every (" .. NUM .. ") sec[a-z]* for (" .. NUM .. ") sec")
+  if n then return { hot = { total = num(n) * floor(num(dur) / num(every) + 0.5), duration = num(dur) } } end
   n, dur = match(t, "restore (" .. NUM .. ") health over (" .. NUM .. ") sec")
   if n then return { hot = { total = num(n), duration = num(dur) } } end
   local per
@@ -930,6 +943,11 @@ local function specialDE(t)
     local hits = 1 + floor(num(dur2) / num(iv2) + 0.5)
     return { direct = D(num(dmg) * hits), heal = D(num(h) * hits), school = SCHOOL_DE[school], hits = hits }
   end
+  -- Tranquility: "Regeneriert 10 Sek. lang alle 2 Sek. 87 Gesundheit", Wowhead's "Regeneriert bei
+  -- allen Gruppenmitgliedern in der Nähe 10 Sek. lang alle 2 Sek. 98 Gesundheit"
+  local dur0, every0, n0 = match(t, "regeneriert [^%.]-(" .. NUM .. ") sek%.? lang alle (" .. NUM .. ") sek%.? (" .. NUM
+    .. ") gesundheit")
+  if n0 then return { hot = { total = num(n0) * floor(num(dur0) / num(every0) + 0.5), duration = num(dur0) } } end
   local n, dur = match(t, "um im verlauf von (" .. NUM .. ") sek%.? (" .. NUM .. ") gesundheit wiederherzustellen")
   if n then return { hot = { total = num(dur), duration = num(n) } } end
   local per

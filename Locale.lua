@@ -46,6 +46,7 @@ Locales.en = {
   WEAPON_PCT = "%s%% of %s",
   WEAPON_PLUS = "%s + %s",
   AP_LINE = "Attack power +%s%s: about +%s damage per hit (%s %s sec), estimate",
+  AP_FASTER = "weapon %s%% faster,",
   AP_PLUS_AGILITY = " plus Agility",
   AP_WEAPON = "weapon",
   AP_RANGED = "ranged weapon",
@@ -159,6 +160,7 @@ Locales.de = {
   WEAPON_PCT = "%s %% von %s",
   WEAPON_PLUS = "%s + %s",
   AP_LINE = "Angriffskraft +%s%s: etwa +%s Schaden pro Treffer (%s %s Sek.), gesch\195\164tzt",
+  AP_FASTER = "Waffe %s %% schneller,",
   AP_PLUS_AGILITY = " plus Beweglichkeit",
   AP_WEAPON = "Waffe",
   AP_RANGED = "Distanzwaffe",
@@ -383,8 +385,10 @@ function Format.WeaponLine(w, L)
     return { text, c[1], c[2], c[3] }
   end
   if w.gain then
+    local weapon = w.ranged and L.AP_RANGED or L.AP_WEAPON
+    if w.faster then weapon = string.format(L.AP_FASTER, Format.Thousands(w.faster, L)) end
     local text = string.format(L.AP_LINE, Format.Thousands(w.amount, L), w.plusAgility and L.AP_PLUS_AGILITY or "",
-      Format.Thousands(w.gain, L), w.ranged and L.AP_RANGED or L.AP_WEAPON, Format.Seconds(w.speed, L))
+      Format.Thousands(w.gain, L), weapon, Format.Seconds(w.speed, L))
     return { text, c[1], c[2], c[3] }
   end
   local body

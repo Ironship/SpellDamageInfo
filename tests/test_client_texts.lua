@@ -89,6 +89,49 @@ for _, r in ipairs(corpus) do if not listed[r.id] then missing = missing + 1 end
 T.eq(missing, 0, "SpellIDs.lua has every spell of the corpus (run tools/make_spell_ids.py)")
 T.eq(count, #corpus, "and nothing else")
 
+-- The numbers where the comparison above cannot see them, from patterns of the test's own:
+-- each "A bis B" range of an English text on the German client is read as A to B, and a shield
+-- whose English reference has no numbers (Contingency Plan) absorbs what its German says.
+local ranges, shields = 0, 0
+for _, c in ipairs(client) do
+  local e = P.Read(c.text, c.lang)
+  local v = (e.show == "parsed" or e.show == "special") and e[e.show] or nil
+  if c.lang == "de" and e.lang == "en" then
+    for a, b in c.text:gmatch("(%d+) bis (%d+)") do
+      local found = false
+      for _, slot in ipairs({ "direct", "heal" }) do
+        if v and v[slot] and v[slot].min == tonumber(a) and v[slot].max == tonumber(b) then found = true end
+      end
+      T.check(found, ("%s %d: the range %s bis %s, got %s"):format(c.name, c.id, a, b, tostring(e.show)))
+      ranges = ranges + 1
+    end
+  end
+  local n = c.text:match("der (%d+) Schaden absorbiert")
+  if n then
+    T.check(v and v.absorb == tonumber(n), ("%s %d: absorbs %s"):format(c.name, c.id, n))
+    shields = shields + 1
+  end
+end
+T.check(ranges >= 6 and shields >= 5, ("ranges and shields checked: %d, %d"):format(ranges, shields))
+
+-- Tranquility: the heal every 2 seconds over the whole channel. Heureka!'s "3
+-- Schadensfähigkeiten" is a count of abilities, not damage.
+local tranquility = 0
+for _, c in ipairs(client) do
+  local dur, every, n = c.text:match("(%d+) Sek%. lang alle (%d+) Sek%. (%d+) Gesundheit")
+  if n then
+    local v = P.Read(c.text, c.lang)
+    local hot = v.show and v[v.show] and v[v.show].hot
+    local want = tonumber(n) * tonumber(dur) / tonumber(every)
+    T.check(hot and hot.total == want and hot.duration == tonumber(dur), ("%s %d: %d over %s sec"):format(c.name, c.id, want, dur))
+    tranquility = tranquility + 1
+  end
+  if c.text:find("Schadensf\195\164higkeiten", 1, true) then
+    T.eq(P.Read(c.text, c.lang).show, nil, c.name .. ": a count of abilities is no damage")
+  end
+end
+T.check(tranquility >= 4, "the Tranquility ranks were checked: " .. tranquility)
+
 -- An English text of the German client: its German numbers and units the English way
 local dark
 for _, c in ipairs(client) do if c.id == 1277327 then dark = c.text end end

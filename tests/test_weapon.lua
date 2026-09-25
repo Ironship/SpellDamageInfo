@@ -30,7 +30,7 @@ local n = tonumber
 local function describe(r)
   if r == nil then return "nil" end
   local parts = { tostring(r.kind) }
-  for _, k in ipairs({ "pct", "bonus", "bonusMax", "amount", "min", "max", "school", "times", "stat", "attacks" }) do
+  for _, k in ipairs({ "pct", "bonus", "bonusMax", "amount", "min", "max", "school", "times", "stat", "attacks", "faster" }) do
     if r[k] ~= nil then parts[#parts + 1] = k .. "=" .. tostring(r[k]) end
   end
   if r.ranged then parts[#parts + 1] = "ranged" end
@@ -40,7 +40,7 @@ end
 
 local function same(a, b)
   if a == nil or b == nil then return a == b end
-  for _, k in ipairs({ "kind", "pct", "bonus", "bonusMax", "amount", "min", "max", "school", "times", "stat", "attacks" }) do
+  for _, k in ipairs({ "kind", "pct", "bonus", "bonusMax", "amount", "min", "max", "school", "times", "stat", "attacks", "faster" }) do
     if a[k] ~= b[k] then return false end
   end
   return (a.ranged and true or false) == (b.ranged and true or false)
@@ -100,6 +100,13 @@ local function expectEN(name, text)
     local a, b = t:match("(%d+) extra attacks? with (%d+) extra melee attack power")
     return { kind = "extra", attacks = n(a), amount = n(b) }
   end
+  if name == "Seal of the Crusader" then
+    -- Classic's no-break space after the full stop, replaced before string.lower (which a code-page
+    -- locale lets change its first byte)
+    local raw = (brackets(text):gsub("\194\160", " ")):lower()
+    local a, p = raw:match("granting (%d+) melee attack power%.%s+the paladin also attacks (%d+)%% faster")
+    return { kind = "ap", amount = n(a), faster = n(p) }
+  end
   if name == "Seal of Command" then
     return { kind = "weapon", pct = n(t:match("holy damage equal to (%d+)%% of normal weapon damage")), bonus = 0, school = "holy" }
   end
@@ -142,13 +149,13 @@ local function expectEN(name, text)
   return nil
 end
 
--- Nothing here gives one number per hit: attack power traded for speed.
-local NEVER = { ["Seal of the Crusader"] = true }
+-- Nothing here is read as a weapon ability.
+local NEVER = {}
 -- The imbues and seals read here: what every hit gains, or what one trigger of a chance is worth.
 -- Every other one is a chance Parse reads (poisons, Frostbrand), a heal (Seal of Light), or no
 -- damage.
 local PER_HIT = { ["Seal of Righteousness"] = true, ["Flametongue Weapon"] = true, ["Seal of Fury"] = true,
-  ["Windfury Weapon"] = true, ["Seal of Command"] = true }
+  ["Windfury Weapon"] = true, ["Seal of Command"] = true, ["Seal of the Crusader"] = true }
 -- German texts that lost the words the English still has: Wowhead's German Trueshot Aura keeps
 -- "attack power" only inside brackets that hold talent text, which the parser drops.
 local GERMAN_SILENT = { ["Trueshot Aura"] = true }

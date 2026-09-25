@@ -215,7 +215,11 @@ function ns.WeaponView(w, stats)
   local speed = w.ranged and stats.rangedSpeed or stats.meleeSpeed
   if w.kind == "ap" then
     if not speed then return nil end
-    return { gain = w.amount / 14 * speed, amount = w.amount, speed = speed, ranged = w.ranged, plusAgility = w.plusAgility }
+    -- Seal of the Crusader: its hits come 40% faster, so each counts the attack power over a
+    -- shorter swing
+    if w.faster then speed = speed / (1 + w.faster / 100) end
+    return { gain = w.amount / 14 * speed, amount = w.amount, speed = speed, ranged = w.ranged, plusAgility = w.plusAgility,
+      faster = w.faster }
   end
   if w.kind == "stat" then
     local factor = statToAP(w.stat, stats)

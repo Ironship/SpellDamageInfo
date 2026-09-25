@@ -270,7 +270,7 @@ local function germanText(id)
   error("the whole-spellbook fixture has no German text for spell " .. id)
 end
 for _, id in ipairs({ 20293, 20920, 20271, 10901, 10310, 10438, 10463, 20662, 31016, 23894, 407632, 25361, 25359,
-  16362, 10614, 20349, 17953 }) do
+  16362, 10614, 20349, 17953, 20308 }) do
   descriptions[id] = germanText(id)
 end
 -- Forever's German client shows some spells in English: Lightning Bolt r2 in Forever's English
@@ -321,7 +321,7 @@ local actions = {
   [70] = { "spell", 10310 }, [71] = { "spell", 10438 }, [72] = { "spell", 10463 }, [74] = { "spell", 20662 },
   [75] = { "spell", 31016 }, [76] = { "spell", 23894 }, [77] = { "spell", 407632 }, [78] = { "spell", 25361 },
   [79] = { "spell", 25359 }, [80] = { "spell", 16362 }, [81] = { "spell", 10614 }, [82] = { "spell", 20349 },
-  [83] = { "spell", 17953 }, [84] = { "spell", 529 },
+  [83] = { "spell", 17953 }, [84] = { "spell", 529 }, [85] = { "spell", 20308 },
 }
 function GetActionInfo(slot) local a = actions[slot]; if a then return a[1], a[2] end end
 local counts = { [2] = 5, [3] = SECRET } -- a reagent count on Shadow Bolt's slot; a secret one on Immolate's
@@ -791,6 +791,11 @@ local sol = tipFor(20349)
 T.check(sol[1] == "Heilung: 94" and sol[2] == "Pro Ausl\195\182sung: eine Chance bei jedem Treffer", "Seal of Light tooltip")
 T.eq(shown(MultiBarBottomRightButton11), "100", "Erheblicher Feuerstein: 80-120 per trigger, no spell power for a 3 sec cast")
 T.check(hasLine(tipFor(17953), "Schaden: 80-120"), "the Firestone's own range, nothing added")
+
+-- Seal of the Crusader: its attack power per hit, the hits 40% faster (2.6 / 1.4 sec)
+T.eq(shown(MultiBarLeftButton1), "+43", "Siegel des Kreuzfahrers: 326 / 14 x 2.6 / 1.4")
+T.eq(tipFor(20308)[1], "Angriffskraft +326: etwa +43 Schaden pro Treffer (Waffe 40 % schneller, 1,9 Sek.), gesch\195\164tzt",
+  "Seal of the Crusader tooltip")
 
 -- An English text on the German client is read as English
 T.eq(shown(MultiBarBottomRightButton12), "29", "Lightning Bolt in English on a German client: 27-31")
