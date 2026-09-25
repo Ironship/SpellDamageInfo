@@ -1,4 +1,4 @@
-"""Builds dist/SpellDamageInfo-<version>.zip: one top folder, the .toc, the files it lists and the icon.
+"""Builds dist/SpellDamageInfo-<version>.zip: one top folder, the .toc, the files it lists, the icon and the licence.
 
     python tools/build_zip.py
 
@@ -16,6 +16,8 @@ version = re.search(r"^## Version:\s*(\S+)", toc, re.M).group(1)
 files = ["SpellDamageInfo.toc"] + [l.strip() for l in toc.splitlines() if l.strip() and not l.startswith("##")]
 # the icon the .toc names in "## IconTexture" (tools/make_icon.py draws it)
 files.append("icon.tga")
+# the licence, which carries the MIT notice of DoesItDie that Options.lua is adapted from
+files.append("LICENSE")
 
 dist = root / "dist"
 dist.mkdir(exist_ok=True)

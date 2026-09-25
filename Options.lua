@@ -1,6 +1,7 @@
 -- SpellDamageInfo: the settings window (/sdi) and its page in Options > AddOns.
 -- Options window adapted from DoesItDie by Joe Greive (MIT).
 -- Copyright (c) 2026 Ironship. MIT licence, see LICENSE.
+-- Portions Copyright (c) 2026 Joe Greive, used under the MIT licence; his notice is in LICENSE.
 --
 -- Left: a live preview, three mock action buttons (frames of our own, never real action
 -- buttons) whose numbers are drawn by Core.lua's own ns.ButtonText and ns.DrawNumber, so the
