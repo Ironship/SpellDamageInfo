@@ -304,6 +304,11 @@ local function healAmountOK(before, after, lang)
     return sub(s, 1, 7) == "schaden" or sub(s, 1, 10) == "gesundheit"
       or find(after, "^ *punkt") ~= nil
   end
+  -- A count, not an amount: "Heals 3 total targets."
+  local word = match(after, "^ *([a-z]+)")
+  if word == "total" or word == "target" or word == "targets" or word == "times" or word == "charges" then
+    return false
+  end
   if find(before, " for $") or find(before, " of $") or find(before, " another $") or find(before, "heals $") then
     return true
   end
@@ -362,11 +367,15 @@ local function hasDotVerb(c)
   return false
 end
 
+-- Clauses whose amounts are not the spell's damage or healing: self-damage, absorbs, and
+-- amounts per unit of something else ("for each mana destroyed, the target takes 0.5 Shadow
+-- damage" / "Für jeden ... Manapunkt ... 0,5 Punkt(e) Schattenschaden").
 local function ignoredClause(c, lang)
   if lang == "de" then
-    return find(c, " selbst ") or find(c, "absorb")
+    return find(c, " selbst ") or find(c, "absorb") or find(c, "f\195\188r jede")
   end
   return find(c, "himself") or find(c, "herself") or find(c, "yourself") or find(c, "absorb")
+    or find(c, "for each ")
 end
 
 function Parser.Parse(text, lang)

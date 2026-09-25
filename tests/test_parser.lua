@@ -525,6 +525,12 @@ local extra = {
   { "en", "Transfers 42 Mana every 1 sec from the target to the caster. Lasts 5 sec.", NIL("mana") },
   { "en", "", NIL("empty") },
   { "de", "Verursacht |cffffffff120|r Feuerschaden.", { direct = D(120), school = "fire" } },
+  -- Mana Burn: 0.5 damage per point of mana is not the spell's damage.
+  { "en", "Destroy 99 mana from a target. For each mana destroyed in this way, the target takes 0.5 Shadow damage.", NIL("per-unit") },
+  { "de", "Vernichtet 99 Punkt(e) Mana des Ziels. Für jeden auf diese Weise vernichteten Manapunkt erleidet das Ziel 0,5 Punkt(e) Schattenschaden.", NIL("per-unit") },
+  -- Chain Heal: "Heals 3 total targets" is a count, not a second heal.
+  { "en", "Heals the friendly target for 332 to 381, then jumps to heal additional nearby targets. Each jump reduces the effectiveness of the heal by 50%. Heals 3 total targets.", { heal = D(332, 381) } },
+  { "de", "Heilt das befreundete Ziel um 332 bis 381 und springt dann auf weitere Ziele in der Nähe über. Jeder Sprung verringert die Wirksamkeit der Heilung um 50%. Heilt insgesamt 3 Ziele.", { heal = D(332, 381) } },
 }
 for i, case in ipairs(extra) do
   local got = Parse(case[2], case[1])
