@@ -259,7 +259,8 @@ local function stripFillers(s, fillers)
 end
 
 local HEAL_WORDS_EN = { "^ *heals ", " heals ", " healing ", " heal " }
-local HEAL_WORDS_DE = { " heilt ", " geheilt ", " heilen " }
+-- "der es um 172 Gesundheit heilt, wenn ...": a comma may follow
+local HEAL_WORDS_DE = { " heilt[ ,]", " geheilt[ ,]", " heilen[ ,]" }
 
 local function isHealClause(c, lang)
   local words = (lang == "de") and HEAL_WORDS_DE or HEAL_WORDS_EN
@@ -283,8 +284,9 @@ local function classifyAfter(after, lang, sentence)
     if prefix and SCHOOL_DE[prefix] then return "damage", SCHOOL_DE[prefix] end
     if sub(s, 1, 10) == "gesundheit" then
       if find(sentence, "\195\188bertr\195\164gt") then return "drain", nil end
-      -- "Gibt dem Begleiter ...", Forever's "Gewährt dem Begleiter ... 12 Gesundheit"
-      if find(sentence, "gibt ") or find(sentence, "gew\195\164hrt ") then return "giveheal", nil end
+      -- "Gibt dem Begleiter ...", Forever's "Gewährt dem Begleiter ... 12 Gesundheit" (not
+      -- Sentry Totem's "über 100 Gesundheit verfügt ... und Sicht ... gewährt")
+      if find(sentence, "gibt ") or find(sentence, "gew\195\164hrt dem begleiter") then return "giveheal", nil end
     end
   else
     local s = stripFillers(after, FILLERS_EN)
@@ -507,8 +509,11 @@ end
 -- One clause: "Damage caused by the target is reduced by 3", "reduces the melee attack power
 -- of all enemies within 10 yards by 45" / "der vom Ziel verursachte Schaden wird ... um 3
 -- reduziert", "verringert ... die Nahkampfangriffskraft ... um 45".
-local function reductionInClause(c, lang)
-  if not hasAny(c, REDUCE_VERBS[lang]) or hasAny(c, SELF_WORDS[lang]) then return nil end
+-- sentenceVerb: the sentence's verb lowers what this clause names. German puts it at the end,
+-- after everything it lowers: "was seine Nahkampfangriffskraft um 43 und die Wirksamkeit
+-- jeglicher Heilung um 20% verringert".
+local function reductionInClause(c, lang, sentenceVerb)
+  if not (sentenceVerb or hasAny(c, REDUCE_VERBS[lang])) or hasAny(c, SELF_WORDS[lang]) then return nil end
   -- "increasing melee attack power by 20 but reducing armor by 140": the attack power goes up
   if find(c, (lang == "de") and "erh\195\182h" or "increas", 1, true) then return nil end
   local ap = (lang == "de") and find(c, "angriffskraft", 1, true) or find(c, "attack power", 1, true)
@@ -545,11 +550,12 @@ function Parser.ParseReduction(text, lang)
   local found
   for _, sentence in ipairs(splitSentences(t, lang)) do
     if hasAny(sentence, ENEMY_WORDS[lang]) then
+      local verb = lang == "de" and hasAny(sentence, REDUCE_VERBS.de)
       for _, clause in ipairs(splitClauses(sentence, lang)) do
         -- a comma separates what the spell does to whom: "..., die Bewegungsgeschwindigkeit um
         -- 50% verringert"
         for c in gmatch(clause, "[^,]+") do
-          local r = reductionInClause(c, lang)
+          local r = reductionInClause(c, lang, verb)
           if r then
             if found and (found.amount ~= r.amount or found.percent ~= r.percent) then return nil end
             found = found or r
@@ -674,6 +680,11 @@ local function weaponDE(t)
   b, p = match(t, "chance, zus" .. AE .. "tzlich zum erzielten waffenschaden, ([a-z]*)schaden in h" .. OE .. "he von ("
     .. NUM .. ")%% des normalen waffenschadens")
   if p then return { kind = "weapon", pct = num(p), bonus = 0, school = SCHOOL_DE[b] } end
+  -- Forever's rank 1: "eine Chance, zusätzlichen Heiligschaden in Höhe von 70% des normalen
+  -- Waffenschadens zu verursachen"
+  b, p = match(t, "chance, zus" .. AE .. "tzlichen ([a-z]*)schaden in h" .. OE .. "he von (" .. NUM
+    .. ")%% des normalen waffenschadens")
+  if p then return { kind = "weapon", pct = num(p), bonus = 0, school = SCHOOL_DE[b] } end
   if find(t, "chance", 1, true) or find(t, "mit jeder waffe", 1, true) then return nil end
   local school, lo, hi = match(t, "jedem nahkampfangriff zus" .. AE .. "tzlichen ([a-z]*)schaden in h" .. OE .. "he von ("
     .. NUM .. ") %- (" .. NUM .. ")")
@@ -687,17 +698,26 @@ local function weaponDE(t)
       .. "tzlichen ([a-z]*)schaden")
   end
   if lo then return { kind = "perhit", min = num(lo), max = num(hi), school = SCHOOL_DE[school] } end
+  -- Forever's Seal of Fury: "wodurch jeder Nahkampfangriff zusätzlich 14 Heiligschaden verursacht"
+  a, school = match(t, "jeder nahkampfangriff zus" .. AE .. "tzlich (" .. NUM .. ") ([a-z]*)schaden")
+  if a then return { kind = "perhit", min = num(a), max = num(a), school = SCHOOL_DE[school] } end
   p = match(t, "schaden, der (" .. NUM .. ")%% eurer angriffskraft entspricht")
   if p then return { kind = "appct", pct = num(p), bonus = 0 } end
   p, a = match(t, "(" .. NUM .. ")%% eurer angriffskraft plus (" .. NUM .. ")")
   if p then return { kind = "appct", pct = num(p), bonus = num(a) } end
   a = match(t, "pro sekunde den (" .. NUM .. ")%-fachen schaden eurer waffenhandwaffe")
+    -- Forever's: "pro Sekunde Heiligschaden in Höhe des 3-fachen Schadens Eurer Waffenhandwaffe"
+    or match(t, "pro sekunde [a-z]*schaden in h" .. OE .. "he des (" .. NUM .. ")%-fachen schadens eurer waffenhandwaffe")
   if a then return { kind = "dps", times = num(a), school = find(t, "heiligschaden", 1, true) and "holy" or "physical" } end
   p, a = match(t, "(" .. NUM .. ")%% [^%.]-schaden plus (" .. NUM .. ")")
   if p then return { kind = "weapon", pct = num(p), bonus = num(a) } end
   p = match(t, "(" .. NUM .. ")%% des normalen schadens")
   if p then return { kind = "weapon", pct = num(p), bonus = 0 } end
-  a = match(t, "waffenschaden plus (" .. NUM .. ")")
+  -- Forever's Holy Strike: "29% Waffenschaden sowie zusätzlich 4 bis 6 als Heiligschaden"
+  p, a, b = match(t, "(" .. NUM .. ")%% waffenschaden sowie zus" .. AE .. "tzlich (" .. NUM .. ") bis (" .. NUM .. ") als")
+  if p then return { kind = "weapon", pct = num(p), bonus = num(a), bonusMax = num(b) } end
+  -- Forever's Mongoose Bite: "in Höhe des Nahkampfwaffenschadens plus 15"
+  a = match(t, "waffenschadens? plus (" .. NUM .. ")")
   if a then return { kind = "weapon", pct = 100, bonus = num(a) } end
   a = match(t, "waffenschaden sowie (" .. NUM .. ") zus" .. AE .. "tzlichen schaden")
   if a then return { kind = "weapon", pct = 100, bonus = num(a) } end
@@ -899,6 +919,11 @@ local function specialDE(t)
   -- Penance: "die einem Gegner 240 Heiligschaden zufügt oder ein verbündetes Ziel sofort sowie
   -- 2 Sek. lang alle 1 Sek. um 572 Gesundheit heilt"
   local dmg, h, dur2, iv2
+  -- Forever's Holy Shock: "die Gegnern 129 bis 139 Heiligschaden zufügt oder Verbündete um 110
+  -- bis 118 Gesundheit heilt"
+  lo, hi, school, hlo, hhi = match(t, "(" .. NUM .. ") bis (" .. NUM .. ") ([a-z]*)schaden zuf" .. UE .. "gt oder verb" .. UE
+    .. "ndete um (" .. NUM .. ") bis (" .. NUM .. ") gesundheit heilt")
+  if lo then return { direct = D(lo, hi), heal = D(hlo, hhi), school = SCHOOL_DE[school] } end
   dmg, school, dur2, iv2, h = match(t, "(" .. NUM .. ") ([a-z]*)schaden zuf" .. UE .. "gt oder ein verb" .. UE
     .. "ndetes ziel sofort sowie (" .. NUM .. ") sek%.? lang alle (" .. NUM .. ") sek%.? um (" .. NUM .. ") gesundheit heilt")
   if dmg then
@@ -921,17 +946,35 @@ local function specialDE(t)
     .. "r jeden [^%.]- erleidet das ziel (" .. NUM .. ") punkte ([a-z]*)schaden")
   if lo then return { direct = D(num(lo) * num(f), num(hi) * num(f)), school = SCHOOL_DE[school] } end
   n, school = match(t, "verursacht (" .. NUM .. ") punkt%(e%) ([a-z]*)schaden f" .. UE .. "r jede kreatur, die ein gruppenmitglied schl" .. AE .. "gt")
+  -- Forever's: "Fügt jeder Kreatur, die ein Gruppenmitglied innerhalb von 30 Metern angreifen, 7
+  -- Heiligschaden zu"
+  if not n then
+    n, school = match(t, "f" .. UE .. "gt jeder kreatur, die ein gruppenmitglied [^,]-, (" .. NUM .. ") ([a-z]*)schaden zu")
+  end
   if n then return { direct = D(n), school = SCHOOL_DE[school], perStrike = true } end
+  -- Forever's Consecration: "Gegner, die das Gebiet betreten, erleiden im Verlauf von 8 Sek. 56
+  -- Heiligschaden"
+  dur, n, school = match(t, "erleiden im verlauf von (" .. NUM .. ") sek%.? (" .. NUM .. ") ([a-z]*)schaden")
+  if n then return { dot = { total = num(n), duration = num(dur) }, school = SCHOOL_DE[school] } end
   -- Lacerate: "was im Verlauf von 15 Sek. 149 Blutungsschaden ... verursacht"
   dur, n = match(t, "im verlauf von (" .. NUM .. ") sek%.? (" .. NUM .. ") blutungsschaden")
   if n then return { dot = { total = num(n), duration = num(dur) }, school = "physical" } end
   n, school = match(t, "mit jedem geblockten angriff (" .. NUM .. ") ([a-z]*)schaden")
+  -- Forever's: "verursacht, während der Effekt aktiv ist, mit jedem Blocken 110 Heiligschaden"
+  if not n then n, school = match(t, "mit jedem blocken (" .. NUM .. ") ([a-z]*)schaden") end
   if n then return { direct = D(n), school = SCHOOL_DE[school], perBlock = true } end
-  if find(t, "bis zur maximalen gesundheit des paladins", 1, true) then return { healMaxHealth = true } end
+  -- Forever's: "um einen Betrag, der der maximalen Gesundheit des Paladins entspricht"
+  if find(t, "bis zur maximalen gesundheit des paladins", 1, true)
+    or find(t, "der maximalen gesundheit des paladins entspricht", 1, true) then
+    return { healMaxHealth = true }
+  end
   -- "das jedem Nahkampfangriff eine Chance verleiht, den Paladin um 94 Punkt(e) zu heilen"
   n = match(t, "jedem nahkampfangriff eine chance verleiht, den paladin um (" .. NUM .. ") punkt%(e%) zu heilen")
   if n then return { heal = D(n) } end
+  -- Forever's: "Absorbiert 162 Feuerschaden", "absorbiert 431 Schaden", "einen Schild, der 155
+  -- Schaden absorbiert"
   n = match(t, "absorbiert dabei (" .. NUM .. ") punkt") or match(t, "absorbiert (" .. NUM .. ") punkt")
+    or match(t, "absorbiert (" .. NUM .. ") [a-z]*schaden") or match(t, "der (" .. NUM .. ") schaden absorbiert")
   if n then return { absorb = num(n) } end
   return nil
 end
@@ -974,7 +1017,8 @@ function Parser.ParseFinisher(text, lang)
     local total, dur
     if lang == "de" then
       if lo and not find(seg, "schaden", 1, true) then lo = nil end
-      total, dur = match(seg, "^ *(" .. NUM .. ") schaden " .. UE .. "ber (" .. NUM .. ") sekunden")
+      -- "25 Schaden über 8 Sekunden", Forever's "44 Schaden über 12 Sek."
+      total, dur = match(seg, "^ *(" .. NUM .. ") schaden " .. UE .. "ber (" .. NUM .. ") sek")
       if not total then total, dur = match(seg, "^ *(" .. NUM .. ") schaden im verlauf von (" .. NUM .. ") sek") end
     else
       if lo and not find(seg, "damage", 1, true) then lo = nil end
@@ -1016,7 +1060,8 @@ function Parser.ProcChance(text, lang)
     local p = match(t, "bei jedem [a-z]+ besteht eine chance von (" .. NUM .. ")%%")
     if p then return num(p) end
     if find(t, "bei jedem [a-z]+ besteht eine chance,") or find(t, "jedem nahkampfangriff eine chance", 1, true)
-      or find(t, "jedem angriff die chance", 1, true) or find(t, "gew" .. AE .. "hrt ihm die chance", 1, true) then
+      or find(t, "jedem angriff die chance", 1, true) or find(t, "gew" .. AE .. "hrt ihm die chance", 1, true)
+      or find(t, "gew" .. AE .. "hrt dem paladin eine chance", 1, true) then
       return true
     end
     return nil
@@ -1036,12 +1081,18 @@ end
 
 -- ParseSpecial wins over Parse only where it knows something Parse's shape cannot say: a
 -- shield, the paladin's own health, a totem's attack or pulse, damage per block, per strike or
--- per extra rage, several hits. Where both read the same numbers (Rend, Blizzard), Parse stays.
+-- per extra rage, several hits; or where it reads a part Parse missed (Forever's German Holy
+-- Shock, whose damage Parse does not find beside the heal). Where both read the same numbers
+-- (Rend, Blizzard), Parse stays.
 local SPECIAL_FLAGS = { "absorb", "healMaxHealth", "perAttack", "perBlock", "perStrike", "every", "perRage", "hits" }
+local SLOTS = { "direct", "dot", "heal", "hot" }
 
-local function specialWins(s)
+local function specialWins(s, parsed)
   for _, k in ipairs(SPECIAL_FLAGS) do
     if s[k] then return true end
+  end
+  for _, k in ipairs(SLOTS) do
+    if s[k] and not parsed[k] then return true end
   end
   return false
 end
@@ -1049,8 +1100,9 @@ end
 -- A German client still shows some texts in English: Forever's does for spells Forever changed
 -- ("Converts 52 Health into 52 Mana for you."). TextLanguage(text, lang) gives "en" for a text
 -- with English words and not one German word, and lang otherwise.
+-- Not "Sek.": the English texts of a German client have it too.
 local GERMAN_WORDS = { " und ", " der ", " die ", " das ", " den ", " dem ", " des ", " ein", " um ", " mit ", " von ",
-  " zu ", "schaden", " sek", " ihr ", " euch", " euer", " eure" }
+  " zu ", "schaden", " ihr ", " euch", " euer", " eure" }
 local ENGLISH_WORDS = { " the ", " a ", " you", " for ", " and ", " of ", " to ", " with ", " from ", " into ", " is ",
   " by ", "damage", " sec" }
 
@@ -1059,6 +1111,19 @@ function Parser.TextLanguage(text, lang)
   local t = " " .. gsub(gsub(text, "[\r\n]+", " "), "[A-Z]", asciiLower) .. " "
   if hasAny(t, ENGLISH_WORDS) and not hasAny(t, GERMAN_WORDS) then return "en" end
   return lang
+end
+
+-- The English text of a German client still has the client's German numbers and units:
+-- "Cannibalize 1.290 of your own Health over 15 Sek.", "suffer 175 bis 189 Holy damage". They are
+-- put the English way, so the English readers take them as they are meant.
+local function englishNumbers(text)
+  local t, prev = text, nil
+  repeat prev = t; t = gsub(t, "([0-9])%.([0-9][0-9][0-9])", "%1%2") until t == prev
+  t = gsub(t, "([0-9]),([0-9])", "%1.%2")
+  t = gsub(t, "([0-9]) bis ([0-9])", "%1 to %2")
+  t = gsub(t, "([0-9]) [Ss]ek%.", "%1 sec")
+  t = gsub(t, "([0-9]) [Mm]in%.", "%1 min")
+  return t
 end
 
 -- Read(text, lang, noWeapon) runs every reader once and decides, in one place, what the addon
@@ -1073,7 +1138,9 @@ end
 -- The reduction is shown beside any of these, or alone. proc is ProcChance's answer: the number
 -- shown is what one trigger does.
 function Parser.Read(text, lang, noWeapon)
-  lang = Parser.TextLanguage(text, lang)
+  local textLang = Parser.TextLanguage(text, lang)
+  if lang == "de" and textLang == "en" then text = englishNumbers(text) end
+  lang = textLang
   local e = {
     parsed = Parser.Parse(text, lang) or false,
     reduction = Parser.ParseReduction(text, lang) or false,
@@ -1093,7 +1160,7 @@ function Parser.Read(text, lang, noWeapon)
     e.show = "judgement"
   elseif e.isSeal then
     e.show = e.special and "special" or nil
-  elseif e.special and (not e.parsed or specialWins(e.special)) then
+  elseif e.special and (not e.parsed or specialWins(e.special, e.parsed)) then
     e.show = "special"
   elseif e.parsed then
     e.show = "parsed"
@@ -1105,5 +1172,6 @@ end
 
 -- Exposed for the tests.
 Parser._evalArithmetic = evalArithmetic
+Parser._englishNumbers = englishNumbers
 
 return Parser

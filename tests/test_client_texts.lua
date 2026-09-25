@@ -8,8 +8,10 @@
 -- 1. Language: every German text of the corpus reads as German, and every English one that gives
 --    a number reads as English on a German client too.
 -- 2. Each client text the corpus also has in Forever's English gives the same kind of result as
---    that English: what is shown, the weapon reader's kind, a chance, a reduction. The numbers
---    themselves may differ: the client shows the numbers of its own build.
+--    that English: which parts are shown (damage, over time, heal, shield, per attack ...), the
+--    weapon reader's kind, a chance, a reduction. The numbers themselves may differ: the client
+--    shows the numbers of its own build. An English text with "?" for its numbers
+--    (foreverchanges.pro's Contingency Plan) is no reference.
 -- 3. SpellIDs.lua lists every spell id of the corpus, the ids /sdi dump all asks for.
 
 package.path = "tests/lib/?.lua;" .. package.path
@@ -45,21 +47,30 @@ T.check(P.TextLanguage("Converts 52 Health into 52 Mana for you.", "en") == "en"
 local byID = {}
 for _, r in ipairs(corpus) do byID[r.id] = r end
 
+-- what is shown, whichever reader found it
+local PARTS = { "direct", "dot", "heal", "hot", "absorb", "healMaxHealth", "perAttack", "perBlock", "perStrike", "every",
+  "perRage", "hits" }
 local function kind(e)
   local parts = { tostring(e.show) }
+  if e.show == "parsed" or e.show == "special" then
+    parts[1] = "number"
+    for _, k in ipairs(PARTS) do if e[e.show][k] then parts[#parts + 1] = k end end
+  end
   if e.show == "weapon" then parts[#parts + 1] = e.weapon.kind end
   if e.proc then parts[#parts + 1] = "chance" end
   if e.reduction then parts[#parts + 1] = "reduction " .. e.reduction.stat end
   return table.concat(parts, " ")
 end
 
-local compared, shown, englishOnGerman = 0, 0, 0
+local compared, shown, englishOnGerman, noNumbers = 0, 0, 0, 0
 for _, c in ipairs(client) do
   local e = P.Read(c.text, c.lang)
   if e.show then shown = shown + 1 end
   if c.lang == "de" and e.lang == "en" then englishOnGerman = englishOnGerman + 1 end
   local r = byID[c.id]
-  if r and r.forever_en_description then
+  if r and r.forever_en_description and r.forever_en_description:find(" %? ") then
+    noNumbers = noNumbers + 1
+  elseif r and r.forever_en_description then
     local want = kind(P.Read(r.forever_en_description, "en"))
     T.check(kind(e) == want, ("%s %d [%s client]: reads as %s, Forever's English as %s"):format(tostring(c.name), c.id, c.lang,
       kind(e), want))
@@ -78,7 +89,13 @@ for _, r in ipairs(corpus) do if not listed[r.id] then missing = missing + 1 end
 T.eq(missing, 0, "SpellIDs.lua has every spell of the corpus (run tools/make_spell_ids.py)")
 T.eq(count, #corpus, "and nothing else")
 
-print(("Client texts: %d (%d show a number, %d English on a German client), %d compared with Forever's English; "
-  .. "language checked on %d German and %d English corpus texts; SpellIDs.lua lists %d ids"):format(#client, shown,
-  englishOnGerman, compared, german, english, count))
+-- An English text of the German client: its German numbers and units the English way
+local dark
+for _, c in ipairs(client) do if c.id == 1277327 then dark = c.text end end
+T.check(dark and P._englishNumbers(dark):find("Cannibalize 1290 of your own Health over 15 sec to gain 1320 Mana", 1, true),
+  "Dunkles Opfer r4's 1.290, 1.320 and 15 Sek. read the English way")
+
+print(("Client texts: %d (%d show a number, %d English on a German client), %d compared with Forever's English, %d not "
+  .. "(its English has no numbers); language checked on %d German and %d English corpus texts; SpellIDs.lua lists %d ids"):format(
+  #client, shown, englishOnGerman, compared, noNumbers, german, english, count))
 T.finish("test_client_texts")
