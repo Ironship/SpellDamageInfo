@@ -582,8 +582,11 @@ end
 --                                                      Rockbiter Weapon, Bear Form, Aspect of the Hawk
 --   { kind = "stat", stat = "str" | "agi", amount = n } strength or agility the spell adds, which
 --                                                      turns into attack power: Strength of Earth
--- Parse() leaves the weapon attacks alone (it has no weapon to add the number to). Anything with
--- a chance in it (poisons, Windfury, Seal of Command) is not a number for every hit and gives
+--   { kind = "extra", attacks = n, amount = a }        n extra attacks, each with a more attack
+--                                                      power: Windfury Weapon and Totem
+-- Parse() leaves the weapon attacks alone (it has no weapon to add the number to). Of the chance
+-- effects, Windfury and Seal of Command are read here as what one trigger is worth (a weapon
+-- view with school = "holy" for Seal of Command); every other sentence with a chance in it gives
 -- nil, as does a sentence that lowers attack power, which is ParseReduction's. A seal's last
 -- sentence is its Judgement ("Unleashing this Seal's energy ...") and is read by ParseJudgement,
 -- never here. The wordings are the ones in the fixtures, which hold Classic's English and German
@@ -603,9 +606,17 @@ local function withoutJudgement(t, lang)
   return t
 end
 
+-- Windfury's attack power is sometimes a bracket of arithmetic: "with (122 * 1) extra".
+local function amountOf(expr) return expr and evalArithmetic((gsub(expr, " +$", ""))) or nil end
+
 local function weaponEN(t)
   local p, a, b = match(t, "(" .. NUM .. ")%% weapon damage plus an additional (" .. NUM .. ") with each weapon")
   if p then return { kind = "both", pct = num(p), bonus = num(a) } end
+  -- Chance effects, what one trigger is worth: Windfury's extra attacks, Seal of Command's hit
+  a, b = match(t, "(" .. NUM .. ") extra attacks? with ([0-9%(%) %*%.]+) extra melee attack power")
+  if a then return { kind = "extra", attacks = num(a), amount = amountOf(b) } end
+  b, p = match(t, "chance to deal additional ([a-z]+) damage equal to (" .. NUM .. ")%% of normal weapon damage")
+  if p then return { kind = "weapon", pct = num(p), bonus = 0, school = SCHOOL_EN[b] } end
   if find(t, "chance", 1, true) or find(t, "with each weapon", 1, true) then return nil end
   local lo, hi, school = match(t, "each melee attack an additional (" .. NUM .. ") to (" .. NUM .. ") ([a-z]+) damage")
   if not lo then lo, hi, school = match(t, "each hit causes (" .. NUM .. ") to (" .. NUM .. ") additional ([a-z]+) damage") end
@@ -652,12 +663,27 @@ end
 local function weaponDE(t)
   local p, a = match(t, "(" .. NUM .. ")%% waffenschaden sowie mit jeder waffe zus" .. AE .. "tzlich (" .. NUM .. ")")
   if p then return { kind = "both", pct = num(p), bonus = num(a) } end
+  -- "2 zusätzliche Angriffe mit 333 Punkt(en) zusätzlicher Nahkampfangriffskraft", "die Chance,
+  -- zusätzlich zum erzielten Waffenschaden, Heiligschaden in Höhe von 70% des normalen
+  -- Waffenschadens zuzufügen"
+  local b
+  a, b = match(t, "(" .. NUM .. ") zus" .. AE .. "tzliche[n]? angriffe? mit ([0-9%(%) %*%.]+)[^%.]-zus" .. AE
+    .. "tzlicher nahkampfangriffskraft")
+  if a then return { kind = "extra", attacks = num(a), amount = amountOf(b) } end
+  b, p = match(t, "chance, zus" .. AE .. "tzlich zum erzielten waffenschaden, ([a-z]*)schaden in h" .. OE .. "he von ("
+    .. NUM .. ")%% des normalen waffenschadens")
+  if p then return { kind = "weapon", pct = num(p), bonus = 0, school = SCHOOL_DE[b] } end
   if find(t, "chance", 1, true) or find(t, "mit jeder waffe", 1, true) then return nil end
   local school, lo, hi = match(t, "jedem nahkampfangriff zus" .. AE .. "tzlichen ([a-z]*)schaden in h" .. OE .. "he von ("
     .. NUM .. ") %- (" .. NUM .. ")")
   if not lo then
     lo, hi, school = match(t, "jeder treffer f" .. UE .. "gt zus" .. AE .. "tzlich (" .. NUM .. ") bis (" .. NUM
       .. ") punkt%(e%) ([a-z]*)schaden")
+  end
+  -- Forever's own German: "Jeder Treffer fügt 3 bis 14 zusätzlichen Feuerschaden zu"
+  if not lo then
+    lo, hi, school = match(t, "jeder treffer f" .. UE .. "gt (" .. NUM .. ") bis (" .. NUM .. ") zus" .. AE
+      .. "tzlichen ([a-z]*)schaden")
   end
   if lo then return { kind = "perhit", min = num(lo), max = num(hi), school = SCHOOL_DE[school] } end
   p = match(t, "schaden, der (" .. NUM .. ")%% eurer angriffskraft entspricht")
@@ -731,6 +757,7 @@ function Parser.ParseWeapon(text, lang)
   if lang == "de" then w = weaponDE(t) else w = weaponEN(t) end
   if w then
     if (w.bonus and w.bonus < 0) or (w.pct and w.pct <= 0) then return nil end
+    if w.kind == "extra" and not (w.amount and w.attacks > 0) then return nil end
     return w
   end
   for _, sentence in ipairs(splitSentences(t, lang)) do
@@ -856,6 +883,9 @@ local function specialEN(t)
   n, school = match(t, "deals (" .. NUM .. ") ([a-z]+) damage for each attack blocked")
   if n then return { direct = D(n), school = SCHOOL_EN[school], perBlock = true } end
   if find(t, "for an amount equal to the paladin's maximum health", 1, true) then return { healMaxHealth = true } end
+  -- Seal of Light, per trigger: "giving each melee attack a chance to heal the Paladin for 94"
+  n = match(t, "giving each melee attack a chance to heal the paladin for (" .. NUM .. ")")
+  if n then return { heal = D(n) } end
   n = match(t, "absorbing (" .. NUM .. ") damage") or match(t, "absorbs (" .. NUM .. ") [a-z]* ?damage")
   if n then return { absorb = num(n) } end
   return nil
@@ -897,6 +927,9 @@ local function specialDE(t)
   n, school = match(t, "mit jedem geblockten angriff (" .. NUM .. ") ([a-z]*)schaden")
   if n then return { direct = D(n), school = SCHOOL_DE[school], perBlock = true } end
   if find(t, "bis zur maximalen gesundheit des paladins", 1, true) then return { healMaxHealth = true } end
+  -- "das jedem Nahkampfangriff eine Chance verleiht, den Paladin um 94 Punkt(e) zu heilen"
+  n = match(t, "jedem nahkampfangriff eine chance verleiht, den paladin um (" .. NUM .. ") punkt%(e%) zu heilen")
+  if n then return { heal = D(n) } end
   n = match(t, "absorbiert dabei (" .. NUM .. ") punkt") or match(t, "absorbiert (" .. NUM .. ") punkt")
   if n then return { absorb = num(n) } end
   return nil
@@ -906,6 +939,7 @@ function Parser.ParseSpecial(text, lang)
   if type(text) ~= "string" or text == "" then return nil end
   local t
   t, lang = prepare(text, lang)
+  t = withoutJudgement(t, lang)
   if lang == "de" then return specialDE(t) end
   return specialEN(t)
 end
@@ -962,6 +996,40 @@ function Parser.ParseFinisher(text, lang)
 end
 
 ---------------------------------------------------------------------------------------------
+-- Chance effects
+---------------------------------------------------------------------------------------------
+-- ProcChance(text, lang): the chance per hit of an effect that triggers on a hit, in percent, or
+-- true where the text names no figure, or nil. The number shown for such a spell is what one
+-- trigger does, and the tooltip says so. "Each hit has a 20% chance", "Each main hand hit has a
+-- 20% chance", "Each strike has a 20% chance", "Each hit has a chance", "giving each melee
+-- attack a chance", "granting each attack a chance", "Gives the Paladin a chance" / "Bei jedem
+-- Treffer besteht eine Chance von 20%", "Bei jedem Schlag besteht eine Chance von 20%", "Bei
+-- jedem Treffer besteht eine Chance,", "jedem Nahkampfangriff eine Chance verleiht", "gewährt
+-- jedem Angriff die Chance", "gewährt ihm die Chance". A seal's Judgement is not looked at.
+function Parser.ProcChance(text, lang)
+  if type(text) ~= "string" or text == "" then return nil end
+  local t
+  t, lang = prepare(text, lang)
+  t = withoutJudgement(t, lang)
+  if lang == "de" then
+    local p = match(t, "bei jedem [a-z]+ besteht eine chance von (" .. NUM .. ")%%")
+    if p then return num(p) end
+    if find(t, "bei jedem [a-z]+ besteht eine chance,") or find(t, "jedem nahkampfangriff eine chance", 1, true)
+      or find(t, "jedem angriff die chance", 1, true) or find(t, "gew" .. AE .. "hrt ihm die chance", 1, true) then
+      return true
+    end
+    return nil
+  end
+  local p = match(t, "each [a-z ]-hit has a (" .. NUM .. ")%% chance") or match(t, "each strike has a (" .. NUM .. ")%% chance")
+  if p then return num(p) end
+  if find(t, "each [a-z ]-hit has a chance") or find(t, "each melee attack a chance", 1, true)
+    or find(t, "each attack a chance", 1, true) or find(t, "gives the paladin a chance", 1, true) then
+    return true
+  end
+  return nil
+end
+
+---------------------------------------------------------------------------------------------
 -- Everything one description gives, and which of it the addon shows
 ---------------------------------------------------------------------------------------------
 
@@ -977,6 +1045,21 @@ local function specialWins(s)
   return false
 end
 
+-- A German client still shows some texts in English: Forever's does for spells Forever changed
+-- ("Converts 52 Health into 52 Mana for you."). TextLanguage(text, lang) gives "en" for a text
+-- with English words and not one German word, and lang otherwise.
+local GERMAN_WORDS = { " und ", " der ", " die ", " das ", " den ", " dem ", " des ", " ein", " um ", " mit ", " von ",
+  " zu ", "schaden", " sek", " ihr ", " euch", " euer", " eure" }
+local ENGLISH_WORDS = { " the ", " a ", " you", " for ", " and ", " of ", " to ", " with ", " from ", " into ", " is ",
+  " by ", "damage", " sec" }
+
+function Parser.TextLanguage(text, lang)
+  if lang ~= "de" or type(text) ~= "string" then return lang end
+  local t = " " .. gsub(gsub(text, "[\r\n]+", " "), "[A-Z]", asciiLower) .. " "
+  if hasAny(t, ENGLISH_WORDS) and not hasAny(t, GERMAN_WORDS) then return "en" end
+  return lang
+end
+
 -- Read(text, lang, noWeapon) runs every reader once and decides, in one place, what the addon
 -- shows for the spell (show):
 --   "weapon"     the weapon or attack power view (not with noWeapon: Retail's descriptions
@@ -984,9 +1067,12 @@ end
 --   "judgement"  Judgement itself: the active seal's Judgement
 --   nil          a seal with nothing per hit (its Judgement belongs on Judgement's button), or
 --                nothing read at all
---   "special", "parsed", "finisher"  as their readers say
--- The reduction is shown beside any of these, or alone.
+--   "special", "parsed", "finisher"  as their readers say; a seal shows its special (Seal of
+--                Light's heal per trigger), never the Judgement's numbers
+-- The reduction is shown beside any of these, or alone. proc is ProcChance's answer: the number
+-- shown is what one trigger does.
 function Parser.Read(text, lang, noWeapon)
+  lang = Parser.TextLanguage(text, lang)
   local e = {
     parsed = Parser.Parse(text, lang) or false,
     reduction = Parser.ParseReduction(text, lang) or false,
@@ -997,13 +1083,15 @@ function Parser.Read(text, lang, noWeapon)
     isSeal = Parser.IsSeal(text, lang),
     isJudgement = Parser.IsJudgement(text, lang),
     sealDuration = Parser.SealDuration(text, lang),
+    proc = Parser.ProcChance(text, lang) or false,
+    lang = lang,
   }
   if e.weapon and not noWeapon then
     e.show = "weapon"
   elseif e.isJudgement then
     e.show = "judgement"
   elseif e.isSeal then
-    e.show = nil
+    e.show = e.special and "special" or nil
   elseif e.special and (not e.parsed or specialWins(e.special)) then
     e.show = "special"
   elseif e.parsed then

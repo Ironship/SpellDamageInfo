@@ -1,0 +1,373 @@
+[
+ {
+  "id": 81,
+  "lang": "de",
+  "name": "Ausweichen",
+  "build": "1.60.1.70009",
+  "text": "Gewährt die Chance, Nahkampfattacken des Feindes auszuweichen."
+ },
+ {
+  "id": 100,
+  "lang": "de",
+  "name": "Sturmangriff",
+  "build": "70009",
+  "text": "Stürmt auf einen Gegner zu, erzeugt 9 Wut und betäubt ihn für 1 Sek.. Kann nicht im Kampf verwendet werden."
+ },
+ {
+  "id": 107,
+  "lang": "de",
+  "name": "Blocken",
+  "build": "1.60.1.70009",
+  "text": "Gewährt die Chance, Nahkampfattacken und Distanzangriffe des Feindes zu blocken."
+ },
+ {
+  "id": 172,
+  "lang": "de",
+  "name": "Verderbnis",
+  "build": "1.60.1.70009",
+  "text": "Verdirbt das Ziel und verursacht 12 Sek. lang 40 Punkt(e) Schattenschaden."
+ },
+ {
+  "id": 324,
+  "lang": "de",
+  "name": "Blitzschlagschild",
+  "build": "1.60.1.70009",
+  "text": "Der Zaubernde ist von 3 Kugelblitzen umgeben. Wenn der Zaubernde von einem Nahkampf-, Fernkampf- oder Zauberangriff getroffen wird, wird der Angreifende getroffen und erleidet 13 Naturschaden. Dies kostet einen Kugelblitz. Es wird immer nur ein einzelner Kugelblitz alle paar Sekunden abgefeuert. Hält 10 Min. lang an."
+ },
+ {
+  "id": 331,
+  "lang": "de",
+  "name": "Welle der Heilung",
+  "build": "1.60.1.70009",
+  "text": "Heilt ein befreundetes Ziel um 36 bis 47 Punkt(e)."
+ },
+ {
+  "id": 332,
+  "lang": "de",
+  "name": "Welle der Heilung",
+  "build": "1.60.1.70009",
+  "text": "Heilt ein befreundetes Ziel um 69 bis 83 Punkt(e)."
+ },
+ {
+  "id": 348,
+  "lang": "de",
+  "name": "Feuerbrand",
+  "build": "1.60.1.70009",
+  "text": "Verbrennt den Gegner und fügt ihm 11 Feuerschaden sowie im Verlauf von 15 Sek. insgesamt 15 zusätzlichen Feuerschaden zu."
+ },
+ {
+  "id": 403,
+  "lang": "de",
+  "name": "Blitzschlag",
+  "build": "1.60.1.70009",
+  "text": "Schleudert einen Blitz auf das Ziel und fügt ihm 15 bis 17 Punkt(e) Naturschaden zu."
+ },
+ {
+  "id": 529,
+  "lang": "de",
+  "name": "Blitzschlag",
+  "build": "1.60.1.70009",
+  "text": "Schleudert einen Blitz auf das Ziel und fügt ihm 28 bis 33 Punkt(e) Naturschaden zu."
+ },
+ {
+  "id": 686,
+  "lang": "de",
+  "name": "Schattenblitz",
+  "build": "1.60.1.70009",
+  "text": "Schleudert einen Schattenblitz auf den Feind und verursacht 12 bis 17 Punkt(e) Schattenschaden."
+ },
+ {
+  "id": 687,
+  "lang": "de",
+  "name": "Dämonenhaut",
+  "build": "70009",
+  "text": "Schützt den Zaubernden 30 Min. lang, verbessert Rüstung um 40 und erhöht die Gesundheitsregeneration um 3 Gesundheit pro 5 Sek."
+ },
+ {
+  "id": 688,
+  "lang": "de",
+  "name": "Wichtel beschwören",
+  "build": "70009",
+  "text": "Beschwört einen Wichtel, der unter dem Befehl des Hexenmeisters steht."
+ },
+ {
+  "id": 695,
+  "lang": "de",
+  "name": "Schattenblitz",
+  "build": "1.60.1.70009",
+  "text": "Schleudert einen Schattenblitz auf den Feind und verursacht 23 bis 30 Punkt(e) Schattenschaden."
+ },
+ {
+  "id": 702,
+  "lang": "de",
+  "name": "Fluch der Schwäche",
+  "build": "1.60.1.70009",
+  "text": "Verringert den von einem Gegner verursachten körperlichen Schaden 2 Min. lang um 4. Es kann immer nur jeweils ein Fluch pro Hexenmeister auf einem beliebigen Ziel aktiv sein."
+ },
+ {
+  "id": 980,
+  "lang": "de",
+  "name": "Omen der Pein",
+  "build": "1.60.1.70009",
+  "text": "Belegt das Ziel mit Schmerzen und verursacht im Verlauf von 24 Sek. 72 Schattenschaden. Dieser Schaden ist anfangs niedrig und steigert sich, bis das Omen seine volle Dauer erreicht. Es kann immer nur jeweils ein Omen pro Hexenmeister auf einem beliebigen Ziel aktiv sein."
+ },
+ {
+  "id": 1454,
+  "lang": "de",
+  "name": "Aderlass",
+  "build": "70009",
+  "text": "Converts 52 Health into 52 Mana for you. Spirit increases the amount converted."
+ },
+ {
+  "id": 2457,
+  "lang": "de",
+  "name": "Kampfhaltung",
+  "build": "70009",
+  "text": "Eine ausbalancierte Kampfhaltung."
+ },
+ {
+  "id": 2484,
+  "lang": "de",
+  "name": "Totem der Erdbindung",
+  "build": "70009",
+  "text": "Beschwört 45 Sek. lang ein Totem der Erdbindung mit 5 Punkt(en) Gesundheit zu Füßen des Zaubernden, das das Bewegungstempo von Feinden im Umkreis von 10 Metern verlangsamt."
+ },
+ {
+  "id": 2550,
+  "lang": "de",
+  "name": "Kochkunst",
+  "build": "70009",
+  "text": "Ermöglicht einem Koch, einfache Rezepte mit einer maximalen potenziellen Fertigkeit von bis zu 75 zuzubereiten. Es wird Fleisch von Wildtieren sowie Feuer benötigt, um Essen zubereiten zu können."
+ },
+ {
+  "id": 3273,
+  "lang": "de",
+  "name": "Erste Hilfe",
+  "build": "70009",
+  "text": "Ermöglicht Herstellung und Nutzung von Verbänden mit einer maximalen potenziellen Fertigkeit von 75. Der Stoff zum Herstellen dieser Verbände ist bei den Humanoiden in der Welt zu finden."
+ },
+ {
+  "id": 3908,
+  "lang": "de",
+  "name": "Schneiderei",
+  "build": "70009",
+  "text": "Ermöglicht einem Schneider, einfache Stoffrüstungen mit einer maximalen potenziellen Fertigkeit von 75 anzufertigen. Benötigt Stoff, der bei Humanoiden gefunden wird."
+ },
+ {
+  "id": 5019,
+  "lang": "de",
+  "name": "Schießen",
+  "build": "1.60.1.70009",
+  "text": "Angriff mit einem verwendeten Zauberstab."
+ },
+ {
+  "id": 5782,
+  "lang": "de",
+  "name": "Furcht",
+  "build": "70009",
+  "text": "Erfüllt den Feind mit Furcht, woraufhin er bis zu 10 Sek. lang voller Furcht flüchtet. Erlittener Schaden kann den Effekt unterbrechen. Es kann immer nur jeweils ein einzelnes Ziel mit Furcht erfüllt werden."
+ },
+ {
+  "id": 6307,
+  "lang": "de",
+  "name": "Blutpakt",
+  "build": "70009",
+  "text": "Erhöht die Ausdauer der Gruppenmitglieder um 3."
+ },
+ {
+  "id": 6795,
+  "lang": "de",
+  "name": "Knurren",
+  "build": "70009",
+  "text": "Verspottet das Ziel, damit es Euch angreift, hat aber keinerlei Effekt, wenn das Ziel Euch bereits angreift."
+ },
+ {
+  "id": 7731,
+  "lang": "de",
+  "name": "Angeln",
+  "build": "70009",
+  "text": "Wählt eine Angelrute aus und findet ein Gewässer zum Angeln. Klickt mit der rechten Maustaste auf den Köder im Wasser, wenn sich dieser bewegt, um den Fisch zu fangen. Bei höherer Fertigkeit verbessern sich Eure Aussichten, in höheren Stufen erfolgreich zu angeln."
+ },
+ {
+  "id": 8017,
+  "lang": "de",
+  "name": "Waffe des Felsbeißers",
+  "build": "1.60.1.70009",
+  "text": "Erfüllt die Waffe des Schamanen mit Magie, erhöht die Nahkampfangriffskraft um 49 und lässt Nahkampfangriffe zusätzliche Bedrohung verursachen, wenn diese Waffe benutzt wird. Hält 60 Minuten lang an."
+ },
+ {
+  "id": 8018,
+  "lang": "de",
+  "name": "Waffe des Felsbeißers",
+  "build": "1.60.1.70009",
+  "text": "Erfüllt die Waffe des Schamanen mit Magie, erhöht die Nahkampfangriffskraft um 68 und lässt Nahkampfangriffe zusätzliche Bedrohung verursachen, wenn diese Waffe benutzt wird. Hält 60 Minuten lang an."
+ },
+ {
+  "id": 8024,
+  "lang": "de",
+  "name": "Waffe der Flammenzunge",
+  "build": "1.60.1.70009",
+  "text": "Erfüllt die Waffe des Schamanen mit Feuermagie. Jeder Treffer fügt 3 bis 14 zusätzlichen Feuerschaden zu, abhängig vom Waffentempo. Langsamere Waffen verursachen mehr Feuerschaden pro Schwung. Wenn dieser Effekt auf die Waffenhand angewandt wird, werden alle Vorteile, die Ihr durch 'Totem der Flammenzunge' persönlich erhaltet, negiert. Hält 60 Minuten lang an."
+ },
+ {
+  "id": 8042,
+  "lang": "de",
+  "name": "Erdschock",
+  "build": "1.60.1.70009",
+  "text": "Schockt das Ziel unmittelbar mit erschütternder Kraft und verursacht 19 bis 22 Punkt(e) Naturschaden. Unterbricht außerdem das Wirken von Zaubern und verhindert 2 Sek. lang, dass diese Art Zauber gewirkt werden kann. Verursacht ein hohes Maß an Bedrohung."
+ },
+ {
+  "id": 8044,
+  "lang": "de",
+  "name": "Erdschock",
+  "build": "1.60.1.70009",
+  "text": "Schockt das Ziel unmittelbar mit erschütternder Kraft und verursacht 34 bis 37 Punkt(e) Naturschaden. Unterbricht außerdem das Wirken von Zaubern und verhindert 2 Sek. lang, dass diese Art Zauber gewirkt werden kann. Verursacht ein hohes Maß an Bedrohung."
+ },
+ {
+  "id": 8071,
+  "lang": "de",
+  "name": "Totem der Steinhaut",
+  "build": "70009",
+  "text": "Beschwört ein Totem der Steinhaut mit 5 Gesundheit zu Füßen des Zaubernden. Das Totem beschützt Gruppenmitglieder innerhalb von 30 Metern und verringert den erlittenen körperlichen Schaden um 4. Hält 5 Min. lang an."
+ },
+ {
+  "id": 8613,
+  "lang": "de",
+  "name": "Kürschnerei",
+  "build": "70009",
+  "text": "Grundlagen, wie man Tiere häutet und ihre Pelze und Felle für die Lederverarbeitung bearbeitet. Verleiht eine potenzielle Kürschnereifertigkeit von 75. Es wird ein Kürschnermesser benötigt."
+ },
+ {
+  "id": 16689,
+  "lang": "de",
+  "name": "Griff der Natur",
+  "build": "70009",
+  "text": "Wenn der Zaubernde das nächste Mal durch einen Nahkampfangriff Schaden erleidet, wird der Angreifer mit 'Wucherwurzeln' (Rang 1) belegt. Gilt für 1 Treffer. Kann in gestaltverändertem Zustand gewirkt werden. Hält 45 Sek. lang an."
+ },
+ {
+  "id": 20271,
+  "lang": "de",
+  "name": "Richturteil",
+  "build": "70009",
+  "text": "Entfesselt die Energie eines Siegelzaubers gegen einen Gegner. Verbraucht das Siegel nicht. Der Effekt von 'Richturteil' befindet sich bei den jeweiligen Siegeln."
+ },
+ {
+  "id": 20554,
+  "lang": "de",
+  "name": "Berserker",
+  "build": "70009",
+  "text": "Erhöht Euer Zauber- und Angriffstempo 10 Sek. lang um 10%."
+ },
+ {
+  "id": 20555,
+  "lang": "de",
+  "name": "Regeneration",
+  "build": "1.60.1.70009",
+  "text": "Gesundheitsregenerationsrate um 10% erhöht. Zusätzlich laufen 10% der gesamten Gesundheitsregeneration während des Kampfs weiter."
+ },
+ {
+  "id": 20557,
+  "lang": "de",
+  "name": "Wildtierschlächter",
+  "build": "1.60.1.70009",
+  "text": "Bei Wildtieren verursachter Schaden um 5% erhöht."
+ },
+ {
+  "id": 20580,
+  "lang": "de",
+  "name": "Schattenhaftigkeit",
+  "build": "70009",
+  "text": "Schlüpft bei Aktivierung in die Schatten und verringert die Chance, dass Gegner Eure Gegenwart bemerken. Hält an, bis die Aktion abgebrochen wird oder bis Ihr Euch bewegt. Wenn Ihr diese Fähigkeit im Kampf verwendet, werden Gegner entmutigt, Euch anzugreifen, aber die Abklingzeit wird auf 2 Min. erhöht."
+ },
+ {
+  "id": 20589,
+  "lang": "de",
+  "name": "Entfesselungskünstler",
+  "build": "70009",
+  "text": "Entkommt sofort den Effekten jeglicher bewegungseinschränkender Effekte und erhaltet 3 Sek. lang Immunität gegen diese Effekte."
+ },
+ {
+  "id": 20591,
+  "lang": "de",
+  "name": "Wacher Geist",
+  "build": "1.60.1.70009",
+  "text": "Maximales Mana um 5% erhöht."
+ },
+ {
+  "id": 20593,
+  "lang": "de",
+  "name": "Technologist",
+  "build": "1.60.1.70009",
+  "text": "Euer gnomischer Erfindergeist verringert die Rate, mit der Gerätschaften der Ingenieruskunst versagen oder fehlschlagen, wenn Ihr sie verwendet, um 20%."
+ },
+ {
+  "id": 20600,
+  "lang": "de",
+  "name": "Wachsamkeit",
+  "build": "70009",
+  "text": "Erhöht 20 Sek. lang drastisch Eure Verstohlenheitsentdeckung."
+ },
+ {
+  "id": 1259416,
+  "lang": "de",
+  "name": "Luftwandeln",
+  "build": "70009",
+  "text": "Gleitet 10 Sek. lang abwärts durch die Luft, wobei Ihr die Richtung vorgeben könnt."
+ },
+ {
+  "id": 1259705,
+  "lang": "de",
+  "name": "Leylinie erschließen",
+  "build": "70009",
+  "text": "Zapft die Kraft einer nahen Leylinie an, um Eure Gesundheits- und Manaregeneration um 100% zu erhöhen. Hält 15 Sek. lang an, wenn keine Leylinie in der Nähe ist, und 15 Min. lang, wenn eine gefunden wurde."
+ },
+ {
+  "id": 1259718,
+  "lang": "de",
+  "name": "Überlebenswille",
+  "build": "70009",
+  "text": "Entfernt sofort alle Betäubungseffekte."
+ },
+ {
+  "id": 1259799,
+  "lang": "de",
+  "name": "Elunes Licht",
+  "build": "70009",
+  "text": "Erhöht die kritische Trefferchance aller Eurer Zauber und Angriffe 15 Sek. lang um 10%."
+ },
+ {
+  "id": 1259821,
+  "lang": "de",
+  "name": "Heureka!",
+  "build": "1.60.1.70009",
+  "text": "Eure nächsten 3 Schadensfähigkeiten kosten 10% weniger Mana und verursachen 10% mehr Schaden."
+ },
+ {
+  "id": 1260270,
+  "lang": "de",
+  "name": "Rasche Regeneration",
+  "build": "70009",
+  "text": "Regeneriert im Verlauf von 6 Sek. 50% Eurer maximalen Gesundheit. Jede Bewegung, Aktion oder jeglicher erlittene Schaden während des Kannibalismus hebt den Effekt auf."
+ },
+ {
+  "id": 1278068,
+  "lang": "de",
+  "name": "Sonnen",
+  "build": "70009",
+  "text": "Ermöglicht es dem Kürschner, einem Wildnislager Funktionen hinzuzufügen."
+ },
+ {
+  "id": 1293657,
+  "lang": "de",
+  "name": "Sprachen",
+  "build": "1.60.1.70009",
+  "text": "Ihr beherrscht folgende Sprachen fließend:\r\n|cffffffffGemeinsprache|r\r\n|cffffffffGnomisch|r"
+ },
+ {
+  "id": 1293712,
+  "lang": "de",
+  "name": "Rüstungssachverstand",
+  "build": "1.60.1.70009",
+  "text": "Ihr habt Sachverstand im Umgang mit den folgenden Rüstungsarten:\r\n|cffffffffStoff|r"
+ }
+]

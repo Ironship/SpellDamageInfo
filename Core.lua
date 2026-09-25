@@ -230,6 +230,12 @@ function ns.WeaponView(w, stats)
     return { value = stats.ap * w.pct / 100 + (w.bonus or 0), appct = true, ap = stats.ap, pct = w.pct, bonus = w.bonus or 0 }
   end
   if not hit then return nil end
+  -- Windfury: each extra attack is a normal swing with the extra attack power on top
+  if w.kind == "extra" then
+    if not speed then return nil end
+    local each = hit + w.amount / 14 * speed
+    return { value = w.attacks * each, extra = true, attacks = w.attacks, hit = hit, amount = w.amount, speed = speed }
+  end
   if w.kind == "dps" then
     if not speed then return nil end
     local dps = hit / speed
@@ -311,20 +317,22 @@ local function spellName(spellID)
   return nil
 end
 
-local function withEstimate(parsed, spellID, pet, castTime)
-  if pet or not db.estimate or isRetail() then return Estimate.Apply(parsed, nil, nil, nil) end
+-- noBonus: the description's own number, without spell power. A chance effect is not the cast's
+-- own hit, so the cast time rule would give it a share of spell power it does not get.
+local function withEstimate(parsed, spellID, pet, castTime, noBonus)
+  if pet or noBonus or not db.estimate or isRetail() then return Estimate.Apply(parsed, nil, nil, nil) end
   if castTime == nil then castTime = getCastTime(spellID) end
   return Estimate.Apply(parsed, castTime, Estimate.DamageBonus(parsed.school, bonus.damage), bonus.heal)
 end
 
-local function specialView(s, spellID, pet)
+local function specialView(s, spellID, pet, noBonus)
   if s.absorb then return { absorb = s.absorb } end
   if s.healMaxHealth then
     local mh = weaponStats.maxHealth
     if pet or not mh then return nil end
     return { heal = { min = mh, max = mh, added = 0 }, healMax = true }
   end
-  local view = withEstimate(s, spellID, pet)
+  local view = withEstimate(s, spellID, pet, nil, noBonus)
   if view then
     view.perAttack, view.perBlock, view.every, view.perRage, view.hits = s.perAttack, s.perBlock, s.every, s.perRage, s.hits
     view.perStrike = s.perStrike
@@ -362,23 +370,26 @@ end
 function ns.Compute(spellID, pet)
   local entry = getEntry(spellID)
   if not entry then return nil end
-  local show = entry.show
+  local show, proc = entry.show, entry.proc
+  local view
   -- An ability the parser reads as a weapon attack is shown that way or not at all: the number
   -- Parse finds in some of them ("causing 115 additional damage") is only the part on top.
   if show == "weapon" then
     if pet or not db.weapon then return nil end
     local w = ns.WeaponView(entry.weapon, weaponStats)
-    return w and { weapon = w } or nil
+    view = w and { weapon = w } or nil
   elseif show == "judgement" then
     return judgementView(pet)
   elseif show == "special" then
-    return specialView(entry.special, spellID, pet)
+    view = specialView(entry.special, spellID, pet, proc)
   elseif show == "parsed" then
-    return withEstimate(entry.parsed, spellID, pet)
+    view = withEstimate(entry.parsed, spellID, pet, nil, proc)
   elseif show == "finisher" then
-    return finisherView(entry.finisher, spellID, pet)
+    view = finisherView(entry.finisher, spellID, pet)
   end
-  return nil
+  -- a chance effect: the number is what one trigger does
+  if view and proc then view.proc = proc end
+  return view
 end
 
 -- A seal's Judgement damage, for the seal's own tooltip, or nil.
@@ -705,7 +716,9 @@ end
 -- it and what the addon reads from it, into the saved variables (db.dump). Written to disk at
 -- the next logout or /reload; for testing the parser against the game's own texts rather than
 -- a website's. Spells whose text has not loaded yet are asked for and counted as missing: a
--- second /sdi dump a moment later has them.
+-- second /sdi dump a moment later has them. /sdi dump all does the same for every rank of every
+-- class ability (SpellIDs.lua), known or not, into db.dumpAll: one character gives the client's
+-- texts for all nine classes.
 local function spellbookIDs()
   local ids = {}
   if C_SpellBook and type(C_SpellBook.GetNumSpellBookSkillLines) == "function" then
@@ -739,35 +752,46 @@ local function spellbookIDs()
 end
 
 local function readsAs(entry)
-  local parts = { "show=" .. tostring(entry.show) }
+  local parts = { "show=" .. tostring(entry.show), "lang=" .. tostring(entry.lang) }
   for _, k in ipairs({ "parsed", "reduction", "weapon", "special", "finisher", "judgement" }) do
     if entry[k] then parts[#parts + 1] = k end
   end
   if entry.isSeal then parts[#parts + 1] = "seal" end
   if entry.isJudgement then parts[#parts + 1] = "judgement-spell" end
+  if entry.proc then parts[#parts + 1] = "proc=" .. tostring(entry.proc) end
   return #parts > 0 and table.concat(parts, ",") or "nothing"
 end
 
-function ns.Dump()
+function ns.Dump(all)
   local build
   if type(GetBuildInfo) == "function" then
     local ok, v, b = pcall(GetBuildInfo)
     if ok and not isSecret(b) then build = tostring(v) .. "." .. tostring(b) end
   end
-  local out = { build = build, lang = ns.DescriptionLang(), class = weaponStats.class, spells = {}, missing = 0 }
+  local lang = ns.DescriptionLang()
+  local out = { build = build, lang = lang, class = weaponStats.class, spells = {}, missing = 0 }
+  local ids = {}
+  if all then
+    for id in string.gmatch(ns.AllSpellIDs or "", "%d+") do ids[#ids + 1] = tonumber(id) end
+  else
+    ids = spellbookIDs()
+  end
   local seen = {}
-  for _, id in ipairs(spellbookIDs()) do
+  for _, id in ipairs(ids) do
     if not seen[id] then
       seen[id] = true
-      local entry = getEntry(id)
-      if entry then
-        out.spells[#out.spells + 1] = { id = id, name = spellName(id), text = entry.text, reads = readsAs(entry) }
+      -- read here rather than through getEntry: most of these are never on a button
+      local text = getDescription(id)
+      if text then
+        local entry = Parser.Read(text, lang, isRetail())
+        out.spells[#out.spells + 1] = { id = id, name = spellName(id), text = text, reads = readsAs(entry) }
       else
+        requestLoad(id)
         out.missing = out.missing + 1
       end
     end
   end
-  db.dump = out
+  if all then db.dumpAll = out else db.dump = out end
   return out
 end
 
@@ -968,7 +992,7 @@ local function slash(msg)
     return
   end
   if cmd == "dump" then
-    local list = ns.Dump()
+    local list = ns.Dump(arg == "all")
     say(string.format(L.DUMP_DONE, #list.spells, list.missing))
     return
   end

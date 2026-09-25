@@ -10,8 +10,9 @@
 --     the German patterns trustworthy without a German expectation written down by hand.
 --   * The English results carry the numbers the text states, worked out here with patterns of
 --     the test's own for each ability family (never from the parser).
---   * What must stay nil stays nil: chance procs, both-weapon attacks, finishers, and every row
---     of tests/fixtures/spells.json except the weapon attacks it already marked as such.
+--   * What must stay nil stays nil: chance effects other than Windfury's extra attacks and Seal of
+--     Command's hit, finishers, and every row of tests/fixtures/spells.json except the weapon
+--     attacks it already marked as such.
 
 package.path = "tests/lib/?.lua;" .. package.path
 local T = require("testlib")
@@ -29,7 +30,7 @@ local n = tonumber
 local function describe(r)
   if r == nil then return "nil" end
   local parts = { tostring(r.kind) }
-  for _, k in ipairs({ "pct", "bonus", "bonusMax", "amount", "min", "max", "school", "times", "stat" }) do
+  for _, k in ipairs({ "pct", "bonus", "bonusMax", "amount", "min", "max", "school", "times", "stat", "attacks" }) do
     if r[k] ~= nil then parts[#parts + 1] = k .. "=" .. tostring(r[k]) end
   end
   if r.ranged then parts[#parts + 1] = "ranged" end
@@ -39,7 +40,7 @@ end
 
 local function same(a, b)
   if a == nil or b == nil then return a == b end
-  for _, k in ipairs({ "kind", "pct", "bonus", "bonusMax", "amount", "min", "max", "school", "times", "stat" }) do
+  for _, k in ipairs({ "kind", "pct", "bonus", "bonusMax", "amount", "min", "max", "school", "times", "stat", "attacks" }) do
     if a[k] ~= b[k] then return false end
   end
   return (a.ranged and true or false) == (b.ranged and true or false)
@@ -94,6 +95,14 @@ local function expectEN(name, text)
     local lo, hi = t:match("each hit causes ([%d%.]+) to ([%d%.]+) additional fire damage")
     return { kind = "perhit", min = n(lo), max = n(hi), school = "fire" }
   end
+  -- chance effects, per trigger
+  if name == "Windfury Weapon" then
+    local a, b = t:match("(%d+) extra attacks? with (%d+) extra melee attack power")
+    return { kind = "extra", attacks = n(a), amount = n(b) }
+  end
+  if name == "Seal of Command" then
+    return { kind = "weapon", pct = n(t:match("holy damage equal to (%d+)%% of normal weapon damage")), bonus = 0, school = "holy" }
+  end
   if name == "Seal of Fury" then
     local a = t:match("melee attacks to deal an additional ([%d%.]+) holy damage")
     return { kind = "perhit", min = n(a), max = n(a), school = "holy" }
@@ -133,13 +142,13 @@ local function expectEN(name, text)
   return nil
 end
 
--- Nothing here gives one number per hit: a chance, both weapons, a per-combo-point table, a
--- mana or healing seal, attack power traded for speed.
-local NEVER = {
-  ["Seal of Command"] = true, ["Seal of the Crusader"] = true, ["Windfury Weapon"] = true,
-}
--- The imbues and seals that add the same to every hit; every other one is a chance or no damage.
-local PER_HIT = { ["Seal of Righteousness"] = true, ["Flametongue Weapon"] = true, ["Seal of Fury"] = true }
+-- Nothing here gives one number per hit: attack power traded for speed.
+local NEVER = { ["Seal of the Crusader"] = true }
+-- The imbues and seals read here: what every hit gains, or what one trigger of a chance is worth.
+-- Every other one is a chance Parse reads (poisons, Frostbrand), a heal (Seal of Light), or no
+-- damage.
+local PER_HIT = { ["Seal of Righteousness"] = true, ["Flametongue Weapon"] = true, ["Seal of Fury"] = true,
+  ["Windfury Weapon"] = true, ["Seal of Command"] = true }
 -- German texts that lost the words the English still has: Wowhead's German Trueshot Aura keeps
 -- "attack power" only inside brackets that hold talent text, which the parser drops.
 local GERMAN_SILENT = { ["Trueshot Aura"] = true }
@@ -195,6 +204,8 @@ local HAND = {
   { 25289, "de", { kind = "ap", amount = 232 } },                                 -- Schlachtruf r7
   { 16316, "de", { kind = "ap", amount = 653 } },                                 -- Waffe des Felsbeißers r7
   { 16316, "forever", { kind = "ap", amount = 554 } },                            -- Forever's Rockbiter
+  { 16362, "de", { kind = "extra", attacks = 2, amount = 333 } },                -- Waffe des Windzorns r4
+  { 20920, "de", { kind = "weapon", pct = 70, bonus = 0, school = "holy" } },    -- Siegel des Befehls r5
 }
 for _, h in ipairs(HAND) do
   local r = row(h[1])

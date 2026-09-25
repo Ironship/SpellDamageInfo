@@ -262,15 +262,19 @@ local spellNames = { [5138] = "Mana entziehen", [20293] = "Siegel der Rechtschaf
 
 -- The rest of the German texts this test uses, from the whole-spellbook fixture (Wowhead Classic
 -- German, every rank of every class): two seals and Judgement, a shield, Lay on Hands, two totems,
--- Execute, Eviscerate, Bloodthirst, Hammer of the Righteous and the strength and agility totems.
+-- Execute, Eviscerate, Bloodthirst, Hammer of the Righteous and the strength and agility totems;
+-- and the chance effects: Windfury Weapon r4 and Totem r3, Seal of Light r4, Major Firestone.
 local allRows = json.decode(T.readFile("tests/fixtures/forever_spellbook_all.json"))
 local function germanText(id)
   for _, r in ipairs(allRows) do if r.id == id and r.de_description then return r.de_description end end
   error("the whole-spellbook fixture has no German text for spell " .. id)
 end
-for _, id in ipairs({ 20293, 20920, 20271, 10901, 10310, 10438, 10463, 20662, 31016, 23894, 407632, 25361, 25359 }) do
+for _, id in ipairs({ 20293, 20920, 20271, 10901, 10310, 10438, 10463, 20662, 31016, 23894, 407632, 25361, 25359,
+  16362, 10614, 20349, 17953 }) do
   descriptions[id] = germanText(id)
 end
+-- Forever's German client shows some spells in English: Lightning Bolt r2 in Forever's English
+for _, r in ipairs(allRows) do if r.id == 529 then descriptions[529] = r.forever_en_description end end
 
 -- Attack power 1000 + 200 - 50, a warrior with 3000 health in no form.
 function UnitAttackPower(unit) if unit == "player" then return 1000, 200, -50 end end
@@ -294,7 +298,8 @@ C_SpellBook = {
 }
 
 local castTimes = { [172] = 2000, [686] = 3000, [348] = 2000, [5138] = 0, [689] = 0, [755] = 0, [999] = 1500,
-  [702] = 0, [24579] = 0, [90001] = 0, [3110] = 2000, [7799] = 2000 }
+  [702] = 0, [24579] = 0, [90001] = 0, [3110] = 2000, [7799] = 2000,
+  [17953] = 3000 } -- the Firestone's 3 sec cast would give a spell a share of spell power, not its proc
 
 C_Spell = {
   GetSpellDescription = function(id) return descriptions[id] end,
@@ -315,7 +320,8 @@ local actions = {
   [66] = { "spell", 20293 }, [67] = { "spell", 20920 }, [68] = { "spell", 20271 }, [69] = { "spell", 10901 },
   [70] = { "spell", 10310 }, [71] = { "spell", 10438 }, [72] = { "spell", 10463 }, [74] = { "spell", 20662 },
   [75] = { "spell", 31016 }, [76] = { "spell", 23894 }, [77] = { "spell", 407632 }, [78] = { "spell", 25361 },
-  [79] = { "spell", 25359 },
+  [79] = { "spell", 25359 }, [80] = { "spell", 16362 }, [81] = { "spell", 10614 }, [82] = { "spell", 20349 },
+  [83] = { "spell", 17953 }, [84] = { "spell", 529 },
 }
 function GetActionInfo(slot) local a = actions[slot]; if a then return a[1], a[2] end end
 local counts = { [2] = 5, [3] = SECRET } -- a reagent count on Shadow Bolt's slot; a secret one on Immolate's
@@ -445,8 +451,9 @@ for line in toc:gmatch("[^\r\n]+") do
     loaded[#loaded + 1] = line
   end
 end
-T.check(#loaded == 5, "toc lists five files")
-T.eq(loaded[5], "Options.lua", "Options.lua loads after Core.lua")
+T.check(#loaded == 6, "toc lists six files")
+T.eq(loaded[6], "Options.lua", "Options.lua loads after Core.lua")
+T.check(type(ns.AllSpellIDs) == "string" and #ns.AllSpellIDs > 5000, "SpellIDs.lua gives the ids for /sdi dump all")
 T.check(ns.DescriptionLang() == nil and ns.InterfaceLang() == nil, "languages not decided yet at file load")
 
 local function label(button) return ns._labels[button] end
@@ -707,7 +714,12 @@ local function hasLine(lines, text) for _, l in ipairs(lines) do if l == text th
 T.eq(shown(MultiBarBottomLeftButton6), "+49", "Siegel der Rechtschaffenheit: 22-75 on every hit, 48.5 on average")
 T.check(weaponColoured(MultiBarBottomLeftButton6), "a seal's gain per hit is blue")
 T.check(hasLine(tipFor(20293), "Richturteil: 170-187 Schaden"), "the seal's tooltip says what its Judgement does")
-T.eq(shown(MultiBarBottomLeftButton7), nil, "Siegel des Befehls: a chance per hit is no number, and its Judgement is not put here")
+T.eq(shown(MultiBarBottomLeftButton7), "84", "Siegel des Befehls: one trigger is 70% of the 120 hit; its Judgement is not put here")
+T.check(weaponColoured(MultiBarBottomLeftButton7), "and it is blue")
+local soc = tipFor(20920)
+T.eq(soc[1], "M\195\182glicher Schaden: etwa 84 (70 % von Waffentreffer 120, gesch\195\164tzt)", "Seal of Command tooltip")
+T.eq(soc[2], "Pro Ausl\195\182sung: eine Chance bei jedem Treffer", "says it is per trigger")
+T.check(hasLine(soc, "Richturteil: 169-186 Schaden"), "and still names its Judgement")
 T.eq(shown(MultiBarBottomLeftButton8), nil, "Richturteil without a seal: nothing")
 T.check(hasLine(tipFor(20271), "Kein Siegel aktiv: der Schaden des Richturteils kommt vom Siegel."), "and the tooltip says why")
 playerBuffs = { 999999, 20293 }
@@ -762,6 +774,27 @@ T.eq(tipFor(25361)[1], "Stärke +77 (154 Angriffskraft): etwa +29 Schaden pro Tr
   "strength totem tooltip")
 T.eq(shown(MultiBarBottomRightButton7), nil, "Totem der luftgleichen Anmut gives a warrior no attack power")
 
+-- Chance effects: what one trigger does, the chance in the tooltip
+T.eq(shown(MultiBarBottomRightButton8), "364", "Waffe des Windzorns: 2 extra attacks of 120 + 333 / 14 x 2.6")
+T.check(weaponColoured(MultiBarBottomRightButton8), "Windfury is blue")
+local wf = tipFor(16362)
+T.eq(wf[1], "M\195\182glicher Schaden: etwa 364 (2 zus\195\164tzliche Angriffe: Waffentreffer 120 + 333 Angriffskraft, gesch\195\164tzt)",
+  "Windfury tooltip")
+T.eq(wf[2], "Pro Ausl\195\182sung: 20 % Chance bei jedem Treffer", "with the chance")
+T.eq(shown(MultiBarBottomRightButton9), "179", "Totem des Windzorns: 1 extra attack of 120 + (315 * 1) / 14 x 2.6")
+T.eq(tipFor(10614)[1], "M\195\182glicher Schaden: etwa 179 (1 zus\195\164tzlicher Angriff: Waffentreffer 120 + 315 Angriffskraft, gesch\195\164tzt)",
+  "one extra attack")
+T.eq(shown(MultiBarBottomRightButton10), "94", "Siegel des Lichts: heals 94 per trigger")
+T.check(label(MultiBarBottomRightButton10).color[2] == ns.Format.HEAL_COLOR[2]
+  and label(MultiBarBottomRightButton10).color[1] == ns.Format.HEAL_COLOR[1], "a heal's colour")
+local sol = tipFor(20349)
+T.check(sol[1] == "Heilung: 94" and sol[2] == "Pro Ausl\195\182sung: eine Chance bei jedem Treffer", "Seal of Light tooltip")
+T.eq(shown(MultiBarBottomRightButton11), "100", "Erheblicher Feuerstein: 80-120 per trigger, no spell power for a 3 sec cast")
+T.check(hasLine(tipFor(17953), "Schaden: 80-120"), "the Firestone's own range, nothing added")
+
+-- An English text on the German client is read as English
+T.eq(shown(MultiBarBottomRightButton12), "29", "Lightning Bolt in English on a German client: 27-31")
+
 -- Retail's descriptions already hold the player's stats: no estimate, no weapon arithmetic
 local buildInfo = GetBuildInfo
 GetBuildInfo = function() return "12.1.0", "69814", "Sep 1 2026", 120100 end
@@ -785,6 +818,18 @@ T.check(dump and dump.spells[2].id == 20293 and dump.spells[2].text == descripti
   "each with its text and what the addon reads from it")
 T.check(dump and dump.lang == "de" and dump.build == "1.60.1.70009" and dump.class == "WARRIOR", "and the client it came from")
 T.check(#messages == dumpBefore + 1 and messages[#messages]:find("2 Zauber", 1, true), "/sdi dump says how many")
+-- /sdi dump all: the ids SpellIDs.lua lists, known or not, into their own place
+local allIDs = ns.AllSpellIDs
+ns.AllSpellIDs = "16362,999,20349,16362"
+SlashCmdList.SPELLDAMAGEINFO("dump all")
+local all = SpellDamageInfoDB.dumpAll
+T.check(all and #all.spells == 2 and all.missing == 1 and all.spells[1].id == 16362 and all.spells[2].id == 20349,
+  "/sdi dump all writes the loaded ones once each and counts the one not loaded")
+T.check(all and all.spells[1].reads:find("weapon", 1, true) and all.spells[1].reads:find("proc=20", 1, true)
+  and all.spells[1].text == descriptions[16362], "with the text and what it reads as")
+T.check(SpellDamageInfoDB.dump == dump, "and leaves the spellbook dump alone")
+T.check(messages[#messages]:find("2 Zauber", 1, true) and messages[#messages]:find("1 noch nicht", 1, true), "and says how many")
+ns.AllSpellIDs = allIDs
 
 -- Spell power turns secret in combat: keep the last readable value
 spellPower[6] = SECRET

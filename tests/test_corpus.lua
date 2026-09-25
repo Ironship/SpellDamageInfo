@@ -5,10 +5,10 @@
 --   lua tests/test_corpus.lua [path/to/Parser.lua]
 --
 -- 1. What the player sees must not depend on the game's language: for every spell with both
---    texts, German gives the same decision and the same numbers as English. A handful of rows
---    are known to differ in Wowhead's own data, and are listed with the reason.
+--    texts, German gives the same decision, the same numbers and the same chance as English. A
+--    handful of rows are known to differ in Wowhead's own data, and are listed with the reason.
 -- 2. The new readers carry the numbers the English text states, worked out here with patterns
---    of the test's own: shields, seals' Judgements, finishers.
+--    of the test's own: shields, seals' Judgements, finishers, and the chance effects.
 -- 3. A summary of what is shown, per class, over Forever's English.
 
 package.path = "tests/lib/?.lua;" .. package.path
@@ -54,13 +54,13 @@ for _, r in ipairs(rows) do
   if r.en_description and r.de_description then
     both = both + 1
     local en, de = P.Read(r.en_description, "en"), P.Read(r.de_description, "de")
-    local same = shown(en) == shown(de) and canon(en.reduction) == canon(de.reduction)
+    local same = shown(en) == shown(de) and canon(en.reduction) == canon(de.reduction) and canon(en.proc) == canon(de.proc)
     if KNOWN[r.id] then
       known = known + 1
       T.check(not same, ("%s %d is listed as differing in Wowhead's data but now agrees: %s"):format(r.expected_name, r.id, KNOWN[r.id]))
     else
-      T.check(same, ("%s %d r%s: English shows %s / %s, German %s / %s"):format(r.expected_name, r.id, tostring(r.rank),
-        shown(en), canon(en.reduction), shown(de), canon(de.reduction)))
+      T.check(same, ("%s %d r%s: English shows %s / %s / chance %s, German %s / %s / chance %s"):format(r.expected_name, r.id,
+        tostring(r.rank), shown(en), canon(en.reduction), canon(en.proc), shown(de), canon(de.reduction), canon(de.proc)))
       if same then agree = agree + 1 end
     end
   end
@@ -68,7 +68,7 @@ end
 
 -- 2. The new readers against the English text's own numbers
 local function strip(text) return (text:gsub("%b[]", "")):gsub(",(%d%d%d)", "%1"):lower() end
-local checked = { absorb = 0, judgement = 0, finisher = 0 }
+local checked = { absorb = 0, judgement = 0, finisher = 0, chance = 0, extra = 0, sealHeal = 0, sealHit = 0 }
 local SHIELDS = { ["Power Word: Shield"] = true, ["Ice Barrier"] = true, ["Mana Shield"] = true, ["Fire Ward"] = true,
   ["Frost Ward"] = true, ["Shadow Ward"] = true }
 for _, r in ipairs(rows) do
@@ -94,6 +94,36 @@ for _, r in ipairs(rows) do
         end
         checked.judgement = checked.judgement + 1
       end
+      -- Chance effects: the chance is the text's own, and nothing without the word has one
+      local own = t:match("unleashing this seal's energy") and t:match("^(.-)unleashing this seal's energy") or t
+      local pc = own:match("each [%a ]-hit has a (%d+)%% chance") or own:match("each strike has a (%d+)%% chance")
+      if pc then
+        T.check(e.proc == n(pc), ("%s %d: a %s%% chance, got %s"):format(r.expected_name, r.id, pc, tostring(e.proc)))
+        checked.chance = checked.chance + 1
+      elseif not own:find("chance", 1, true) then
+        T.check(not e.proc, ("%s %d: no chance in the text, got %s"):format(r.expected_name, r.id, tostring(e.proc)))
+      end
+      -- Windfury: extra attacks, their attack power worked out by Lua ("(122 * 1)")
+      local attacks, expr = t:match("(%d+) extra attacks? with ([%d%(%) %*]+) extra melee attack power")
+      if attacks then
+        local ap = (loadstring or load)("return " .. expr)()
+        local w = e.weapon
+        T.check(e.show == "weapon" and w.kind == "extra" and w.attacks == n(attacks) and w.amount == ap,
+          ("%s %d: %s extra attacks with %s attack power, got %s"):format(r.expected_name, r.id, attacks, tostring(ap), canon(w)))
+        checked.extra = checked.extra + 1
+      end
+      local heal = own:match("giving each melee attack a chance to heal the paladin for (%d+)")
+      if heal then
+        T.check(e.show == "special" and e.special.heal.min == n(heal) and e.proc == true,
+          ("%s %d: heals %s per trigger, got %s"):format(r.expected_name, r.id, heal, canon(e.special)))
+        checked.sealHeal = checked.sealHeal + 1
+      end
+      local pct = own:match("chance to deal additional holy damage equal to (%d+)%% of normal weapon damage")
+      if pct then
+        T.check(e.show == "weapon" and e.weapon.kind == "weapon" and e.weapon.pct == n(pct) and e.weapon.school == "holy" and e.proc == true,
+          ("%s %d: %s%% of a weapon hit per trigger, got %s"):format(r.expected_name, r.id, pct, canon(e.weapon)))
+        checked.sealHit = checked.sealHit + 1
+      end
       if t:find("finishing move", 1, true) and t:find("5 points:", 1, true) then
         local lo, hi = t:match("5 points: *(%d+)%-(%d+) damage")
         local total, dur = t:match("5 points: *(%d+) damage over (%d+) sec")
@@ -113,6 +143,9 @@ for _, r in ipairs(rows) do
 end
 T.check(checked.absorb >= 30 and checked.judgement >= 40 and checked.finisher >= 40,
   ("enough of each family was checked: %d shields, %d seals, %d finishers"):format(checked.absorb, checked.judgement, checked.finisher))
+T.check(checked.chance >= 30 and checked.extra >= 14 and checked.sealHeal >= 8 and checked.sealHit >= 4,
+  ("enough chance effects were checked: %d chances, %d Windfury, %d Seal of Light, %d Seal of Command"):format(checked.chance,
+    checked.extra, checked.sealHeal, checked.sealHit))
 
 -- Judgement itself is recognised in both languages and in Forever's text
 for _, r in ipairs(rows) do
@@ -140,5 +173,6 @@ for _, cls in ipairs(order) do
   print(("  %-8s %4d ranks: %4d with a number, %3d a reduction, %4d nothing (utility, chance, seals)"):format(cls, c.total, c.shown, c.reduction, c.none))
 end
 print(("Corpus: %d spells; %d with both languages, German agreeing with English in %d, %d known Wowhead differences; "
-  .. "checked %d shields, %d seals, %d finishers"):format(#rows, both, agree, known, checked.absorb, checked.judgement, checked.finisher))
+  .. "checked %d shields, %d seals, %d finishers, %d chances"):format(#rows, both, agree, known, checked.absorb, checked.judgement,
+  checked.finisher, checked.chance))
 T.finish("test_corpus")

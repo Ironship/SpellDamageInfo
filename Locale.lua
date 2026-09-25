@@ -35,7 +35,7 @@ Locales.en = {
     "/sdi lang auto|en|de - addon interface language",
     "/sdi weapon [on|off] - potential damage of weapon abilities and attack power buffs (blue)",
     "/sdi misses [clear] - spells on your bars that give no number",
-    "/sdi dump - write your spellbook's descriptions to the saved variables, for testing",
+    "/sdi dump [all] - write your spellbook's descriptions (all: every class's) to the saved variables, for testing",
     "/sdi status - show the settings",
   },
   STATUS = "estimate: %s, button: %s, tooltip: %s, reduction: %s, weapon: %s, size: %d%%, position: %s, language: %s",
@@ -59,6 +59,10 @@ Locales.en = {
   WEAPON_AP = "%s%% of attack power %s",
   WEAPON_DPS = "%s x weapon damage per second %s",
   WEAPON_BOTH = "%s%% of both weapon hits %s and %s, plus %s with each",
+  WEAPON_EXTRA = "%s extra attacks: weapon hit %s + %s attack power",
+  WEAPON_EXTRA_ONE = "%s extra attack: weapon hit %s + %s attack power",
+  PROC_CHANCE = "Per trigger: %s%% chance on each hit",
+  PROC = "Per trigger: a chance on each hit",
   ABSORB_LINE = "Absorbs: %s",
   PER_ATTACK = " per attack",
   PER_STRIKE = " to whatever strikes the party",
@@ -71,7 +75,7 @@ Locales.en = {
   FROM_SEAL = "From %s",
   JUDGEMENT_LINE = "Judgement: %s damage",
   NO_SEAL = "No seal active: Judgement's damage comes from the seal.",
-  DUMP_DONE = "%d spells written to the saved variables (%d not loaded yet: /sdi dump again in a moment). They are saved at logout or /reload.",
+  DUMP_DONE = "%d spells written to the saved variables (%d not loaded yet: the same command again in a moment). They are saved at logout or /reload.",
   OPT_RETAIL = "Retail's descriptions already include your stats.",
   LANG_AUTO = "Auto (game)",
   LANG_EN = "English",
@@ -142,7 +146,7 @@ Locales.de = {
     "/sdi lang auto|en|de - Sprache der Addon-Oberfl\195\164che",
     "/sdi weapon [on|off] - m\195\182glicher Schaden von Waffenf\195\164higkeiten und Angriffskraft-Buffs (blau)",
     "/sdi misses [clear] - Zauber auf Euren Leisten, die keine Zahl ergeben",
-    "/sdi dump - die Beschreibungen Eures Zauberbuchs zum Testen in die gespeicherten Variablen schreiben",
+    "/sdi dump [all] - die Beschreibungen Eures Zauberbuchs (all: aller Klassen) zum Testen in die gespeicherten Variablen schreiben",
     "/sdi status - Einstellungen anzeigen",
   },
   STATUS = "Sch\195\164tzung: %s, Tasten: %s, Tooltip: %s, Schw\195\164chung: %s, Waffe: %s, Gr\195\182\195\159e: %d%%, Position: %s, Sprache: %s",
@@ -166,6 +170,10 @@ Locales.de = {
   WEAPON_AP = "%s %% der Angriffskraft %s",
   WEAPON_DPS = "%s x Waffenschaden pro Sekunde %s",
   WEAPON_BOTH = "%s %% beider Waffentreffer %s und %s, plus je %s",
+  WEAPON_EXTRA = "%s zus\195\164tzliche Angriffe: Waffentreffer %s + %s Angriffskraft",
+  WEAPON_EXTRA_ONE = "%s zus\195\164tzlicher Angriff: Waffentreffer %s + %s Angriffskraft",
+  PROC_CHANCE = "Pro Ausl\195\182sung: %s %% Chance bei jedem Treffer",
+  PROC = "Pro Ausl\195\182sung: eine Chance bei jedem Treffer",
   ABSORB_LINE = "Absorbiert: %s",
   PER_ATTACK = " pro Angriff",
   PER_STRIKE = " f\195\188r jeden, der die Gruppe trifft",
@@ -178,7 +186,7 @@ Locales.de = {
   FROM_SEAL = "Aus %s",
   JUDGEMENT_LINE = "Richturteil: %s Schaden",
   NO_SEAL = "Kein Siegel aktiv: der Schaden des Richturteils kommt vom Siegel.",
-  DUMP_DONE = "%d Zauber in die gespeicherten Variablen geschrieben (%d noch nicht geladen: gleich noch einmal /sdi dump). Gespeichert wird beim Ausloggen oder mit /reload.",
+  DUMP_DONE = "%d Zauber in die gespeicherten Variablen geschrieben (%d noch nicht geladen: gleich noch einmal derselbe Befehl). Gespeichert wird beim Ausloggen oder mit /reload.",
   OPT_RETAIL = "Die Beschreibungen in Retail enthalten Eure Werte bereits.",
   LANG_AUTO = "Auto (Spiel)",
   LANG_EN = "English",
@@ -384,6 +392,9 @@ function Format.WeaponLine(w, L)
   elseif w.both then
     body = string.format(L.WEAPON_BOTH, Format.Thousands(w.pct, L), Format.Thousands(w.hit, L),
       w.off and Format.Thousands(w.off, L) or "-", Format.Thousands(w.bonus, L))
+  elseif w.extra then
+    body = string.format((w.attacks == 1) and L.WEAPON_EXTRA_ONE or L.WEAPON_EXTRA, Format.Thousands(w.attacks, L),
+      Format.Thousands(w.hit, L), Format.Thousands(w.amount, L))
   else
     body = string.format(w.ranged and L.WEAPON_HIT_RANGED or L.WEAPON_HIT, Format.Thousands(w.hit, L))
     if w.pct ~= 100 then body = string.format(L.WEAPON_PCT, Format.Thousands(w.pct, L), body) end
@@ -401,12 +412,19 @@ function Format.JudgementLine(j, L)
   return { string.format(L.JUDGEMENT_LINE, rangeText(j.direct, L)), DAMAGE_COLOR[1], DAMAGE_COLOR[2], DAMAGE_COLOR[3] }
 end
 
+-- A chance effect's note: the number is what one trigger does.
+local function procLine(proc, L)
+  local text = (proc == true) and L.PROC or string.format(L.PROC_CHANCE, Format.Thousands(proc, L))
+  return { text, NOTE_COLOR[1], NOTE_COLOR[2], NOTE_COLOR[3] }
+end
+
 -- Tooltip lines for a view: a list of { text, r, g, b }.
 function Format.TooltipLines(view, L)
   local lines = {}
   if not view then return lines end
   if view.weapon then
     lines[1] = Format.WeaponLine(view.weapon, L)
+    if view.proc then lines[2] = procLine(view.proc, L) end
     return lines
   end
   if view.absorb then
@@ -448,6 +466,7 @@ function Format.TooltipLines(view, L)
   if view.fromSeal then
     lines[#lines + 1] = { string.format(L.FROM_SEAL, view.fromSeal), NOTE_COLOR[1], NOTE_COLOR[2], NOTE_COLOR[3] }
   end
+  if view.proc then lines[#lines + 1] = procLine(view.proc, L) end
   return lines
 end
 
