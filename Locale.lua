@@ -69,6 +69,7 @@ Locales.en = {
   OPT_REDUCTION_TIP = "Shows in red, on the button and in the tooltip, by how much a debuff such as Curse of Weakness lowers the enemy's damage or attack power.",
   OPT_RESET = "Reset to defaults",
   OPT_RESET_DONE = "Settings reset to defaults.",
+  OPT_LANG_CHANGED = "Addon interface language changed. Type /reload to update window labels and tooltips.",
   OPT_OPEN = "Open SpellDamageInfo settings",
   OPT_PANEL_TEXT = "The settings have their own window with a live preview. You can also type /sdi.",
 }
@@ -135,6 +136,7 @@ Locales.de = {
   OPT_REDUCTION_TIP = "Zeigt in Rot, auf der Taste und im Tooltip, um wie viel ein Schw\195\164chungszauber wie Fluch der Schw\195\164che den Schaden oder die Angriffskraft des Gegners senkt.",
   OPT_RESET = "Standard wiederherstellen",
   OPT_RESET_DONE = "Einstellungen auf Standard zur\195\188ckgesetzt.",
+  OPT_LANG_CHANGED = "Sprache der Addon-Oberfl\195\164che ge\195\164ndert. Tippen Sie /reload, um die Fensterbezeichnungen und Tooltips zu aktualisieren.",
   OPT_OPEN = "SpellDamageInfo-Einstellungen \195\182ffnen",
   OPT_PANEL_TEXT = "Die Einstellungen haben ein eigenes Fenster mit Vorschau. Ihr k\195\182nnt auch /sdi eingeben.",
 }
@@ -176,7 +178,7 @@ end
 -- Decide the description language at addon load, and set up ns.L with the interface strings.
 function ns.DecideLangsAtLoad()
   local descLocale = getDescriptionLocale()
-  descriptionLang = (descLocale == "deDE") and "de" or ((type(descLocale) == "string" and descLocale:sub(1, 2) == "en") and "en" or nil)
+  descriptionLang = (descLocale == "deDE") and "de" or "en"
 end
 
 -- Set the interface language and refresh ns.L. "auto" -> follow GetLocale().

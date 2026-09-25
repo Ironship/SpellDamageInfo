@@ -561,6 +561,7 @@ end
 
 function ns.ResetSettings()
   for k, v in pairs(DEFAULTS) do db[k] = v end
+  ns.SetInterfaceAndRefreshL(DEFAULTS.interfaceLang)
   requestUpdate()
 end
 

@@ -104,6 +104,7 @@ local function set(key, value)
   if key == "interfaceLang" then
     ns.SetSetting(key, value)
     ns.SetInterfaceAndRefreshL(value)
+    say(L.OPT_LANG_CHANGED)
   else
     ns.SetSetting(key, value)
   end
