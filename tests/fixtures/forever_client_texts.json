@@ -21,6 +21,20 @@
   "text": "Gewährt die Chance, Nahkampfattacken und Distanzangriffe des Feindes zu blocken."
  },
  {
+  "id": 126,
+  "lang": "de",
+  "name": "Auge von Kilrogg",
+  "build": "1.60.1.70009",
+  "text": "Beschwört das Auge von Kilrogg und bindet Eure Sicht daran. Das Auge bewegt sich schnell, aber auch sehr zerbrechlich."
+ },
+ {
+  "id": 132,
+  "lang": "de",
+  "name": "Unsichtbarkeit entdecken",
+  "build": "1.60.1.70009",
+  "text": "Ermöglicht dem befreundeten Ziel, 10 Min. lang geringe Unsichtbarkeit zu entdecken."
+ },
+ {
   "id": 172,
   "lang": "de",
   "name": "Verderbnis",
@@ -70,6 +84,13 @@
   "text": "Schleudert einen Blitz auf das Ziel und fügt ihm 28 bis 33 Punkt(e) Naturschaden zu."
  },
  {
+  "id": 603,
+  "lang": "de",
+  "name": "Omen der Verdammnis",
+  "build": "1.60.1.70009",
+  "text": "Belegt das Ziel mit drohender Verdammnis und verursacht nach Ablauf von 1 Min. 1.742 Schattenschaden. Wenn das Ziel durch diesen Schaden stirbt, besteht die Chance, dass eine Verdammniswache beschworen wird. Kann nicht auf Spielercharaktere gewirkt werden. Es kann immer nur jeweils ein Omen pro Hexenmeister auf einem beliebigen Ziel aktiv sein.\r\n"
+ },
+ {
   "id": 686,
   "lang": "de",
   "name": "Schattenblitz",
@@ -91,11 +112,46 @@
   "text": "Beschwört einen Wichtel, der unter dem Befehl des Hexenmeisters steht."
  },
  {
+  "id": 689,
+  "lang": "de",
+  "name": "Blutsauger",
+  "build": "1.60.1.70009",
+  "text": "Überträgt alle 1 Sek. 10 Gesundheit vom Ziel auf den Zaubernden. Hält 5 Sek. lang an."
+ },
+ {
+  "id": 693,
+  "lang": "de",
+  "name": "Seelenstein herstellen",
+  "build": "1.60.1.70009",
+  "text": "Lässt einen schwachen Seelenstein entstehen. Der Seelenstein kann zum Speichern der Seele eines Ziels benutzt werden. Wenn das Ziel stirbt, während seine Seele gespeichert ist, kann es mit 400 Gesundheit und 700 Mana wiederbelebt werden.\r\n\r\nHerbeigezauberte Gegenstände verschwinden, wenn Ihr Euch länger als 15 Minuten ausloggt."
+ },
+ {
   "id": 695,
   "lang": "de",
   "name": "Schattenblitz",
   "build": "1.60.1.70009",
   "text": "Schleudert einen Schattenblitz auf den Feind und verursacht 23 bis 30 Punkt(e) Schattenschaden."
+ },
+ {
+  "id": 696,
+  "lang": "de",
+  "name": "Dämonenhaut",
+  "build": "1.60.1.70009",
+  "text": "Schützt den Zaubernden 30 Min. lang, verbessert Rüstung um 120 und erhöht die Gesundheitsregeneration um 5 Gesundheit pro 5 Sek."
+ },
+ {
+  "id": 698,
+  "lang": "de",
+  "name": "Ritual der Beschwörung",
+  "build": "1.60.1.70009",
+  "text": "Beginnt ein Ritual, das das anvisierte Gruppenmitglied beschwört. Um das Ritual zu vervollständigen, werden der Zaubernde und zwei zusätzliche Gruppenmitglieder benötigt. Um teilzunehmen, müssen sich alle Spieler außerhalb eines Kampfes befinden, auf das Portal rechtsklicken und dürfen sich nicht bewegen, bis das Ritual abgeschlossen ist."
+ },
+ {
+  "id": 699,
+  "lang": "de",
+  "name": "Blutsauger",
+  "build": "1.60.1.70009",
+  "text": "Überträgt alle 1 Sek. 14 Gesundheit vom Ziel auf den Zaubernden. Hält 5 Sek. lang an."
  },
  {
   "id": 702,
@@ -105,6 +161,55 @@
   "text": "Verringert den von einem Gegner verursachten körperlichen Schaden 2 Min. lang um 4. Es kann immer nur jeweils ein Fluch pro Hexenmeister auf einem beliebigen Ziel aktiv sein."
  },
  {
+  "id": 704,
+  "lang": "de",
+  "name": "Fluch der Tollkühnheit",
+  "build": "1.60.1.70009",
+  "text": "Verflucht das Ziel mit Tollkühnheit und verringert seine Rüstung 2 Min. lang um 175. Verfluchte Gegner fliehen nicht und ignorieren Furcht- und Entsetzenseffekte. Es kann immer nur jeweils ein Fluch pro Hexenmeister auf einem beliebigen Ziel aktiv sein."
+ },
+ {
+  "id": 705,
+  "lang": "de",
+  "name": "Schattenblitz",
+  "build": "1.60.1.70009",
+  "text": "Schleudert einen Schattenblitz auf den Feind und verursacht 38 bis 44 Punkt(e) Schattenschaden."
+ },
+ {
+  "id": 706,
+  "lang": "de",
+  "name": "Dämonenrüstung",
+  "build": "1.60.1.70009",
+  "text": "Schützt den Zaubernden 30 Min. lang, verbessert Rüstung um 210, Schattenwiderstand um 3 und erhöht die Gesundheitsregeneration um 7 Gesundheit pro 5 Sek."
+ },
+ {
+  "id": 707,
+  "lang": "de",
+  "name": "Feuerbrand",
+  "build": "1.60.1.70009",
+  "text": "Verbrennt den Gegner und fügt ihm 17 Feuerschaden sowie im Verlauf von 15 Sek. insgesamt 30 zusätzlichen Feuerschaden zu."
+ },
+ {
+  "id": 709,
+  "lang": "de",
+  "name": "Blutsauger",
+  "build": "1.60.1.70009",
+  "text": "Überträgt alle 1 Sek. 22 Gesundheit vom Ziel auf den Zaubernden. Hält 5 Sek. lang an."
+ },
+ {
+  "id": 710,
+  "lang": "de",
+  "name": "Verbannen",
+  "build": "1.60.1.70009",
+  "text": "Verbannt das feindliche Ziel und verhindert damit jegliche Aktion, macht es aber bis zu 20 Sek. lang unverwundbar. Es kann immer nur jeweils ein Ziel verbannt werden. Funktioniert nur bei Dämonen und Elementaren."
+ },
+ {
+  "id": 755,
+  "lang": "de",
+  "name": "Lebenslinie",
+  "build": "1.60.1.70009",
+  "text": "Gewährt dem Begleiter des Zaubernden 10 Sek. lang pro Sekunde 12 Gesundheit, solange der Zaubernde seine Kräfte kanalisiert. Generiert weniger Bedrohung."
+ },
+ {
   "id": 980,
   "lang": "de",
   "name": "Omen der Pein",
@@ -112,11 +217,102 @@
   "text": "Belegt das Ziel mit Schmerzen und verursacht im Verlauf von 24 Sek. 72 Schattenschaden. Dieser Schaden ist anfangs niedrig und steigert sich, bis das Omen seine volle Dauer erreicht. Es kann immer nur jeweils ein Omen pro Hexenmeister auf einem beliebigen Ziel aktiv sein."
  },
  {
+  "id": 1014,
+  "lang": "de",
+  "name": "Omen der Pein",
+  "build": "1.60.1.70009",
+  "text": "Belegt das Ziel mit Schmerzen und verursacht im Verlauf von 24 Sek. 120 Schattenschaden. Dieser Schaden ist anfangs niedrig und steigert sich, bis das Omen seine volle Dauer erreicht. Es kann immer nur jeweils ein Omen pro Hexenmeister auf einem beliebigen Ziel aktiv sein."
+ },
+ {
+  "id": 1086,
+  "lang": "de",
+  "name": "Dämonenrüstung",
+  "build": "1.60.1.70009",
+  "text": "Schützt den Zaubernden 30 Min. lang, verbessert Rüstung um 300, Schattenwiderstand um 6 und erhöht die Gesundheitsregeneration um 9 Gesundheit pro 5 Sek."
+ },
+ {
+  "id": 1088,
+  "lang": "de",
+  "name": "Schattenblitz",
+  "build": "1.60.1.70009",
+  "text": "Schleudert einen Schattenblitz auf den Feind und verursacht 52 bis 60 Punkt(e) Schattenschaden."
+ },
+ {
+  "id": 1094,
+  "lang": "de",
+  "name": "Feuerbrand",
+  "build": "1.60.1.70009",
+  "text": "Verbrennt den Gegner und fügt ihm 32 Feuerschaden sowie im Verlauf von 15 Sek. insgesamt 60 zusätzlichen Feuerschaden zu."
+ },
+ {
+  "id": 1098,
+  "lang": "de",
+  "name": "Dämon unterwerfen",
+  "build": "1.60.1.70009",
+  "text": "Unterwirft den Zieldämon bis zur Stufe 32 und zwingt ihn, Euren Befehlen Folge zu leisten. Während er unterworfen ist, wird die Zeit zwischen Angriffen des Dämons um 40% erhöht und sein Zaubertempo um 30% verlangsamt. Hält bis zu 5 Min. lang an. Wenn Ihr denselben Dämon mehrmals unterwerft, wird es mit jedem Versuch schwieriger, ihn zu kontrollieren."
+ },
+ {
+  "id": 1106,
+  "lang": "de",
+  "name": "Schattenblitz",
+  "build": "1.60.1.70009",
+  "text": "Schleudert einen Schattenblitz auf den Feind und verursacht 73 bis 83 Punkt(e) Schattenschaden."
+ },
+ {
+  "id": 1108,
+  "lang": "de",
+  "name": "Fluch der Schwäche",
+  "build": "1.60.1.70009",
+  "text": "Verringert den von einem Gegner verursachten körperlichen Schaden 2 Min. lang um 7. Es kann immer nur jeweils ein Fluch pro Hexenmeister auf einem beliebigen Ziel aktiv sein."
+ },
+ {
+  "id": 1120,
+  "lang": "de",
+  "name": "Seelendieb",
+  "build": "1.60.1.70009",
+  "text": "Entzieht dem Ziel die Seele und verursacht im Verlauf von 15 Sek. 85 Schattenschaden. Nicht triviale Ziele, die durch 'Seelendieb' Schaden erleiden, haben eine Chance, einen Seelensplitter zu gewähren. Nicht triviale Ziele, die durch 'Seelendieb' getötet werden, gewähren immer einen Seelensplitter. Seelensplitter werden für andere Zauber benötigt."
+ },
+ {
   "id": 1454,
   "lang": "de",
   "name": "Aderlass",
   "build": "70009",
   "text": "Converts 52 Health into 52 Mana for you. Spirit increases the amount converted."
+ },
+ {
+  "id": 1455,
+  "lang": "de",
+  "name": "Aderlass",
+  "build": "1.60.1.70009",
+  "text": "Converts 95 Health into 95 Mana for you. Spirit increases the amount converted."
+ },
+ {
+  "id": 1456,
+  "lang": "de",
+  "name": "Aderlass",
+  "build": "1.60.1.70009",
+  "text": "Converts 160 Health into 160 Mana for you. Spirit increases the amount converted."
+ },
+ {
+  "id": 1714,
+  "lang": "de",
+  "name": "Fluch der Sprachen",
+  "build": "1.60.1.70009",
+  "text": "Zwingt das Ziel, Dämonisch zu sprechen, was die Zauberzeit aller Zauber um 50% erhöht. Es kann immer nur jeweils ein Fluch pro Hexenmeister auf einem beliebigen Ziel aktiv sein. Hält 30 Sek. lang an."
+ },
+ {
+  "id": 1949,
+  "lang": "de",
+  "name": "Höllenfeuer",
+  "build": "1.60.1.70009",
+  "text": "Entzündet den Bereich um den Zaubernden herum und fügt ihm selbst 82 Punkt(e) Feuerschaden sowie alle 1 Sek. allen in der Nähe befindlichen Feinden 82 Punkt(e) Feuerschaden zu. Hält 15 Sek. lang an."
+ },
+ {
+  "id": 2362,
+  "lang": "de",
+  "name": "Zauberstein herstellen",
+  "build": "1.60.1.70009",
+  "text": "Stellt einen Zauberstein her, der verwendet werden kann, um Eure Waffe mit Schattenmagie zu erfüllen, was Euer Zaubertempo um 1% und den verursachten Schaden Eurer Schattenzauber um bis zu 14 erhöht.\r\n\r\nHerbeigezauberte Gegenstände verschwinden, wenn Ihr Euch länger als 15 Min. ausloggt.\r\n"
  },
  {
   "id": 2457,
@@ -140,11 +336,46 @@
   "text": "Ermöglicht einem Koch, einfache Rezepte mit einer maximalen potenziellen Fertigkeit von bis zu 75 zuzubereiten. Es wird Fleisch von Wildtieren sowie Feuer benötigt, um Essen zubereiten zu können."
  },
  {
+  "id": 2941,
+  "lang": "de",
+  "name": "Feuerbrand",
+  "build": "1.60.1.70009",
+  "text": "Verbrennt den Gegner und fügt ihm 56 Feuerschaden sowie im Verlauf von 15 Sek. insgesamt 95 zusätzlichen Feuerschaden zu."
+ },
+ {
+  "id": 2970,
+  "lang": "de",
+  "name": "Unsichtbarkeit entdecken",
+  "build": "1.60.1.70009",
+  "text": "Ermöglicht dem befreundeten Ziel, 10 Min. lang Unsichtbarkeit zu entdecken."
+ },
+ {
   "id": 3273,
   "lang": "de",
   "name": "Erste Hilfe",
   "build": "70009",
   "text": "Ermöglicht Herstellung und Nutzung von Verbänden mit einer maximalen potenziellen Fertigkeit von 75. Der Stoff zum Herstellen dieser Verbände ist bei den Humanoiden in der Welt zu finden."
+ },
+ {
+  "id": 3698,
+  "lang": "de",
+  "name": "Lebenslinie",
+  "build": "1.60.1.70009",
+  "text": "Gewährt dem Begleiter des Zaubernden 10 Sek. lang pro Sekunde 24 Gesundheit, solange der Zaubernde seine Kräfte kanalisiert. Generiert weniger Bedrohung."
+ },
+ {
+  "id": 3699,
+  "lang": "de",
+  "name": "Lebenslinie",
+  "build": "1.60.1.70009",
+  "text": "Gewährt dem Begleiter des Zaubernden 10 Sek. lang pro Sekunde 43 Gesundheit, solange der Zaubernde seine Kräfte kanalisiert. Generiert weniger Bedrohung."
+ },
+ {
+  "id": 3700,
+  "lang": "de",
+  "name": "Lebenslinie",
+  "build": "1.60.1.70009",
+  "text": "Gewährt dem Begleiter des Zaubernden 10 Sek. lang pro Sekunde 64 Gesundheit, solange der Zaubernde seine Kräfte kanalisiert. Generiert weniger Bedrohung."
  },
  {
   "id": 3908,
@@ -161,11 +392,137 @@
   "text": "Angriff mit einem verwendeten Zauberstab."
  },
  {
+  "id": 5138,
+  "lang": "de",
+  "name": "Mana entziehen",
+  "build": "1.60.1.70009",
+  "text": "Überträgt alle 1 Sek. 42 Mana vom Ziel auf den Zaubernden. Hält 5 Sek. lang an."
+ },
+ {
+  "id": 5484,
+  "lang": "de",
+  "name": "Schreckensgeheul",
+  "build": "1.60.1.70009",
+  "text": "Geheul, das 5 Feinde in einem Umkreis von 10 Metern 10 Sek. lang voller Schrecken flüchten lässt. Erlittener Schaden kann den Effekt unterbrechen."
+ },
+ {
+  "id": 5500,
+  "lang": "de",
+  "name": "Dämonen spüren",
+  "build": "1.60.1.70009",
+  "text": "Zeigt den Aufenthaltsort aller in der Nähe befindlichen Dämonen auf der Minikarte an, bis abgebrochen wird. Es kann immer nur jeweils eine Art des Fährtenlesens benutzt werden."
+ },
+ {
+  "id": 5676,
+  "lang": "de",
+  "name": "Sengender Schmerz",
+  "build": "1.60.1.70009",
+  "text": "Fügt dem Ziel sengenden Schmerz zu und verursacht 21 bis 25 Punkt(e) Feuerschaden. Verursacht ein hohes Maß an Bedrohung."
+ },
+ {
+  "id": 5697,
+  "lang": "de",
+  "name": "Unendlicher Atem",
+  "build": "1.60.1.70009",
+  "text": "Ermöglicht dem Ziel 10 Min. lang das Atmen unter Wasser."
+ },
+ {
+  "id": 5699,
+  "lang": "de",
+  "name": "Gesundheitsstein herstellen",
+  "build": "1.60.1.70009",
+  "text": "Lässt einen Gesundheitsstein entstehen, der verwendet werden kann, um sofort 600 Punkt(e) Gesundheit wiederherzustellen.\r\n\r\nHerbeigezauberte Gegenstände verschwinden, wenn Ihr Euch länger als 15 Minuten ausloggt."
+ },
+ {
+  "id": 5740,
+  "lang": "de",
+  "name": "Feuerregen",
+  "build": "1.60.1.70009",
+  "text": "Lässt einen feurigen Regen niedergehen, der 8 Sek. lang Gegner im Wirkungsbereich mit insgesamt 160 Feuerschaden verbrennt."
+ },
+ {
   "id": 5782,
   "lang": "de",
   "name": "Furcht",
   "build": "70009",
   "text": "Erfüllt den Feind mit Furcht, woraufhin er bis zu 10 Sek. lang voller Furcht flüchtet. Erlittener Schaden kann den Effekt unterbrechen. Es kann immer nur jeweils ein einzelnes Ziel mit Furcht erfüllt werden."
+ },
+ {
+  "id": 6201,
+  "lang": "de",
+  "name": "Gesundheitsstein herstellen",
+  "build": "1.60.1.70009",
+  "text": "Lässt einen schwachen Gesundheitsstein entstehen, der verwendet werden kann, um sofort 120 Punkt(e) Gesundheit wiederherzustellen.\r\n\r\nHerbeigezauberte Gegenstände verschwinden, wenn Ihr Euch länger als 15 Minuten ausloggt."
+ },
+ {
+  "id": 6202,
+  "lang": "de",
+  "name": "Gesundheitsstein herstellen",
+  "build": "1.60.1.70009",
+  "text": "Lässt einen geringen Gesundheitsstein entstehen, der verwendet werden kann, um 300 Punkt(e) Gesundheit wiederherzustellen.\r\n\r\nHerbeigezauberte Gegenstände verschwinden, wenn Ihr Euch länger als 15 Minuten ausloggt."
+ },
+ {
+  "id": 6205,
+  "lang": "de",
+  "name": "Fluch der Schwäche",
+  "build": "1.60.1.70009",
+  "text": "Verringert den von einem Gegner verursachten körperlichen Schaden 2 Min. lang um 12. Es kann immer nur jeweils ein Fluch pro Hexenmeister auf einem beliebigen Ziel aktiv sein."
+ },
+ {
+  "id": 6213,
+  "lang": "de",
+  "name": "Furcht",
+  "build": "1.60.1.70009",
+  "text": "Erfüllt den Feind mit Furcht, woraufhin er bis zu 15 Sek. lang voller Furcht flüchtet. Erlittener Schaden kann den Effekt unterbrechen. Es kann immer nur jeweils ein einzelnes Ziel mit Furcht erfüllt werden."
+ },
+ {
+  "id": 6215,
+  "lang": "de",
+  "name": "Furcht",
+  "build": "1.60.1.70009",
+  "text": "Erfüllt den Feind mit Furcht, woraufhin er bis zu 20 Sek. lang voller Furcht flüchtet. Erlittener Schaden kann den Effekt unterbrechen. Es kann immer nur jeweils ein einzelnes Ziel mit Furcht erfüllt werden."
+ },
+ {
+  "id": 6217,
+  "lang": "de",
+  "name": "Omen der Pein",
+  "build": "1.60.1.70009",
+  "text": "Belegt das Ziel mit Schmerzen und verursacht im Verlauf von 24 Sek. 168 Schattenschaden. Dieser Schaden ist anfangs niedrig und steigert sich, bis das Omen seine volle Dauer erreicht. Es kann immer nur jeweils ein Omen pro Hexenmeister auf einem beliebigen Ziel aktiv sein."
+ },
+ {
+  "id": 6219,
+  "lang": "de",
+  "name": "Feuerregen",
+  "build": "1.60.1.70009",
+  "text": "Lässt einen feurigen Regen niedergehen, der 8 Sek. lang Gegner im Wirkungsbereich mit insgesamt 364 Feuerschaden verbrennt."
+ },
+ {
+  "id": 6222,
+  "lang": "de",
+  "name": "Verderbnis",
+  "build": "1.60.1.70009",
+  "text": "Verdirbt das Ziel und verursacht 15 Sek. lang 65 Punkt(e) Schattenschaden."
+ },
+ {
+  "id": 6223,
+  "lang": "de",
+  "name": "Verderbnis",
+  "build": "1.60.1.70009",
+  "text": "Verdirbt das Ziel und verursacht 18 Sek. lang 132 Punkt(e) Schattenschaden."
+ },
+ {
+  "id": 6226,
+  "lang": "de",
+  "name": "Mana entziehen",
+  "build": "1.60.1.70009",
+  "text": "Überträgt alle 1 Sek. 68 Mana vom Ziel auf den Zaubernden. Hält 5 Sek. lang an."
+ },
+ {
+  "id": 6229,
+  "lang": "de",
+  "name": "Schattenzauberschutz",
+  "build": "1.60.1.70009",
+  "text": "Absorbiert 290 Punkt(e) Schattenschaden. Hält 30 Sek. lang an."
  },
  {
   "id": 6307,
@@ -175,11 +532,74 @@
   "text": "Erhöht die Ausdauer der Gruppenmitglieder um 3."
  },
  {
+  "id": 6353,
+  "lang": "de",
+  "name": "Seelenfeuer",
+  "build": "1.60.1.70009",
+  "text": "Verbrennt die Seele eines Feindes und verursacht 334 bis 420 Punkt(e) Feuerschaden."
+ },
+ {
+  "id": 6366,
+  "lang": "de",
+  "name": "Feuerstein herstellen",
+  "build": "1.60.1.70009",
+  "text": "Stellt einen geringen Feuerstein her, der verwendet werden kann, um Eure Waffe mit Feuermagie zu erfüllen, was Eure kritische Zaubertrefferchance um 1% und den verursachten Schaden Eurer Feuerzauber um bis zu 10 erhöht.\r\n\r\nHerbeigezauberte Gegenstände verschwinden, wenn Ihr Euch länger als 15 Min. ausloggt."
+ },
+ {
+  "id": 6789,
+  "lang": "de",
+  "name": "Todesmantel",
+  "build": "1.60.1.70009",
+  "text": "Verursacht 272 Schattenschaden und das betroffene Ziel läuft 3 Sek. lang voller Entsetzen davon. Der Zaubernde erhält 100% des verursachten Schadens in Gesundheit."
+ },
+ {
   "id": 6795,
   "lang": "de",
   "name": "Knurren",
   "build": "70009",
   "text": "Verspottet das Ziel, damit es Euch angreift, hat aber keinerlei Effekt, wenn das Ziel Euch bereits angreift."
+ },
+ {
+  "id": 7641,
+  "lang": "de",
+  "name": "Schattenblitz",
+  "build": "1.60.1.70009",
+  "text": "Schleudert einen Schattenblitz auf den Feind und verursacht 95 bis 107 Punkt(e) Schattenschaden."
+ },
+ {
+  "id": 7646,
+  "lang": "de",
+  "name": "Fluch der Schwäche",
+  "build": "1.60.1.70009",
+  "text": "Verringert den von einem Gegner verursachten körperlichen Schaden 2 Min. lang um 18. Es kann immer nur jeweils ein Fluch pro Hexenmeister auf einem beliebigen Ziel aktiv sein."
+ },
+ {
+  "id": 7648,
+  "lang": "de",
+  "name": "Verderbnis",
+  "build": "1.60.1.70009",
+  "text": "Verdirbt das Ziel und verursacht 18 Sek. lang 168 Punkt(e) Schattenschaden."
+ },
+ {
+  "id": 7651,
+  "lang": "de",
+  "name": "Blutsauger",
+  "build": "1.60.1.70009",
+  "text": "Überträgt alle 1 Sek. 28 Gesundheit vom Ziel auf den Zaubernden. Hält 5 Sek. lang an.\r\n"
+ },
+ {
+  "id": 7658,
+  "lang": "de",
+  "name": "Fluch der Tollkühnheit",
+  "build": "1.60.1.70009",
+  "text": "Verflucht das Ziel mit Tollkühnheit und verringert seine Rüstung 2 Min. lang um 285. Verfluchte Gegner fliehen nicht und ignorieren Furcht- und Entsetzenseffekte. Es kann immer nur jeweils ein Fluch pro Hexenmeister auf einem beliebigen Ziel aktiv sein."
+ },
+ {
+  "id": 7659,
+  "lang": "de",
+  "name": "Fluch der Tollkühnheit",
+  "build": "1.60.1.70009",
+  "text": "Verflucht das Ziel mit Tollkühnheit und verringert seine Rüstung 2 Min. lang um 395. Verfluchte Gegner fliehen nicht und ignorieren Furcht- und Entsetzenseffekte. Es kann immer nur jeweils ein Fluch pro Hexenmeister auf einem beliebigen Ziel aktiv sein."
  },
  {
   "id": 7731,
@@ -231,6 +651,20 @@
   "text": "Beschwört ein Totem der Steinhaut mit 5 Gesundheit zu Füßen des Zaubernden. Das Totem beschützt Gruppenmitglieder innerhalb von 30 Metern und verringert den erlittenen körperlichen Schaden um 4. Hält 5 Min. lang an."
  },
  {
+  "id": 8288,
+  "lang": "de",
+  "name": "Seelendieb",
+  "build": "1.60.1.70009",
+  "text": "Entzieht dem Ziel die Seele und verursacht im Verlauf von 15 Sek. 170 Schattenschaden. Nicht triviale Ziele, die durch 'Seelendieb' Schaden erleiden, haben eine Chance, einen Seelensplitter zu gewähren. Nicht triviale Ziele, die durch 'Seelendieb' getötet werden, gewähren immer einen Seelensplitter. Seelensplitter werden für andere Zauber benötigt."
+ },
+ {
+  "id": 8289,
+  "lang": "de",
+  "name": "Seelendieb",
+  "build": "1.60.1.70009",
+  "text": "Entzieht dem Ziel die Seele und verursacht im Verlauf von 15 Sek. 270 Schattenschaden. Nicht triviale Ziele, die durch 'Seelendieb' Schaden erleiden, haben eine Chance, einen Seelensplitter zu gewähren. Nicht triviale Ziele, die durch 'Seelendieb' getötet werden, gewähren immer einen Seelensplitter. Seelensplitter werden für andere Zauber benötigt."
+ },
+ {
   "id": 8613,
   "lang": "de",
   "name": "Kürschnerei",
@@ -238,11 +672,480 @@
   "text": "Grundlagen, wie man Tiere häutet und ihre Pelze und Felle für die Lederverarbeitung bearbeitet. Verleiht eine potenzielle Kürschnereifertigkeit von 75. Es wird ein Kürschnermesser benötigt."
  },
  {
+  "id": 11659,
+  "lang": "de",
+  "name": "Schattenblitz",
+  "build": "1.60.1.70009",
+  "text": "Schleudert einen Schattenblitz auf den Feind und verursacht 133 bis 149 Punkt(e) Schattenschaden."
+ },
+ {
+  "id": 11660,
+  "lang": "de",
+  "name": "Schattenblitz",
+  "build": "1.60.1.70009",
+  "text": "Schleudert einen Schattenblitz auf den Feind und verursacht 180 bis 202 Punkt(e) Schattenschaden."
+ },
+ {
+  "id": 11661,
+  "lang": "de",
+  "name": "Schattenblitz",
+  "build": "1.60.1.70009",
+  "text": "Schleudert einen Schattenblitz auf den Feind und verursacht 237 bis 265 Punkt(e) Schattenschaden."
+ },
+ {
+  "id": 11665,
+  "lang": "de",
+  "name": "Feuerbrand",
+  "build": "1.60.1.70009",
+  "text": "Verbrennt den Gegner und fügt ihm 72 Feuerschaden sowie im Verlauf von 15 Sek. insgesamt 125 zusätzlichen Feuerschaden zu."
+ },
+ {
+  "id": 11667,
+  "lang": "de",
+  "name": "Feuerbrand",
+  "build": "1.60.1.70009",
+  "text": "Verbrennt den Gegner und fügt ihm 106 Feuerschaden sowie im Verlauf von 15 Sek. insgesamt 190 zusätzlichen Feuerschaden zu."
+ },
+ {
+  "id": 11668,
+  "lang": "de",
+  "name": "Feuerbrand",
+  "build": "1.60.1.70009",
+  "text": "Verbrennt den Gegner und fügt ihm 146 Feuerschaden sowie im Verlauf von 15 Sek. insgesamt 260 zusätzlichen Feuerschaden zu."
+ },
+ {
+  "id": 11671,
+  "lang": "de",
+  "name": "Verderbnis",
+  "build": "1.60.1.70009",
+  "text": "Verdirbt das Ziel und verursacht 18 Sek. lang 240 Punkt(e) Schattenschaden."
+ },
+ {
+  "id": 11672,
+  "lang": "de",
+  "name": "Verderbnis",
+  "build": "1.60.1.70009",
+  "text": "Verdirbt das Ziel und verursacht 18 Sek. lang 342 Punkt(e) Schattenschaden."
+ },
+ {
+  "id": 11675,
+  "lang": "de",
+  "name": "Seelendieb",
+  "build": "1.60.1.70009",
+  "text": "Entzieht dem Ziel die Seele und verursacht im Verlauf von 15 Sek. 420 Schattenschaden. Nicht triviale Ziele, die durch 'Seelendieb' Schaden erleiden, haben eine Chance, einen Seelensplitter zu gewähren. Nicht triviale Ziele, die durch 'Seelendieb' getötet werden, gewähren immer einen Seelensplitter. Seelensplitter werden für andere Zauber benötigt."
+ },
+ {
+  "id": 11677,
+  "lang": "de",
+  "name": "Feuerregen",
+  "build": "1.60.1.70009",
+  "text": "Lässt einen feurigen Regen niedergehen, der 8 Sek. lang Gegner im Wirkungsbereich mit insgesamt 596 Feuerschaden verbrennt."
+ },
+ {
+  "id": 11678,
+  "lang": "de",
+  "name": "Feuerregen",
+  "build": "1.60.1.70009",
+  "text": "Lässt einen feurigen Regen niedergehen, der 8 Sek. lang Gegner im Wirkungsbereich mit insgesamt 880 Feuerschaden verbrennt."
+ },
+ {
+  "id": 11683,
+  "lang": "de",
+  "name": "Höllenfeuer",
+  "build": "1.60.1.70009",
+  "text": "Entzündet den Bereich um den Zaubernden herum und fügt ihm selbst 137 Punkt(e) Feuerschaden sowie alle 1 Sek. allen in der Nähe befindlichen Feinden 137 Punkt(e) Feuerschaden zu. Hält 15 Sek. lang an."
+ },
+ {
+  "id": 11684,
+  "lang": "de",
+  "name": "Höllenfeuer",
+  "build": "1.60.1.70009",
+  "text": "Entzündet den Bereich um den Zaubernden herum und fügt ihm selbst 206 Punkt(e) Feuerschaden sowie alle 1 Sek. allen in der Nähe befindlichen Feinden 206 Punkt(e) Feuerschaden zu. Hält 15 Sek. lang an."
+ },
+ {
+  "id": 11687,
+  "lang": "de",
+  "name": "Aderlass",
+  "build": "1.60.1.70009",
+  "text": "Converts 240 Health into 240 Mana for you. Spirit increases the amount converted."
+ },
+ {
+  "id": 11688,
+  "lang": "de",
+  "name": "Aderlass",
+  "build": "1.60.1.70009",
+  "text": "Converts 330 Health into 330 Mana for you. Spirit increases the amount converted."
+ },
+ {
+  "id": 11689,
+  "lang": "de",
+  "name": "Aderlass",
+  "build": "1.60.1.70009",
+  "text": "Converts 450 Health into 450 Mana for you. Spirit increases the amount converted."
+ },
+ {
+  "id": 11693,
+  "lang": "de",
+  "name": "Lebenslinie",
+  "build": "1.60.1.70009",
+  "text": "Gewährt dem Begleiter des Zaubernden 10 Sek. lang pro Sekunde 89 Gesundheit, solange der Zaubernde seine Kräfte kanalisiert. Generiert weniger Bedrohung."
+ },
+ {
+  "id": 11694,
+  "lang": "de",
+  "name": "Lebenslinie",
+  "build": "1.60.1.70009",
+  "text": "Gewährt dem Begleiter des Zaubernden 10 Sek. lang pro Sekunde 119 Gesundheit, solange der Zaubernde seine Kräfte kanalisiert. Generiert weniger Bedrohung."
+ },
+ {
+  "id": 11695,
+  "lang": "de",
+  "name": "Lebenslinie",
+  "build": "1.60.1.70009",
+  "text": "Gewährt dem Begleiter des Zaubernden 10 Sek. lang pro Sekunde 153 Gesundheit, solange der Zaubernde seine Kräfte kanalisiert. Generiert weniger Bedrohung."
+ },
+ {
+  "id": 11699,
+  "lang": "de",
+  "name": "Blutsauger",
+  "build": "1.60.1.70009",
+  "text": "Überträgt alle 1 Sek. 39 Gesundheit vom Ziel auf den Zaubernden. Hält 5 Sek. lang an.\r\n"
+ },
+ {
+  "id": 11700,
+  "lang": "de",
+  "name": "Blutsauger",
+  "build": "1.60.1.70009",
+  "text": "Überträgt alle 1 Sek. 51 Gesundheit vom Ziel auf den Zaubernden. Hält 5 Sek. lang an."
+ },
+ {
+  "id": 11703,
+  "lang": "de",
+  "name": "Mana entziehen",
+  "build": "1.60.1.70009",
+  "text": "Überträgt alle 1 Sek. 99 Mana vom Ziel auf den Zaubernden. Hält 5 Sek. lang an."
+ },
+ {
+  "id": 11704,
+  "lang": "de",
+  "name": "Mana entziehen",
+  "build": "1.60.1.70009",
+  "text": "Überträgt alle 1 Sek. 136 Mana vom Ziel auf den Zaubernden. Hält 5 Sek. lang an."
+ },
+ {
+  "id": 11707,
+  "lang": "de",
+  "name": "Fluch der Schwäche",
+  "build": "1.60.1.70009",
+  "text": "Verringert den von einem Gegner verursachten körperlichen Schaden 2 Min. lang um 26. Es kann immer nur jeweils ein Fluch pro Hexenmeister auf einem beliebigen Ziel aktiv sein."
+ },
+ {
+  "id": 11708,
+  "lang": "de",
+  "name": "Fluch der Schwäche",
+  "build": "1.60.1.70009",
+  "text": "Verringert den von einem Gegner verursachten körperlichen Schaden 2 Min. lang um 37. Es kann immer nur jeweils ein Fluch pro Hexenmeister auf einem beliebigen Ziel aktiv sein."
+ },
+ {
+  "id": 11711,
+  "lang": "de",
+  "name": "Omen der Pein",
+  "build": "1.60.1.70009",
+  "text": "Belegt das Ziel mit Schmerzen und verursacht im Verlauf von 24 Sek. 252 Schattenschaden. Dieser Schaden ist anfangs niedrig und steigert sich, bis das Omen seine volle Dauer erreicht. Es kann immer nur jeweils ein Omen pro Hexenmeister auf einem beliebigen Ziel aktiv sein."
+ },
+ {
+  "id": 11712,
+  "lang": "de",
+  "name": "Omen der Pein",
+  "build": "1.60.1.70009",
+  "text": "Belegt das Ziel mit Schmerzen und verursacht im Verlauf von 24 Sek. 396 Schattenschaden. Dieser Schaden ist anfangs niedrig und steigert sich, bis das Omen seine volle Dauer erreicht. Es kann immer nur jeweils ein Omen pro Hexenmeister auf einem beliebigen Ziel aktiv sein."
+ },
+ {
+  "id": 11713,
+  "lang": "de",
+  "name": "Omen der Pein",
+  "build": "1.60.1.70009",
+  "text": "Belegt das Ziel mit Schmerzen und verursacht im Verlauf von 24 Sek. 552 Schattenschaden. Dieser Schaden ist anfangs niedrig und steigert sich, bis das Omen seine volle Dauer erreicht. Es kann immer nur jeweils ein Omen pro Hexenmeister auf einem beliebigen Ziel aktiv sein."
+ },
+ {
+  "id": 11717,
+  "lang": "de",
+  "name": "Fluch der Tollkühnheit",
+  "build": "1.60.1.70009",
+  "text": "Verflucht das Ziel mit Tollkühnheit und verringert seine Rüstung 2 Min. lang um 505. Verfluchte Gegner fliehen nicht und ignorieren Furcht- und Entsetzenseffekte. Es kann immer nur jeweils ein Fluch pro Hexenmeister auf einem beliebigen Ziel aktiv sein."
+ },
+ {
+  "id": 11719,
+  "lang": "de",
+  "name": "Fluch der Sprachen",
+  "build": "1.60.1.70009",
+  "text": "Zwingt das Ziel, Dämonisch zu sprechen, was die Zauberzeit aller Zauber um 60% erhöht. Es kann immer nur jeweils ein Fluch pro Hexenmeister auf einem beliebigen Ziel aktiv sein. Hält 30 Sek. lang an."
+ },
+ {
+  "id": 11725,
+  "lang": "de",
+  "name": "Dämon unterwerfen",
+  "build": "1.60.1.70009",
+  "text": "Unterwirft den Zieldämon bis zur Stufe 47 und zwingt ihn, Euren Befehlen Folge zu leisten. Während er unterworfen ist, wird die Zeit zwischen Angriffen des Dämons um 40% erhöht und sein Zaubertempo um 30% verlangsamt. Hält bis zu 5 Min. lang an. Wenn Ihr denselben Dämon mehrmals unterwerft, wird es mit jedem Versuch schwieriger, ihn zu kontrollieren."
+ },
+ {
+  "id": 11726,
+  "lang": "de",
+  "name": "Dämon unterwerfen",
+  "build": "1.60.1.70009",
+  "text": "Unterwirft den Zieldämon bis zur Stufe 62 und zwingt ihn, Euren Befehlen Folge zu leisten. Während er unterworfen ist, wird die Zeit zwischen Angriffen des Dämons um 40% erhöht und sein Zaubertempo um 30% verlangsamt. Hält bis zu 5 Min. lang an. Wenn Ihr denselben Dämon mehrmals unterwerft, wird es mit jedem Versuch schwieriger, ihn zu kontrollieren."
+ },
+ {
+  "id": 11729,
+  "lang": "de",
+  "name": "Gesundheitsstein herstellen",
+  "build": "1.60.1.70009",
+  "text": "Lässt einen großen Gesundheitsstein entstehen, der verwendet werden kann, um sofort 960 Punkt(e) Gesundheit wiederherzustellen.\r\n\r\nHerbeigezauberte Gegenstände verschwinden, wenn Ihr Euch länger als 15 Minuten ausloggt."
+ },
+ {
+  "id": 11730,
+  "lang": "de",
+  "name": "Gesundheitsstein herstellen",
+  "build": "1.60.1.70009",
+  "text": "Lässt einen erheblichen Gesundheitsstein entstehen, der verwendet werden kann, um sofort 1.440 Punkt(e) Gesundheit wiederherzustellen.\r\n\r\nHerbeigezauberte Gegenstände verschwinden, wenn Ihr Euch länger als 15 Minuten ausloggt."
+ },
+ {
+  "id": 11733,
+  "lang": "de",
+  "name": "Dämonenrüstung",
+  "build": "1.60.1.70009",
+  "text": "Schützt den Zaubernden 30 Min. lang, verbessert Rüstung um 390, Schattenwiderstand um 9 und erhöht die Gesundheitsregeneration um 11 Gesundheit pro 5 Sek."
+ },
+ {
+  "id": 11734,
+  "lang": "de",
+  "name": "Dämonenrüstung",
+  "build": "1.60.1.70009",
+  "text": "Schützt den Zaubernden 30 Min. lang, verbessert Rüstung um 480, Schattenwiderstand um 12 und erhöht die Gesundheitsregeneration um 13 Gesundheit pro 5 Sek."
+ },
+ {
+  "id": 11735,
+  "lang": "de",
+  "name": "Dämonenrüstung",
+  "build": "1.60.1.70009",
+  "text": "Schützt den Zaubernden 30 Min. lang, verbessert Rüstung um 570, Schattenwiderstand um 15 und erhöht die Gesundheitsregeneration um 15 Gesundheit pro 5 Sek."
+ },
+ {
+  "id": 11739,
+  "lang": "de",
+  "name": "Schattenzauberschutz",
+  "build": "1.60.1.70009",
+  "text": "Absorbiert 470 Punkt(e) Schattenschaden. Hält 30 Sek. lang an."
+ },
+ {
+  "id": 11740,
+  "lang": "de",
+  "name": "Schattenzauberschutz",
+  "build": "1.60.1.70009",
+  "text": "Absorbiert 675 Punkt(e) Schattenschaden. Hält 30 Sek. lang an."
+ },
+ {
+  "id": 11743,
+  "lang": "de",
+  "name": "Unsichtbarkeit entdecken",
+  "build": "1.60.1.70009",
+  "text": "Ermöglicht dem befreundeten Ziel, 10 Min. lang große Unsichtbarkeit zu entdecken."
+ },
+ {
   "id": 16689,
   "lang": "de",
   "name": "Griff der Natur",
   "build": "70009",
   "text": "Wenn der Zaubernde das nächste Mal durch einen Nahkampfangriff Schaden erleidet, wird der Angreifer mit 'Wucherwurzeln' (Rang 1) belegt. Gilt für 1 Treffer. Kann in gestaltverändertem Zustand gewirkt werden. Hält 45 Sek. lang an."
+ },
+ {
+  "id": 17727,
+  "lang": "de",
+  "name": "Zauberstein herstellen",
+  "build": "1.60.1.70009",
+  "text": "Stellt einen großen Zauberstein her, der verwendet werden kann, um Eure Waffe mit Schattenmagie zu erfüllen, was Euer Zaubertempo um 2% und den verursachten Schaden Eurer Schattenzauber um bis zu 17 erhöht.\r\n\r\nHerbeigezauberte Gegenstände verschwinden, wenn Ihr Euch länger als 15 Min. ausloggt."
+ },
+ {
+  "id": 17728,
+  "lang": "de",
+  "name": "Zauberstein herstellen",
+  "build": "1.60.1.70009",
+  "text": "Stellt einen erheblichen Zauberstein her, der verwendet werden kann, um Eure Waffe mit Schattenmagie zu erfüllen, was Euer Zaubertempo um 2% und den verursachten Schaden Eurer Schattenzauber um bis zu 21 erhöht.\r\n\r\nHerbeigezauberte Gegenstände verschwinden, wenn Ihr Euch länger als 15 Min. ausloggt."
+ },
+ {
+  "id": 17919,
+  "lang": "de",
+  "name": "Sengender Schmerz",
+  "build": "1.60.1.70009",
+  "text": "Fügt dem Ziel sengenden Schmerz zu und verursacht 30 bis 36 Punkt(e) Feuerschaden. Verursacht ein hohes Maß an Bedrohung."
+ },
+ {
+  "id": 17920,
+  "lang": "de",
+  "name": "Sengender Schmerz",
+  "build": "1.60.1.70009",
+  "text": "Fügt dem Ziel sengenden Schmerz zu und verursacht 40 bis 48 Punkt(e) Feuerschaden. Verursacht ein hohes Maß an Bedrohung."
+ },
+ {
+  "id": 17921,
+  "lang": "de",
+  "name": "Sengender Schmerz",
+  "build": "1.60.1.70009",
+  "text": "Fügt dem Ziel sengenden Schmerz zu und verursacht 56 bis 68 Punkt(e) Feuerschaden. Verursacht ein hohes Maß an Bedrohung."
+ },
+ {
+  "id": 17922,
+  "lang": "de",
+  "name": "Sengender Schmerz",
+  "build": "1.60.1.70009",
+  "text": "Fügt dem Ziel sengenden Schmerz zu und verursacht 78 bis 92 Punkt(e) Feuerschaden. Verursacht ein hohes Maß an Bedrohung."
+ },
+ {
+  "id": 17923,
+  "lang": "de",
+  "name": "Sengender Schmerz",
+  "build": "1.60.1.70009",
+  "text": "Fügt dem Ziel sengenden Schmerz zu und verursacht 105 bis 123 Punkt(e) Feuerschaden. Verursacht ein hohes Maß an Bedrohung."
+ },
+ {
+  "id": 17924,
+  "lang": "de",
+  "name": "Seelenfeuer",
+  "build": "1.60.1.70009",
+  "text": "Verbrennt die Seele eines Feindes und verursacht 383 bis 479 Punkt(e) Feuerschaden."
+ },
+ {
+  "id": 17925,
+  "lang": "de",
+  "name": "Todesmantel",
+  "build": "1.60.1.70009",
+  "text": "Verursacht 359 Schattenschaden und das betroffene Ziel läuft 3 Sek. lang voller Entsetzen davon. Der Zaubernde erhält 100% des verursachten Schadens in Gesundheit."
+ },
+ {
+  "id": 17926,
+  "lang": "de",
+  "name": "Todesmantel",
+  "build": "1.60.1.70009",
+  "text": "Verursacht 454 Schattenschaden und das betroffene Ziel läuft 3 Sek. lang voller Entsetzen davon. Der Zaubernde erhält 100% des verursachten Schadens in Gesundheit."
+ },
+ {
+  "id": 17928,
+  "lang": "de",
+  "name": "Schreckensgeheul",
+  "build": "1.60.1.70009",
+  "text": "Geheul, das 5 Feinde in einem Umkreis von 10 Metern 15 Sek. lang voller Schrecken flüchten lässt. Erlittener Schaden kann den Effekt unterbrechen."
+ },
+ {
+  "id": 17951,
+  "lang": "de",
+  "name": "Feuerstein herstellen",
+  "build": "1.60.1.70009",
+  "text": "Stellt einen Feuerstein her, der verwendet werden kann, um Eure Waffe mit Feuermagie zu erfüllen, was Eure kritische Zaubertrefferchance um 1% und den verursachten Schaden Eurer Feuerzauber um bis zu 14 erhöht.\r\n\r\nHerbeigezauberte Gegenstände verschwinden, wenn Ihr Euch länger als 15 Min. ausloggt."
+ },
+ {
+  "id": 17952,
+  "lang": "de",
+  "name": "Feuerstein herstellen",
+  "build": "1.60.1.70009",
+  "text": "Creates a Greater Firestone which can be used to enchant your weapon with Fire, increasing your spell critical strike chance by 2% and the damage done by your Fire spells by up to 17.\r\n\r\nConjured items disappear if logged out for more than 15 minutes."
+ },
+ {
+  "id": 17953,
+  "lang": "de",
+  "name": "Feuerstein herstellen",
+  "build": "1.60.1.70009",
+  "text": "Creates a Major Firestone which can be used to enchant your weapon with Fire, increasing your spell critical strike chance by 2% and the damage done by your Fire spells by up to 21.\r\n\r\nConjured items disappear if logged out for more than 15 minutes."
+ },
+ {
+  "id": 17962,
+  "lang": "de",
+  "name": "Feuersbrunst",
+  "build": "1.60.1.70009",
+  "text": "Entzündet ein Ziel, das bereits mit Eurem 'Feuerbrand' belegt ist, fügt ihm 128 bis 164 Feuerschaden zu und verbraucht Euren Effekt 'Feuerbrand'."
+ },
+ {
+  "id": 18647,
+  "lang": "de",
+  "name": "Verbannen",
+  "build": "1.60.1.70009",
+  "text": "Verbannt das feindliche Ziel und verhindert damit jegliche Aktion, macht es aber bis zu 30 Sek. lang unverwundbar. Es kann immer nur jeweils ein Ziel verbannt werden. Funktioniert nur bei Dämonen und Elementaren."
+ },
+ {
+  "id": 18867,
+  "lang": "de",
+  "name": "Schattenbrand",
+  "build": "1.60.1.70009",
+  "text": "Überzieht das Ziel sofort mit 75 bis 85 Schattenschaden. Wenn das Ziel innerhalb von 8 Sek. nach 'Schattenbrand' stirbt und Erfahrung oder Ehrenpunkte abgibt, erhält der Zaubernde einen Seelensplitter."
+ },
+ {
+  "id": 18868,
+  "lang": "de",
+  "name": "Schattenbrand",
+  "build": "1.60.1.70009",
+  "text": "Überzieht das Ziel sofort mit 111 bis 125 Schattenschaden. Wenn das Ziel innerhalb von 8 Sek. nach 'Schattenbrand' stirbt und Erfahrung oder Ehrenpunkte abgibt, erhält der Zaubernde einen Seelensplitter."
+ },
+ {
+  "id": 18869,
+  "lang": "de",
+  "name": "Schattenbrand",
+  "build": "1.60.1.70009",
+  "text": "Überzieht das Ziel sofort mit 139 bis 157 Schattenschaden. Wenn das Ziel innerhalb von 8 Sek. nach 'Schattenbrand' stirbt und Erfahrung oder Ehrenpunkte abgibt, erhält der Zaubernde einen Seelensplitter."
+ },
+ {
+  "id": 18870,
+  "lang": "de",
+  "name": "Schattenbrand",
+  "build": "1.60.1.70009",
+  "text": "Überzieht das Ziel sofort mit 192 bis 214 Schattenschaden. Wenn das Ziel innerhalb von 8 Sek. nach 'Schattenbrand' stirbt und Erfahrung oder Ehrenpunkte abgibt, erhält der Zaubernde einen Seelensplitter."
+ },
+ {
+  "id": 18871,
+  "lang": "de",
+  "name": "Schattenbrand",
+  "build": "1.60.1.70009",
+  "text": "Überzieht das Ziel sofort mit 251 bis 281 Schattenschaden. Wenn das Ziel innerhalb von 8 Sek. nach 'Schattenbrand' stirbt und Erfahrung oder Ehrenpunkte abgibt, erhält der Zaubernde einen Seelensplitter."
+ },
+ {
+  "id": 18879,
+  "lang": "de",
+  "name": "Lebensentzug",
+  "build": "1.60.1.70009",
+  "text": "Überträgt alle 3 Sek. 19 Gesundheit vom Ziel auf den Zaubernden. Hält 30 Sek. lang an."
+ },
+ {
+  "id": 18880,
+  "lang": "de",
+  "name": "Lebensentzug",
+  "build": "1.60.1.70009",
+  "text": "Überträgt alle 3 Sek. 29 Gesundheit vom Ziel auf den Zaubernden. Hält 30 Sek. lang an."
+ },
+ {
+  "id": 18881,
+  "lang": "de",
+  "name": "Lebensentzug",
+  "build": "1.60.1.70009",
+  "text": "Überträgt alle 3 Sek. 41 Gesundheit vom Ziel auf den Zaubernden. Hält 30 Sek. lang an."
+ },
+ {
+  "id": 18930,
+  "lang": "de",
+  "name": "Feuersbrunst",
+  "build": "1.60.1.70009",
+  "text": "Entzündet ein Ziel, das bereits mit Eurem 'Feuerbrand' belegt ist, fügt ihm 172 bis 216 Feuerschaden zu und verbraucht Euren Effekt 'Feuerbrand'."
+ },
+ {
+  "id": 18931,
+  "lang": "de",
+  "name": "Feuersbrunst",
+  "build": "1.60.1.70009",
+  "text": "Entzündet ein Ziel, das bereits mit Eurem 'Feuerbrand' belegt ist, fügt ihm 212 bis 266 Feuerschaden zu und verbraucht Euren Effekt 'Feuerbrand'."
+ },
+ {
+  "id": 18932,
+  "lang": "de",
+  "name": "Feuersbrunst",
+  "build": "1.60.1.70009",
+  "text": "Entzündet ein Ziel, das bereits mit Eurem 'Feuerbrand' belegt ist, fügt ihm 251 bis 313 Feuerschaden zu und verbraucht Euren Effekt 'Feuerbrand'."
  },
  {
   "id": 20271,
@@ -308,6 +1211,41 @@
   "text": "Erhöht 20 Sek. lang drastisch Eure Verstohlenheitsentdeckung."
  },
  {
+  "id": 20752,
+  "lang": "de",
+  "name": "Seelenstein herstellen",
+  "build": "1.60.1.70009",
+  "text": "Lässt einen geringen Seelenstein entstehen. Der Seelenstein kann zum Speichern der Seele eines Ziels benutzt werden. Wenn das Ziel stirbt, während seine Seele gespeichert ist, kann es mit 750 Gesundheit und 1200 Mana wiederbelebt werden.\r\n\r\nHerbeigezauberte Gegenstände verschwinden, wenn Ihr Euch länger als 15 Minuten ausloggt."
+ },
+ {
+  "id": 20755,
+  "lang": "de",
+  "name": "Seelenstein herstellen",
+  "build": "1.60.1.70009",
+  "text": "Lässt einen Seelenstein entstehen. Der Seelenstein kann zum Speichern der Seele eines Ziels benutzt werden. Wenn das Ziel stirbt, während seine Seele gespeichert ist, kann es mit 1.100 Gesundheit und 1700 Mana wiederbelebt werden.\r\n\r\nHerbeigezauberte Gegenstände verschwinden, wenn Ihr Euch länger als 15 Minuten ausloggt."
+ },
+ {
+  "id": 20756,
+  "lang": "de",
+  "name": "Seelenstein herstellen",
+  "build": "1.60.1.70009",
+  "text": "Lässt einen großen Seelenstein entstehen. Der Seelenstein kann zum Speichern der Seele eines Ziels benutzt werden. Wenn das Ziel stirbt, während seine Seele gespeichert ist, kann es mit 1.600 Gesundheit und 2200 Mana wiederbelebt werden.\r\n\r\nHerbeigezauberte Gegenstände verschwinden, wenn Ihr Euch länger als 15 Minuten ausloggt."
+ },
+ {
+  "id": 20757,
+  "lang": "de",
+  "name": "Seelenstein herstellen",
+  "build": "1.60.1.70009",
+  "text": "Lässt einen erheblichen Seelenstein entstehen. Der Seelenstein kann zum Speichern der Seele eines Ziels benutzt werden. Wenn das Ziel stirbt, während seine Seele gespeichert ist, kann es mit 2.200 Gesundheit und 2800 Mana wiederbelebt werden.\r\n\r\nHerbeigezauberte Gegenstände verschwinden, wenn Ihr Euch länger als 15 Minuten ausloggt."
+ },
+ {
+  "id": 440892,
+  "lang": "de",
+  "name": "Fluch der Elemente",
+  "build": "1.60.1.70009",
+  "text": "Verflucht das Ziel 5 Min. lang, verringert so seine Magiewiderstände um 30 und erhöht seinen erlittenen Magieschaden um 4%. Es kann immer nur jeweils ein Fluch pro Hexenmeister auf einem beliebigen Ziel aktiv sein."
+ },
+ {
   "id": 1259416,
   "lang": "de",
   "name": "Luftwandeln",
@@ -369,5 +1307,47 @@
   "name": "Rüstungssachverstand",
   "build": "1.60.1.70009",
   "text": "Ihr habt Sachverstand im Umgang mit den folgenden Rüstungsarten:\r\n|cffffffffStoff|r"
+ },
+ {
+  "id": 1293812,
+  "lang": "de",
+  "name": "Verbrennen",
+  "build": "1.60.1.70009",
+  "text": "Fügt Eurem Ziel 134 bis 156 Feuerschaden zu. Wenn das Ziel von 'Feuerbrand' betroffen ist, werden ihm zusätzlich 25% Feuerschaden zugefügt."
+ },
+ {
+  "id": 1293813,
+  "lang": "de",
+  "name": "Verbrennen",
+  "build": "1.60.1.70009",
+  "text": "Fügt Eurem Ziel 201 bis 233 Feuerschaden zu. Wenn das Ziel von 'Feuerbrand' betroffen ist, werden ihm zusätzlich 25% Feuerschaden zugefügt."
+ },
+ {
+  "id": 1293818,
+  "lang": "de",
+  "name": "Feuersbrunst",
+  "build": "1.60.1.70009",
+  "text": "Entzündet ein Ziel, das bereits mit Eurem 'Feuerbrand' belegt ist, fügt ihm 107 bis 137 Feuerschaden zu und verbraucht Euren Effekt 'Feuerbrand'."
+ },
+ {
+  "id": 1311676,
+  "lang": "de",
+  "name": "Fluch der Elemente",
+  "build": "1.60.1.70009",
+  "text": "Verflucht das Ziel 5 Min. lang, verringert so seine Magiewiderstände um 45 und erhöht seinen erlittenen Magieschaden um 6%. Es kann immer nur jeweils ein Fluch pro Hexenmeister auf einem beliebigen Ziel aktiv sein.\r\n"
+ },
+ {
+  "id": 1311677,
+  "lang": "de",
+  "name": "Fluch der Elemente",
+  "build": "1.60.1.70009",
+  "text": "Verflucht das Ziel 5 Min. lang, verringert so seine Magiewiderstände um 60 und erhöht seinen erlittenen Magieschaden um 8%. Es kann immer nur jeweils ein Fluch pro Hexenmeister auf einem beliebigen Ziel aktiv sein.\r\n"
+ },
+ {
+  "id": 1311680,
+  "lang": "de",
+  "name": "Fluch der Elemente",
+  "build": "1.60.1.70009",
+  "text": "Verflucht das Ziel 5 Min. lang, verringert so seine Magiewiderstände um 75 und erhöht seinen erlittenen Magieschaden um 10%. Es kann immer nur jeweils ein Fluch pro Hexenmeister auf einem beliebigen Ziel aktiv sein."
  }
 ]

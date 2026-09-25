@@ -15,6 +15,6 @@ On Retail, whose descriptions already include your stats, the numbers are the de
 
 The addon's interface language (labels, chat messages, number formatting) can be switched independently of the game language via the settings window or `/sdi lang auto|en|de`. Auto follows the game's language.
 
-**Install:** unzip `SpellDamageInfo-0.7.0.zip` into `Interface\AddOns` of your game folder (`_classic_beta_` for Forever, `_classic_era_` for Classic Era, `_retail_` for Retail), then restart the game: a new addon folder is only picked up at start. Type `/sdi` (or open Options > AddOns > SpellDamageInfo) for the settings window, with a live preview of the numbers on a sample button; `/sdi help` lists the commands, such as the size (`/sdi size 50-200`) and place (`/sdi position bottom|center|top`) of the numbers.
+**Install:** unzip `SpellDamageInfo-0.7.1.zip` into `Interface\AddOns` of your game folder (`_classic_beta_` for Forever, `_classic_era_` for Classic Era, `_retail_` for Retail), then restart the game: a new addon folder is only picked up at start. Type `/sdi` (or open Options > AddOns > SpellDamageInfo) for the settings window, with a live preview of the numbers on a sample button; `/sdi help` lists the commands, such as the size (`/sdi size 50-200`) and place (`/sdi position bottom|center|top`) of the numbers.
 
 Inspired by DrDamage by Gagorian. The options window is adapted from DoesItDie by Joe Greive (MIT). Licence: MIT (see `LICENSE`).

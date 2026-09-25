@@ -283,7 +283,8 @@ local function classifyAfter(after, lang, sentence)
     if prefix and SCHOOL_DE[prefix] then return "damage", SCHOOL_DE[prefix] end
     if sub(s, 1, 10) == "gesundheit" then
       if find(sentence, "\195\188bertr\195\164gt") then return "drain", nil end
-      if find(sentence, "gibt ") then return "giveheal", nil end
+      -- "Gibt dem Begleiter ...", Forever's "Gewährt dem Begleiter ... 12 Gesundheit"
+      if find(sentence, "gibt ") or find(sentence, "gew\195\164hrt ") then return "giveheal", nil end
     end
   else
     local s = stripFillers(after, FILLERS_EN)

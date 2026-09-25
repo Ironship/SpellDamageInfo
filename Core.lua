@@ -718,7 +718,9 @@ end
 -- a website's. Spells whose text has not loaded yet are asked for and counted as missing: a
 -- second /sdi dump a moment later has them. /sdi dump all does the same for every rank of every
 -- class ability (SpellIDs.lua), known or not, into db.dumpAll: one character gives the client's
--- texts for all nine classes.
+-- texts for all nine classes. The client holds only the player's own class's spells; the rest
+-- arrive over the next seconds after they are asked for, so dump all reads again every 2 seconds
+-- until no more arrive (ns.DumpAll).
 local function spellbookIDs()
   local ids = {}
   if C_SpellBook and type(C_SpellBook.GetNumSpellBookSkillLines) == "function" then
@@ -786,13 +788,42 @@ function ns.Dump(all)
         local entry = Parser.Read(text, lang, isRetail())
         out.spells[#out.spells + 1] = { id = id, name = spellName(id), text = text, reads = readsAs(entry) }
       else
-        requestLoad(id)
+        -- asked again on every pass of dump all: a request the client dropped is not remembered
+        if all and C_Spell and type(C_Spell.RequestLoadSpellData) == "function" then
+          pcall(C_Spell.RequestLoadSpellData, id)
+        else
+          requestLoad(id)
+        end
         out.missing = out.missing + 1
       end
     end
   end
   if all then db.dumpAll = out else db.dump = out end
   return out
+end
+
+-- /sdi dump all: a pass every 2 seconds while spells keep arriving, at most 30; stops after three
+-- passes that bring nothing new (spells the client does not have never arrive). Each pass writes
+-- db.dumpAll, so a /reload in between keeps what was read so far. done(list) is called once.
+local dumpAllRun = 0
+function ns.DumpAll(done)
+  dumpAllRun = dumpAllRun + 1
+  local run = dumpAllRun
+  local passes, still, last = 0, 0, nil
+  local function pass()
+    if run ~= dumpAllRun then return end -- a newer dump all took over
+    passes = passes + 1
+    local list = ns.Dump(true)
+    if last and list.missing >= last then still = still + 1 else still = 0 end
+    last = list.missing
+    local timer = C_Timer and type(C_Timer.After) == "function"
+    if list.missing == 0 or still >= 3 or passes >= 30 or not timer then
+      done(list)
+      return
+    end
+    C_Timer.After(2, pass)
+  end
+  pass()
 end
 
 local function updateButton(button, pet)
@@ -991,8 +1022,13 @@ local function slash(msg)
     for _, line in ipairs(L.HELP) do say(line) end
     return
   end
+  if cmd == "dump" and arg == "all" then
+    say(L.DUMP_WORKING)
+    ns.DumpAll(function(list) say(string.format(L.DUMP_ALL_DONE, #list.spells, list.missing)) end)
+    return
+  end
   if cmd == "dump" then
-    local list = ns.Dump(arg == "all")
+    local list = ns.Dump()
     say(string.format(L.DUMP_DONE, #list.spells, list.missing))
     return
   end

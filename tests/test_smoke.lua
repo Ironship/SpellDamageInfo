@@ -818,17 +818,34 @@ T.check(dump and dump.spells[2].id == 20293 and dump.spells[2].text == descripti
   "each with its text and what the addon reads from it")
 T.check(dump and dump.lang == "de" and dump.build == "1.60.1.70009" and dump.class == "WARRIOR", "and the client it came from")
 T.check(#messages == dumpBefore + 1 and messages[#messages]:find("2 Zauber", 1, true), "/sdi dump says how many")
--- /sdi dump all: the ids SpellIDs.lua lists, known or not, into their own place
+-- /sdi dump all: the ids SpellIDs.lua lists, known or not, into their own place. The client
+-- holds only the player's class; the rest arrive after they are asked for, so it reads again
+-- every 2 seconds while more arrive. Here Totem des Windzorns arrives after the first pass and
+-- spell 999 never does.
 local allIDs = ns.AllSpellIDs
-ns.AllSpellIDs = "16362,999,20349,16362"
+ns.AllSpellIDs = "16362,999,20349,16362,10614"
+local totemText = descriptions[10614]
+descriptions[10614] = nil
+local asked = {}
+C_Spell.RequestLoadSpellData = function(id) asked[id] = (asked[id] or 0) + 1 end
+local before = #messages
 SlashCmdList.SPELLDAMAGEINFO("dump all")
+T.check(#messages == before + 1 and messages[#messages]:find("Lese die Zauber aller Klassen", 1, true), "dump all says it is reading")
 local all = SpellDamageInfoDB.dumpAll
-T.check(all and #all.spells == 2 and all.missing == 1 and all.spells[1].id == 16362 and all.spells[2].id == 20349,
-  "/sdi dump all writes the loaded ones once each and counts the one not loaded")
+T.check(all and #all.spells == 2 and all.missing == 2 and all.spells[1].id == 16362 and all.spells[2].id == 20349,
+  "the first pass writes the loaded ones once each and counts the two not loaded")
+T.check(asked[999] == 1 and asked[10614] == 1, "and asks the client for them")
 T.check(all and all.spells[1].reads:find("weapon", 1, true) and all.spells[1].reads:find("proc=20", 1, true)
   and all.spells[1].text == descriptions[16362], "with the text and what it reads as")
-T.check(SpellDamageInfoDB.dump == dump, "and leaves the spellbook dump alone")
-T.check(messages[#messages]:find("2 Zauber", 1, true) and messages[#messages]:find("1 noch nicht", 1, true), "and says how many")
+descriptions[10614] = totemText -- the client has loaded it
+flush()
+all = SpellDamageInfoDB.dumpAll
+T.check(all and #all.spells == 3 and all.missing == 1 and all.spells[3].id == 10614, "a later pass has the spell that arrived")
+T.check(asked[999] >= 4, "the one that never arrives is asked for on every pass, until three passes bring nothing")
+T.check(#messages == before + 2 and messages[#messages]:find("3 Zauber", 1, true) and messages[#messages]:find("1 nicht geladen", 1, true),
+  "and it reports once, at the end")
+T.check(SpellDamageInfoDB.dump == dump, "the spellbook dump is left alone")
+C_Spell.RequestLoadSpellData = nil
 ns.AllSpellIDs = allIDs
 
 -- Spell power turns secret in combat: keep the last readable value
