@@ -8,6 +8,7 @@
 --   hot    = { total = n, duration = s }  healing over time
 --   school = "shadow" | "fire" | "nature" | "frost" | "arcane" | "holy" | "frostfire" | "physical" | "volcanic" | nil
 -- It returns nil (plus a short reason) for any wording it does not understand, and never guesses.
+-- ParseReduction(text, lang) reads how much a debuff lowers the enemy's damage or attack power.
 -- English and German wordings are understood; lang is "en", "de" or nil (detect from the text).
 -- Pure Lua 5.1, no game API, so it can be tested outside the game.
 
@@ -378,8 +379,9 @@ local function ignoredClause(c, lang)
     or find(c, "for each ")
 end
 
-function Parser.Parse(text, lang)
-  if type(text) ~= "string" or text == "" then return nil, "empty" end
+-- Plain lower-case text with numbers in one format ("1.132" / "1,132" -> "1132", "7,1" -> "7.1"),
+-- and the language.
+local function prepare(text, lang)
   local t = gsub(text, "[\r\n\t]+", " ")
   t = gsub(t, "\194\160", " ") -- no-break space
   t = gsub(t, "|c[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]", "")
@@ -388,7 +390,13 @@ function Parser.Parse(text, lang)
   t = gsub(t, "[A-Z]", asciiLower)
   t = gsub(t, "\195[\132\150\156]", UMLAUT_LOWER)
   if lang ~= "de" and lang ~= "en" then lang = detectLanguage(t) end
-  t = normaliseNumbers(t, lang)
+  return normaliseNumbers(t, lang), lang
+end
+
+function Parser.Parse(text, lang)
+  if type(text) ~= "string" or text == "" then return nil, "empty" end
+  local t
+  t, lang = prepare(text, lang)
   t = gsub(t, NUM .. " ?%%", " pct ")
 
   -- Per-combo-point tables and weapon-based attacks have no single number.
@@ -466,6 +474,87 @@ function Parser.Parse(text, lang)
 
   if not found then return nil, "no-amount" end
   return result
+end
+
+---------------------------------------------------------------------------------------------
+-- Debuffs that lower the enemy's damage or attack power
+---------------------------------------------------------------------------------------------
+
+local REDUCE_VERBS = {
+  en = { "reduc", "lower", "decreas" },
+  de = { "verringer", "reduzier", "senk", "vermindert" },
+}
+-- The enemy has to be named somewhere in the sentence.
+local ENEMY_WORDS = {
+  en = { "target", "enem" },
+  de = { "ziel", "feind", "gegner" },
+}
+-- Damage the caster or the party takes, or the caster's own damage: not an enemy debuff.
+local SELF_WORDS = {
+  en = { "take", "your ", "yourself" },
+  de = { "erlitten", " euer", " eure" },
+}
+
+local function hasAny(s, words)
+  for _, w in ipairs(words) do
+    if find(s, w, 1, true) then return true end
+  end
+  return false
+end
+
+-- One clause: "Damage caused by the target is reduced by 3", "reduces the melee attack power
+-- of all enemies within 10 yards by 45" / "der vom Ziel verursachte Schaden wird ... um 3
+-- reduziert", "verringert ... die Nahkampfangriffskraft ... um 45".
+local function reductionInClause(c, lang)
+  if not hasAny(c, REDUCE_VERBS[lang]) or hasAny(c, SELF_WORDS[lang]) then return nil end
+  local ap = (lang == "de") and find(c, "angriffskraft", 1, true) or find(c, "attack power", 1, true)
+  -- German: the word "Schaden" itself, not a school's damage such as "Frostfeuerschaden"
+  local dmg = (lang == "de") and find(" " .. c, " schaden", 1, true) or find(c, "damage", 1, true)
+  if not ap and not dmg then return nil end
+  local by = (lang == "de") and "um " or "by "
+  local s, e, num
+  local from = 1
+  repeat -- the first "by N" / "um N" that starts a word ("nearby 3" does not)
+    s, e, num = find(c, by .. "(" .. NUM .. ")", from)
+    if not s then return nil end
+    from = e + 1
+    local prev = sub(c, s - 1, s - 1)
+  until prev == "" or prev == " "
+  local rest = sub(c, e + 1)
+  local percent = find(rest, "^ ?%%") ~= nil
+  if not percent then
+    local word = match(rest, "^ ?([a-z]+)")
+    -- "by 3 sec" is a duration; "by 10 yards" a distance
+    if unitSeconds(word) or word == "yard" or word == "yards" or word == "meter" or word == "metern" then return nil end
+  end
+  local amount = tonumber(num)
+  if not amount or amount <= 0 then return nil end
+  return { amount = amount, percent = percent, stat = ap and "attackpower" or "damage" }
+end
+
+-- ParseReduction(text, lang) returns { amount = n, percent = true|false, stat = "damage" |
+-- "attackpower" } for a spell that lowers the enemy's damage or attack power, or nil.
+function Parser.ParseReduction(text, lang)
+  if type(text) ~= "string" or text == "" then return nil end
+  local t
+  t, lang = prepare(text, lang)
+  local found
+  for _, sentence in ipairs(splitSentences(t, lang)) do
+    if hasAny(sentence, ENEMY_WORDS[lang]) then
+      for _, clause in ipairs(splitClauses(sentence, lang)) do
+        -- a comma separates what the spell does to whom: "..., die Bewegungsgeschwindigkeit um
+        -- 50% verringert"
+        for c in gmatch(clause, "[^,]+") do
+          local r = reductionInClause(c, lang)
+          if r then
+            if found and (found.amount ~= r.amount or found.percent ~= r.percent) then return nil end
+            found = found or r
+          end
+        end
+      end
+    end
+  end
+  return found
 end
 
 -- Exposed for the tests.

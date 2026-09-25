@@ -312,6 +312,17 @@ F["Consecration"] = {
   en = function(s) local a, d = must(s:match("doing (%d+) Holy damage over (%d+) sec")); return dotOnly("holy")(a, d) end,
   de = function(s) local d, a = must(s:match("fügt (%d+) Sek%. lang Feinden, die das Gebiet betreten, (%d+) Punkt%(e%) Heiligschaden")); return dotOnly("holy")(a, d) end,
 }
+-- Debuffs that lower the enemy's damage: no damage of their own (test_reduction.lua checks the
+-- reduction). The pet's Screech also hits once.
+local noDamage = { en = function() return NIL("no-number") end, de = function() return NIL("no-number") end }
+F["Curse of Weakness"] = noDamage
+F["Demoralizing Shout"] = noDamage
+F["Demoralizing Roar"] = noDamage
+F["Hex of Weakness"] = noDamage
+F["Screech"] = {
+  en = function(s) local lo, hi = must(s:match("for (%d+) to (%d+) damage")); return { direct = D(lo, hi), school = "physical" } end,
+  de = function(s) local lo, hi = must(s:match("erleidet (%d+) bis (%d+) Schaden")); return { direct = D(lo, hi), school = "physical" } end,
+}
 
 -- Cataclysm wordings
 local CATA = {}

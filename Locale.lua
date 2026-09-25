@@ -17,6 +17,8 @@ Locales.en = {
   HOT = "Healing over time",
   OVER = "%s in %s sec",
   ESTIMATE = "incl. +%s from spell power, estimate",
+  REDUCE_DAMAGE = "Enemy damage: %s",
+  REDUCE_AP = "Enemy attack power: %s",
   ON = "on",
   OFF = "off",
   HELP = {
@@ -24,9 +26,12 @@ Locales.en = {
     "/sdi estimate [on|off] - add an estimate for your spell power",
     "/sdi button total|direct|off - number on the action buttons",
     "/sdi tooltip [on|off] - lines in the spell tooltip",
+    "/sdi reduction [on|off] - show by how much a debuff lowers the enemy's damage (red)",
+    "/sdi size 50-200 - size of the button numbers in percent (100 = default)",
+    "/sdi position bottom|center|top - where the number sits on the button",
     "/sdi status - show the settings",
   },
-  STATUS = "estimate: %s, button: %s, tooltip: %s",
+  STATUS = "estimate: %s, button: %s, tooltip: %s, reduction: %s, size: %d%%, position: %s",
   BAD_ARG = "Unknown option. Type /sdi for help.",
 }
 
@@ -40,6 +45,8 @@ Locales.de = {
   HOT = "Heilung \195\188ber Zeit",
   OVER = "%s in %s Sek.",
   ESTIMATE = "inkl. +%s durch Zaubermacht, gesch\195\164tzt",
+  REDUCE_DAMAGE = "Schaden des Gegners: %s",
+  REDUCE_AP = "Angriffskraft des Gegners: %s",
   ON = "an",
   OFF = "aus",
   HELP = {
@@ -47,9 +54,12 @@ Locales.de = {
     "/sdi estimate [on|off] - Sch\195\164tzung f\195\188r Eure Zaubermacht dazurechnen",
     "/sdi button total|direct|off - Zahl auf den Aktionstasten",
     "/sdi tooltip [on|off] - Zeilen im Zauber-Tooltip",
+    "/sdi reduction [on|off] - zeigen, um wie viel ein Schw\195\164chungszauber den Schaden des Gegners senkt (rot)",
+    "/sdi size 50-200 - Gr\195\182\195\159e der Zahlen auf den Tasten in Prozent (100 = Standard)",
+    "/sdi position bottom|center|top - wo die Zahl auf der Taste steht",
     "/sdi status - Einstellungen anzeigen",
   },
-  STATUS = "Sch\195\164tzung: %s, Tasten: %s, Tooltip: %s",
+  STATUS = "Sch\195\164tzung: %s, Tasten: %s, Tooltip: %s, Schw\195\164chung: %s, Gr\195\182\195\159e: %d%%, Position: %s",
   BAD_ARG = "Unbekannte Option. /sdi zeigt die Hilfe.",
 }
 
@@ -107,6 +117,26 @@ end
 
 local DAMAGE_COLOR = { 1, 0.82, 0.3 }
 local HEAL_COLOR = { 0.4, 1, 0.4 }
+local REDUCTION_COLOR = { 1, 0.25, 0.25 }
+
+-- A reduction from Parser.ParseReduction as button text: "-3", "-146", "-10%", "-7.5%".
+-- L (optional) gives the decimal mark.
+function Format.ReductionText(r, L)
+  if r.percent then
+    local s
+    if r.amount == floor(r.amount) then s = tostring(floor(r.amount)) else s = string.format("%.1f", r.amount) end
+    if L then s = (s:gsub("%.", L.decimal)) end
+    return "-" .. s .. "%"
+  end
+  return "-" .. Format.Short(r.amount)
+end
+
+-- The tooltip line for a reduction: { text, r, g, b }.
+function Format.ReductionLine(r, L)
+  local template = (r.stat == "attackpower") and L.REDUCE_AP or L.REDUCE_DAMAGE
+  local amount = r.percent and Format.ReductionText(r, L) or ("-" .. Format.Thousands(r.amount, L))
+  return { string.format(template, amount), REDUCTION_COLOR[1], REDUCTION_COLOR[2], REDUCTION_COLOR[3] }
+end
 
 -- Tooltip lines for a view from Estimate.Apply: a list of { text, r, g, b }.
 function Format.TooltipLines(view, L)
@@ -127,3 +157,4 @@ end
 
 Format.DAMAGE_COLOR = DAMAGE_COLOR
 Format.HEAL_COLOR = HEAL_COLOR
+Format.REDUCTION_COLOR = REDUCTION_COLOR

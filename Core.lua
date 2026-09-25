@@ -9,8 +9,15 @@
 local ADDON, ns = ...
 local L, Parser, Estimate, Format = ns.L, ns.Parser, ns.Estimate, ns.Format
 
-local DEFAULTS = { estimate = true, button = "total", tooltip = true }
+local DEFAULTS = {
+  estimate = true, button = "total", tooltip = true,
+  reduction = true,     -- show by how much a debuff lowers the enemy's damage, in red
+  size = 100,           -- button number size in percent of the default (SIZE_MIN..SIZE_MAX)
+  position = "bottom",  -- where the number sits on the button: bottom, center or top
+}
 local BUTTON_MODES = { total = true, direct = true, off = true }
+local POSITIONS = { bottom = true, center = true, top = true }
+local SIZE_MIN, SIZE_MAX = 50, 200
 
 local db = {}
 for k, v in pairs(DEFAULTS) do db[k] = v end
@@ -29,7 +36,8 @@ end
 -- Spell data
 ---------------------------------------------------------------------------------------------
 
-local parsedCache = {} -- [spellID] = parsed table, or false when the text has no numbers we read
+-- [spellID] = { parsed = table or false, reduction = table or false }
+local parsedCache = {}
 
 local function clearCache()
   for k in pairs(parsedCache) do parsedCache[k] = nil end
@@ -43,14 +51,22 @@ local function getDescription(spellID)
   return text
 end
 
-local function getParsed(spellID)
-  local cached = parsedCache[spellID]
-  if cached ~= nil then return cached or nil end
+local function getEntry(spellID)
+  local entry = parsedCache[spellID]
+  if entry then return entry end
   local text = getDescription(spellID)
   if not text then return nil end -- not loaded yet; SPELL_TEXT_UPDATE will ask again
-  local parsed = Parser.Parse(text, ns.lang)
-  parsedCache[spellID] = parsed or false
-  return parsed
+  entry = {
+    parsed = Parser.Parse(text, ns.lang) or false,
+    reduction = Parser.ParseReduction(text, ns.lang) or false,
+  }
+  parsedCache[spellID] = entry
+  return entry
+end
+
+local function getParsed(spellID)
+  local entry = getEntry(spellID)
+  return entry and entry.parsed or nil
 end
 
 -- Cast time in seconds, or nil when the client does not say.
@@ -95,6 +111,12 @@ function ns.Compute(spellID)
   return Estimate.Apply(parsed, castTime, Estimate.DamageBonus(parsed.school, bonus.damage), bonus.heal)
 end
 
+-- How much the spell lowers the enemy's damage or attack power (from Parser.ParseReduction), or nil.
+function ns.Reduction(spellID)
+  local entry = getEntry(spellID)
+  return entry and entry.reduction or nil
+end
+
 ---------------------------------------------------------------------------------------------
 -- Action buttons
 ---------------------------------------------------------------------------------------------
@@ -107,7 +129,8 @@ local BAR_PREFIXES = {
 }
 
 local buttons = {} -- list of Blizzard action buttons
-local labels = {}  -- [button] = our FontString
+local labels = {}  -- [button] = our FontString for the main number
+local sideLabels = {} -- [button] = our smaller FontString for a reduction next to a damage number
 
 local function collectButtons()
   local prefixes, seenPrefix = {}, {}
@@ -135,16 +158,118 @@ local function collectButtons()
   end
 end
 
+-- The number is sized from the button: FONT_SHARE of its height at size 100%, with an outline.
+local FONT_SHARE = 0.45
+local SIDE_SHARE = 0.75 -- the reduction next to a damage number, relative to the main number
+local SIDE_MAX_CHARS = 4 -- "-146", "-10%": longer ones are left out, the damage number wins
+local MIN_FONT = 6
+
+local function readNumber(obj, method)
+  if type(obj[method]) ~= "function" then return nil end
+  local ok, v = pcall(obj[method], obj)
+  if ok and not isSecret(v) and type(v) == "number" and v > 0 then return v end
+  return nil
+end
+
+local function fontFile()
+  local obj = NumberFontNormal or NumberFontNormalSmall
+  if type(obj) == "table" and type(obj.GetFont) == "function" then
+    local ok, file = pcall(obj.GetFont, obj)
+    if ok and not isSecret(file) and type(file) == "string" and file ~= "" then return file end
+  end
+  return "Fonts\\ARIALN.TTF"
+end
+
+-- Font size in points for a button: its height (Blizzard buttons are 36, some bars are
+-- smaller or scaled), the share, and the size setting.
+local function fontSize(button, share)
+  local h = readNumber(button, "GetHeight") or 36
+  local size = math.floor(h * FONT_SHARE * share * db.size / 100 + 0.5)
+  if size < MIN_FONT then size = MIN_FONT end
+  return size
+end
+
+local fontSizes = {} -- [our FontString] = its current size
+
+local function setFont(fs, size)
+  fontSizes[fs] = size
+  pcall(fs.SetFont, fs, fontFile(), size, "OUTLINE")
+end
+
+-- Shrink the text until it fits inside the button.
+local function fitWidth(fs, button)
+  local w = readNumber(button, "GetWidth")
+  if not w or type(fs.GetStringWidth) ~= "function" then return end
+  local size = fontSizes[fs]
+  for _ = 1, 10 do
+    local sw = readNumber(fs, "GetStringWidth")
+    if not sw or sw <= w - 2 or size <= MIN_FONT then return end
+    size = math.max(MIN_FONT, math.min(size - 1, math.floor(size * (w - 2) / sw)))
+    setFont(fs, size)
+  end
+end
+
+-- Does the button show a count (reagents, charges) in its bottom right corner?
+local function hasCount(slot)
+  if type(GetActionCount) ~= "function" or isSecret(slot) or type(slot) ~= "number" then return false end
+  local ok, n = pcall(GetActionCount, slot)
+  return ok and not isSecret(n) and type(n) == "number" and n > 0
+end
+
+-- Hotkey text is top right and the count bottom right, so the number stays away from the right
+-- edge when the count is shown.
+local function placeMain(fs, button, countShown)
+  fs:ClearAllPoints()
+  if db.position == "center" then
+    fs:SetPoint("CENTER", button, "CENTER", 0, 0)
+    fs:SetJustifyH("CENTER")
+  elseif db.position == "top" then
+    fs:SetPoint("TOPLEFT", button, "TOPLEFT", 2, -2)
+    fs:SetJustifyH("LEFT")
+  elseif countShown then
+    fs:SetPoint("BOTTOMLEFT", button, "BOTTOMLEFT", 2, 2)
+    fs:SetJustifyH("LEFT")
+  else
+    fs:SetPoint("BOTTOM", button, "BOTTOM", 0, 2)
+    fs:SetJustifyH("CENTER")
+  end
+end
+
+local function placeSide(fs, button)
+  fs:ClearAllPoints()
+  if db.position == "top" then
+    fs:SetPoint("BOTTOMLEFT", button, "BOTTOMLEFT", 2, 2)
+  else
+    fs:SetPoint("TOPLEFT", button, "TOPLEFT", 2, -2)
+  end
+  fs:SetJustifyH("LEFT")
+end
+
+local function newLabel(button)
+  local template = NumberFontNormal and "NumberFontNormal" or "GameFontHighlight"
+  return button:CreateFontString(nil, "OVERLAY", template)
+end
+
 local function getLabel(button)
   local fs = labels[button]
   if not fs then
-    local template = NumberFontNormalSmall and "NumberFontNormalSmall" or "GameFontHighlightSmall"
-    fs = button:CreateFontString(nil, "OVERLAY", template)
-    fs:SetPoint("BOTTOM", button, "BOTTOM", 0, 3)
-    fs:SetJustifyH("CENTER")
+    fs = newLabel(button)
     labels[button] = fs
   end
   return fs
+end
+
+local function getSideLabel(button)
+  local fs = sideLabels[button]
+  if not fs then
+    fs = newLabel(button)
+    sideLabels[button] = fs
+  end
+  return fs
+end
+
+local function hide(fs)
+  if fs then fs:SetText(""); fs:Hide() end
 end
 
 local function spellOnSlot(slot)
@@ -156,21 +281,53 @@ local function spellOnSlot(slot)
 end
 
 local function updateButton(button)
-  local value, kind
+  local value, kind, reduction
   if db.button ~= "off" then
     local spellID = spellOnSlot(button.action)
-    if spellID then value, kind = Estimate.ButtonValue(ns.Compute(spellID), db.button) end
+    if spellID then
+      value, kind = Estimate.ButtonValue(ns.Compute(spellID), db.button)
+      if db.reduction then reduction = ns.Reduction(spellID) end
+    end
   end
-  local fs = labels[button]
-  if not value or value < 0.5 then
-    if fs then fs:SetText(""); fs:Hide() end
+  if value and value < 0.5 then value = nil end
+
+  local mainText, mainColor, sideText
+  if value then
+    mainText = Format.Short(value)
+    mainColor = (kind == "heal") and Format.HEAL_COLOR or Format.DAMAGE_COLOR
+    if reduction then
+      local t = Format.ReductionText(reduction, ns.L)
+      if #t <= SIDE_MAX_CHARS then sideText = t end
+    end
+  elseif reduction then
+    mainText = Format.ReductionText(reduction, ns.L)
+    mainColor = Format.REDUCTION_COLOR
+  end
+
+  if not mainText then
+    hide(labels[button])
+    hide(sideLabels[button])
     return
   end
-  fs = fs or getLabel(button)
-  local color = (kind == "heal") and Format.HEAL_COLOR or Format.DAMAGE_COLOR
-  fs:SetTextColor(color[1], color[2], color[3])
-  fs:SetText(Format.Short(value))
+  local fs = getLabel(button)
+  placeMain(fs, button, hasCount(button.action))
+  setFont(fs, fontSize(button, 1))
+  fs:SetTextColor(mainColor[1], mainColor[2], mainColor[3])
+  fs:SetText(mainText)
+  fitWidth(fs, button)
   fs:Show()
+
+  if sideText then
+    local side = getSideLabel(button)
+    placeSide(side, button)
+    setFont(side, fontSize(button, SIDE_SHARE))
+    local c = Format.REDUCTION_COLOR
+    side:SetTextColor(c[1], c[2], c[3])
+    side:SetText(sideText)
+    side:Show()
+  else
+    hide(sideLabels[button])
+  end
 end
 
 local function updateAllButtons()
@@ -197,6 +354,10 @@ end
 local function addTooltipLines(tooltip, spellID)
   if not db.tooltip or isSecret(spellID) or type(spellID) ~= "number" then return end
   local lines = Format.TooltipLines(ns.Compute(spellID), L)
+  if db.reduction then
+    local reduction = ns.Reduction(spellID)
+    if reduction then lines[#lines + 1] = Format.ReductionLine(reduction, L) end
+  end
   for _, line in ipairs(lines) do tooltip:AddLine(line[1], line[2], line[3], line[4]) end
 end
 ns.AddTooltipLines = addTooltipLines
@@ -235,18 +396,26 @@ local function slash(msg)
     for _, line in ipairs(L.HELP) do say(line) end
     return
   end
-  if cmd == "estimate" or cmd == "tooltip" then
+  if cmd == "estimate" or cmd == "tooltip" or cmd == "reduction" then
     local v = toggleArg(arg, db[cmd])
     if v == nil then say(L.BAD_ARG) return end
     db[cmd] = v
   elseif cmd == "button" then
     if not BUTTON_MODES[arg] then say(L.BAD_ARG) return end
     db.button = arg
+  elseif cmd == "size" then
+    local v = tonumber(arg)
+    if not v or v < SIZE_MIN or v > SIZE_MAX then say(L.BAD_ARG) return end
+    db.size = math.floor(v + 0.5)
+  elseif cmd == "position" then
+    if not POSITIONS[arg] then say(L.BAD_ARG) return end
+    db.position = arg
   elseif cmd ~= "status" then
     say(L.BAD_ARG)
     return
   end
-  say(string.format(L.STATUS, onOff(db.estimate), db.button, onOff(db.tooltip)))
+  say(string.format(L.STATUS, onOff(db.estimate), db.button, onOff(db.tooltip), onOff(db.reduction), db.size,
+    db.position))
   requestUpdate()
 end
 
@@ -262,6 +431,15 @@ local function loadSettings()
   if not BUTTON_MODES[db.button] then db.button = DEFAULTS.button end
   if type(db.estimate) ~= "boolean" then db.estimate = DEFAULTS.estimate end
   if type(db.tooltip) ~= "boolean" then db.tooltip = DEFAULTS.tooltip end
+  if type(db.reduction) ~= "boolean" then db.reduction = DEFAULTS.reduction end
+  if not POSITIONS[db.position] then db.position = DEFAULTS.position end
+  if type(db.size) ~= "number" or db.size ~= db.size then
+    db.size = DEFAULTS.size
+  elseif db.size < SIZE_MIN then
+    db.size = SIZE_MIN
+  elseif db.size > SIZE_MAX then
+    db.size = SIZE_MAX
+  end
 end
 
 ---------------------------------------------------------------------------------------------
@@ -314,5 +492,5 @@ frame:SetScript("OnEvent", function(_, event, arg1)
 end)
 
 -- For the tests.
-ns._buttons, ns._labels, ns._bonus = buttons, labels, bonus
+ns._buttons, ns._labels, ns._sideLabels, ns._bonus = buttons, labels, sideLabels, bonus
 ns._settings = function() return db end
