@@ -12,6 +12,7 @@ local L, Parser, Estimate, Format = ns.L, ns.Parser, ns.Estimate, ns.Format
 local DEFAULTS = {
   estimate = true, button = "total", tooltip = true,
   reduction = true,     -- show by how much a debuff lowers the enemy's damage, in red
+  weapon = true,        -- show weapon abilities and attack power buffs
   size = 100,           -- button number size in percent of the default (SIZE_MIN..SIZE_MAX)
   position = "bottom",  -- where the number sits on the button: bottom, center or top
   interfaceLang = "auto",  -- interface language: "auto", "en", "de"
@@ -103,6 +104,10 @@ end
 -- return secret values; then the last value read out of combat stays in use.
 local bonus = { damage = {}, heal = nil }
 
+-- Cached weapon stats: avg damage, speed, and attack power (main hand for melee, ranged for ranged).
+-- Read out of combat; in combat, last cached value is used.
+local weaponStats = { damage = 0, speed = 1, attackPower = 0 }
+
 local function readBonus()
   if type(GetSpellBonusDamage) == "function" then
     for i = 2, 7 do
@@ -116,11 +121,56 @@ local function readBonus()
   end
 end
 
--- What to show for a spell: the view from Estimate.Apply, or nil. A pet's spell gets the
--- description's numbers only: the pet has its own spell power, and the player's would be wrong.
+local function readWeaponStats()
+  -- Main hand weapon average damage: (min + max) / 2
+  if type(UnitDamage) == "function" then
+    local ok, min, max, offhandMin, offhandMax = pcall(UnitDamage, "player")
+    if ok and not isSecret(min) and type(min) == "number" and type(max) == "number" then
+      weaponStats.damage = (min + max) / 2
+    end
+  end
+  -- Attack power
+  if type(UnitAttackPower) == "function" then
+    local ok, ap = pcall(UnitAttackPower, "player")
+    if ok and not isSecret(ap) and type(ap) == "number" then weaponStats.attackPower = ap end
+  end
+  -- Attack speed (in seconds)
+  if type(UnitAttackSpeed) == "function" then
+    local ok, speed = pcall(UnitAttackSpeed, "player")
+    if ok and not isSecret(speed) and type(speed) == "number" then weaponStats.speed = speed end
+  end
+end
+
+-- What to show for a spell: the view from Estimate.Apply, or nil (for weapon abilities, specific estimate).
+-- A pet's spell gets the description's numbers only: the pet has its own spell power, and the player's would be wrong.
 function ns.Compute(spellID, pet)
-  local parsed = getParsed(spellID)
+  local entry = getEntry(spellID)
+  if not entry then return nil end
+  local parsed = entry.parsed
   if not parsed then return nil end
+
+  -- Handle weapon ability estimates
+  if not db.weapon then
+    -- Weapon abilities disabled in settings
+    if parsed.weapon_damage or parsed.next_attack_bonus or parsed.ap_buff or parsed.imbue_seal then
+      return nil
+    end
+  end
+
+  if parsed.weapon_damage then
+    return Estimate.WeaponDamage(weaponStats.damage, weaponStats.attackPower, weaponStats.speed, parsed.weapon_damage)
+  end
+  if parsed.next_attack_bonus then
+    return Estimate.NextAttackBonus(parsed.next_attack_bonus)
+  end
+  if parsed.ap_buff then
+    return Estimate.APBuff(parsed.ap_buff)
+  end
+  if parsed.imbue_seal then
+    return Estimate.ImbueDamage(parsed.imbue_seal.min, parsed.imbue_seal.max)
+  end
+
+  -- Spell power abilities (existing path)
   if pet or not db.estimate then return Estimate.Apply(parsed, nil, nil, nil) end
   local castTime = getCastTime(spellID)
   return Estimate.Apply(parsed, castTime, Estimate.DamageBonus(parsed.school, bonus.damage), bonus.heal)
@@ -355,7 +405,12 @@ local function buttonText(view, reduction)
   local mainText, mainColor, sideText
   if value then
     mainText = Format.Short(value)
-    mainColor = (kind == "heal") and Format.HEAL_COLOR or Format.DAMAGE_COLOR
+    -- Determine color: weapon abilities get cyan, others use standard colors
+    if view.weapon_ability then
+      mainColor = Format.WEAPON_COLOR
+    else
+      mainColor = (kind == "heal") and Format.HEAL_COLOR or Format.DAMAGE_COLOR
+    end
     if reduction then
       local t = Format.ReductionText(reduction, ns.L)
       if #t <= SIDE_MAX_CHARS then sideText = t end
@@ -536,7 +591,7 @@ local function validSetting(key, value)
   if key == "button" then return BUTTON_MODES[value] == true end
   if key == "position" then return POSITIONS[value] == true end
   if key == "size" then return type(value) == "number" and value >= SIZE_MIN and value <= SIZE_MAX end
-  if key == "estimate" or key == "tooltip" or key == "reduction" then return type(value) == "boolean" end
+  if key == "estimate" or key == "tooltip" or key == "reduction" or key == "weapon" then return type(value) == "boolean" end
   if key == "interfaceLang" then return value == "auto" or value == "en" or value == "de" end
   return false
 end
@@ -582,7 +637,7 @@ local function slash(msg)
     for _, line in ipairs(L.HELP) do say(line) end
     return
   end
-  if cmd == "estimate" or cmd == "tooltip" or cmd == "reduction" then
+  if cmd == "estimate" or cmd == "tooltip" or cmd == "reduction" or cmd == "weapon" then
     local v = toggleArg(arg, db[cmd])
     if v == nil then say(L.BAD_ARG) return end
     db[cmd] = v
@@ -604,7 +659,7 @@ local function slash(msg)
     say(L.BAD_ARG)
     return
   end
-  say(string.format(L.STATUS, onOff(db.estimate), db.button, onOff(db.tooltip), onOff(db.reduction), db.size,
+  say(string.format(L.STATUS, onOff(db.estimate), db.button, onOff(db.tooltip), onOff(db.reduction), onOff(db.weapon), db.size,
     db.position, langLabel(db.interfaceLang)))
   requestUpdate()
   settingsChanged()
@@ -623,6 +678,7 @@ local function loadSettings()
   if type(db.estimate) ~= "boolean" then db.estimate = DEFAULTS.estimate end
   if type(db.tooltip) ~= "boolean" then db.tooltip = DEFAULTS.tooltip end
   if type(db.reduction) ~= "boolean" then db.reduction = DEFAULTS.reduction end
+  if type(db.weapon) ~= "boolean" then db.weapon = DEFAULTS.weapon end
   if not POSITIONS[db.position] then db.position = DEFAULTS.position end
   if db.interfaceLang ~= "auto" and db.interfaceLang ~= "en" and db.interfaceLang ~= "de" then
     db.interfaceLang = DEFAULTS.interfaceLang
@@ -685,6 +741,7 @@ frame:SetScript("OnEvent", function(_, event, arg1)
       end
     end
     readBonus()
+    readWeaponStats()
     requestUpdate()
   elseif event == "SPELL_TEXT_UPDATE" then
     if not isSecret(arg1) and type(arg1) == "number" then parsedCache[arg1] = nil end
@@ -693,6 +750,10 @@ frame:SetScript("OnEvent", function(_, event, arg1)
     if not isSecret(arg1) and arg1 == "player" then requestUpdate() end
   elseif event == "PET_BAR_UPDATE" then
     collectPetButtons()
+    requestUpdate()
+  elseif event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_EQUIPMENT_CHANGED" or event == "UPDATE_SHAPESHIFT_FORM" then
+    readBonus()
+    readWeaponStats()
     requestUpdate()
   else
     if isReset[event] then clearCache() end

@@ -393,15 +393,124 @@ local function prepare(text, lang)
   return normaliseNumbers(t, lang), lang
 end
 
+---------------------------------------------------------------------------------------------
+-- Weapon and attack power abilities (new in 0.5.0)
+---------------------------------------------------------------------------------------------
+
+-- "weapon damage plus N" (EN) or "Waffenschaden plus N" (DE). Returns the bonus N.
+-- Also handles "% weapon damage plus N" and ranged weapon damage.
+local function tryWeaponDamage(t, lang)
+  if lang == "de" then
+    -- "waffenschaden plus N" - basic
+    local bonus = match(t, "waffenschaden plus (" .. NUM .. ")")
+    if bonus then return { weapon_damage = tonumber(bonus) } end
+  else
+    -- "weapon damage plus N" - basic
+    local bonus = match(t, "weapon damage plus (" .. NUM .. ")")
+    if bonus then return { weapon_damage = tonumber(bonus) } end
+    -- "ranged weapon damage plus N"
+    bonus = match(t, "ranged weapon damage plus (" .. NUM .. ")")
+    if bonus then return { weapon_damage = tonumber(bonus), ranged = true } end
+  end
+  return nil
+end
+
+-- "increases melee damage by N" (EN) or "den Nahkampfschaden um N... erhöht" (DE).
+-- Also handles "increases the druid's next attack by N damage" and ranged equivalents.
+-- Returns the bonus damage N.
+local function tryNextAttack(t, lang)
+  if lang == "de" then
+    -- "den nahkampfschaden um N punkt(e) erh\195\164ht" (ä = \195\164)
+    local bonus = match(t, "den nahkampfschaden um (" .. NUM .. ")")
+    if bonus then return { next_attack_bonus = tonumber(bonus) } end
+  else
+    -- "increases melee damage by N"
+    local bonus = match(t, "increases melee damage by (" .. NUM .. ")")
+    if bonus then return { next_attack_bonus = tonumber(bonus) } end
+    -- "increases ranged damage by N"
+    bonus = match(t, "increases ranged damage by (" .. NUM .. ")")
+    if bonus then return { next_attack_bonus = tonumber(bonus), ranged = true } end
+    -- "increases the druid's next attack by N damage" or similar
+    bonus = match(t, "next attack by (" .. NUM .. ")")
+    if bonus then return { next_attack_bonus = tonumber(bonus) } end
+  end
+  return nil
+end
+
+-- "increasing ... attack power ... by N" (EN) or "die ... angriffskraft ... um N erhöht" (DE).
+-- Returns the AP buff amount N. Ignore "for X min" or other conditions.
+local function tryAPBuff(t, lang)
+  if lang == "de" then
+    -- "die nahkampfangriffskraft .* um N erh\195\164ht" or "die distanzangriffskraft .* um N erh\195\164ht"
+    local buff = match(t, "nahkampfangriffskraft [^%d]* um (" .. NUM .. ")")
+    if buff then return { ap_buff = tonumber(buff) } end
+    buff = match(t, "distanzangriffskraft [^%d]* um (" .. NUM .. ")")
+    if buff then return { ap_buff = tonumber(buff) } end
+  else
+    -- "increasing melee attack power by N" (simple)
+    local buff = match(t, "increasing melee attack power by (" .. NUM .. ")")
+    if buff then return { ap_buff = tonumber(buff) } end
+    -- "increasing the melee attack power ... by N"
+    buff = match(t, "increasing the melee attack power .* by (" .. NUM .. ")")
+    if buff then return { ap_buff = tonumber(buff) } end
+    -- "increasing ranged attack power by N" (simple)
+    buff = match(t, "increasing ranged attack power by (" .. NUM .. ")")
+    if buff then return { ap_buff = tonumber(buff), ranged = true } end
+    -- "increasing the ranged attack power ... by N"
+    buff = match(t, "increasing the ranged attack power .* by (" .. NUM .. ")")
+    if buff then return { ap_buff = tonumber(buff), ranged = true } end
+  end
+  return nil
+end
+
+-- "granting each melee attack an additional N to M ... damage" (EN) or
+-- "jedem Nahkampfangriff zusätzlichen Heiligschaden in Höhe von N - M" (DE).
+-- Returns the damage range per hit and school. Ignore "chance to heal/restore" seals.
+local function tryImbue(t, lang)
+  if lang == "de" then
+    -- "jedem nahkampfangriff zus\195\164tzlichen SCHOOL schaden in h\195\182he von N - M verleiht"
+    -- (ä = \195\164, ö = \195\182)
+    -- But skip "chance to heal" type seals
+    if find(t, "chance") or find(t, "chance") or find(t, "wahrscheinlichkeit") then return nil end
+    local s, e, prefix, lo, hi
+    local pattern = "jedem nahkampfangriff zus\195\164tzlichen ([a-z]+)schaden in h\195\182he von (" .. NUM .. ") %- (" .. NUM .. ")"
+    s, e, prefix, lo, hi = find(t, pattern)
+    if s then
+      local school = SCHOOL_DE[prefix or ""]
+      return { imbue_seal = { min = tonumber(lo), max = tonumber(hi), school = school } }
+    end
+  else
+    -- Skip "chance to heal" type seals
+    if find(t, "chance") then return nil end
+    -- "granting each melee attack an additional N to M ... damage"
+    local lo, hi, after = match(t, "granting each melee attack an additional (" .. NUM .. ") to (" .. NUM .. ") (%a+) damage")
+    if lo and hi then
+      local school = SCHOOL_EN[after or "physical"]
+      return { imbue_seal = { min = tonumber(lo), max = tonumber(hi), school = school } }
+    end
+  end
+  return nil
+end
+
+-- Try to parse a weapon or attack power ability. Returns parsed result or nil.
+local function tryWeaponAbility(t, lang)
+  -- Try each category in order
+  local result = tryWeaponDamage(t, lang) or tryNextAttack(t, lang) or tryAPBuff(t, lang) or tryImbue(t, lang)
+  return result
+end
+
 function Parser.Parse(text, lang)
   if type(text) ~= "string" or text == "" then return nil, "empty" end
   local t
   t, lang = prepare(text, lang)
   t = gsub(t, NUM .. " ?%%", " pct ")
 
-  -- Per-combo-point tables and weapon-based attacks have no single number.
+  -- Per-combo-point tables: weapon abilities may also say "weapon damage" but that's OK.
   if find(t, "[^0-9]1 points? *:") or find(" " .. t, "[^0-9]1 punkte? *:") then return nil, "finisher" end
-  if find(t, "weapon damage") or find(t, "waffenschaden") then return nil, "weapon" end
+
+  -- Try weapon/attack power abilities first.
+  local weaponResult = tryWeaponAbility(t, lang)
+  if weaponResult then return weaponResult end
 
   local lasts, lastsAmbiguous
   t, lasts, lastsAmbiguous = extractLasts(t, lang)

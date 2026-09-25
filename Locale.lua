@@ -35,7 +35,7 @@ Locales.en = {
     "/sdi lang auto|en|de - addon interface language",
     "/sdi status - show the settings",
   },
-  STATUS = "estimate: %s, button: %s, tooltip: %s, reduction: %s, size: %d%%, position: %s, language: %s",
+  STATUS = "estimate: %s, button: %s, tooltip: %s, reduction: %s, weapon: %s, size: %d%%, position: %s, language: %s",
   BAD_ARG = "Unknown option. Type /sdi help for the commands.",
   LANG_AUTO = "Auto (game)",
   LANG_EN = "English",
@@ -102,7 +102,7 @@ Locales.de = {
     "/sdi lang auto|en|de - Sprache der Addon-Oberfl\195\164che",
     "/sdi status - Einstellungen anzeigen",
   },
-  STATUS = "Sch\195\164tzung: %s, Tasten: %s, Tooltip: %s, Schw\195\164chung: %s, Gr\195\182\195\159e: %d%%, Position: %s, Sprache: %s",
+  STATUS = "Sch\195\164tzung: %s, Tasten: %s, Tooltip: %s, Schw\195\164chung: %s, Waffen: %s, Gr\195\182\195\159e: %d%%, Position: %s, Sprache: %s",
   BAD_ARG = "Unbekannte Option. /sdi help zeigt die Befehle.",
   LANG_AUTO = "Auto (Spiel)",
   LANG_EN = "English",
@@ -249,6 +249,7 @@ end
 local DAMAGE_COLOR = { 1, 0.82, 0.3 }
 local HEAL_COLOR = { 0.4, 1, 0.4 }
 local REDUCTION_COLOR = { 1, 0.25, 0.25 }
+local WEAPON_COLOR = { 0.7, 1, 1 }  -- cyan for weapon/AP abilities
 
 -- A reduction from Parser.ParseReduction as button text: "-3", "-146", "-10%", "-7.5%".
 -- L (optional) gives the decimal mark.
@@ -289,3 +290,4 @@ end
 Format.DAMAGE_COLOR = DAMAGE_COLOR
 Format.HEAL_COLOR = HEAL_COLOR
 Format.REDUCTION_COLOR = REDUCTION_COLOR
+Format.WEAPON_COLOR = WEAPON_COLOR
