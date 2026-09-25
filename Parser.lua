@@ -374,9 +374,10 @@ end
 local function ignoredClause(c, lang)
   if lang == "de" then
     return find(c, " selbst ") or find(c, "absorb") or find(c, "f\195\188r jede")
+      or find(c, "erlittenen schadens")
   end
   return find(c, "himself") or find(c, "herself") or find(c, "yourself") or find(c, "absorb")
-    or find(c, "for each ")
+    or find(c, "for each ") or find(c, "damage taken per hit")
 end
 
 -- Plain lower-case text with numbers in one format ("1.132" / "1,132" -> "1132", "7,1" -> "7.1"),
@@ -507,6 +508,8 @@ end
 -- reduziert", "verringert ... die Nahkampfangriffskraft ... um 45".
 local function reductionInClause(c, lang)
   if not hasAny(c, REDUCE_VERBS[lang]) or hasAny(c, SELF_WORDS[lang]) then return nil end
+  -- "increasing melee attack power by 20 but reducing armor by 140": the attack power goes up
+  if find(c, (lang == "de") and "erh\195\182h" or "increas", 1, true) then return nil end
   local ap = (lang == "de") and find(c, "angriffskraft", 1, true) or find(c, "attack power", 1, true)
   -- German: the word "Schaden" itself, not a school's damage such as "Frostfeuerschaden"
   local dmg = (lang == "de") and find(" " .. c, " schaden", 1, true) or find(c, "damage", 1, true)
@@ -566,21 +569,56 @@ end
 --   { kind = "weapon", pct = p, bonus = n, bonusMax = m }
 --                                                      p% of a weapon hit plus n (to m):
 --                                                      Overpower, Backstab, Shred, Sinister Strike
+--   { kind = "both", pct = p, bonus = n }              p% of each weapon's hit plus n with each:
+--                                                      Mutilate
+--   { kind = "appct", pct = p, bonus = n }             p% of attack power plus n: Bloodthirst
+--   { kind = "dps", times = n, school = s }            n times the main hand's damage per second:
+--                                                      Hammer of the Righteous
+--   { kind = "perhit", min = n, max = m, school = s }  what every hit gains while the seal or the
+--                                                      imbue lasts: Seal of Righteousness,
+--                                                      Flametongue Weapon
 --   { kind = "ap", amount = n, ranged = bool, plusAgility = bool }
 --                                                      attack power the spell adds: Battle Shout,
 --                                                      Rockbiter Weapon, Bear Form, Aspect of the Hawk
--- Parse() leaves all of these alone (it has no weapon to add the number to), so the two never
--- both answer for one spell. Anything with a chance in it (poisons, Windfury, Seal of Command)
--- is not a number for every hit and gives nil, as does a sentence that lowers attack power,
--- which is ParseReduction's. The wordings are the ones in tests/fixtures/
--- attack_power_weapon_damage.json: Classic's English and German from Wowhead and Forever's own
--- English, for every rank of every class.
+--   { kind = "stat", stat = "str" | "agi", amount = n } strength or agility the spell adds, which
+--                                                      turns into attack power: Strength of Earth
+-- Parse() leaves the weapon attacks alone (it has no weapon to add the number to). Anything with
+-- a chance in it (poisons, Windfury, Seal of Command) is not a number for every hit and gives
+-- nil, as does a sentence that lowers attack power, which is ParseReduction's. A seal's last
+-- sentence is its Judgement ("Unleashing this Seal's energy ...") and is read by ParseJudgement,
+-- never here. The wordings are the ones in the fixtures, which hold Classic's English and German
+-- from Wowhead and Forever's own English, for every rank of every class.
 
 local function num(v) return v and tonumber(v) or nil end
 
+local AE, OE, UE = "\195\164", "\195\182", "\195\188" -- ä ö ü
+
+local JUDGE = { en = "unleashing this seal's energy", de = "entfesselung der energie dieses siegels" }
+
+-- A seal without its Judgement sentence, so neither the seal's own number nor its attack power
+-- is taken from what the Judgement does.
+local function withoutJudgement(t, lang)
+  local s = find(t, JUDGE[lang] or JUDGE.en, 1, true)
+  if s then return sub(t, 1, s - 1) end
+  return t
+end
+
 local function weaponEN(t)
+  local p, a, b = match(t, "(" .. NUM .. ")%% weapon damage plus an additional (" .. NUM .. ") with each weapon")
+  if p then return { kind = "both", pct = num(p), bonus = num(a) } end
   if find(t, "chance", 1, true) or find(t, "with each weapon", 1, true) then return nil end
-  local p, a, b = match(t, "(" .. NUM .. ")%% weapon damage plus an additional (" .. NUM .. ") to (" .. NUM .. ")")
+  local lo, hi, school = match(t, "each melee attack an additional (" .. NUM .. ") to (" .. NUM .. ") ([a-z]+) damage")
+  if not lo then lo, hi, school = match(t, "each hit causes (" .. NUM .. ") to (" .. NUM .. ") additional ([a-z]+) damage") end
+  if lo then return { kind = "perhit", min = num(lo), max = num(hi), school = SCHOOL_EN[school] } end
+  a, school = match(t, "melee attacks to deal an additional (" .. NUM .. ") ([a-z]+) damage")
+  if a then return { kind = "perhit", min = num(a), max = num(a), school = SCHOOL_EN[school] } end
+  p, a = match(t, "damage equal to (" .. NUM .. ")%% of your attack power plus (" .. NUM .. ")")
+  if not p then p = match(t, "damage equal to (" .. NUM .. ")%% of your attack power") end
+  if p then return { kind = "appct", pct = num(p), bonus = num(a) or 0 } end
+  a = match(t, "equal to (" .. NUM .. ") times the damage per second of your main hand weapon")
+  if not a then a = match(t, "causing (" .. NUM .. ") times your main hand damage per second") end
+  if a then return { kind = "dps", times = num(a), school = find(t, "holy", 1, true) and "holy" or "physical" } end
+  p, a, b = match(t, "(" .. NUM .. ")%% weapon damage plus an additional (" .. NUM .. ") to (" .. NUM .. ")")
   if p then return { kind = "weapon", pct = num(p), bonus = num(a), bonusMax = num(b) } end
   p, a = match(t, "(" .. NUM .. ")%% weapon damage plus (" .. NUM .. ")")
   if p then return { kind = "weapon", pct = num(p), bonus = num(a) } end
@@ -604,14 +642,31 @@ local function weaponEN(t)
   if a then return { kind = "next", bonus = num(a) } end
   a = match(t, "increases ranged damage by (" .. NUM .. ")")
   if a then return { kind = "next", bonus = num(a), ranged = true } end
+  a = match(t, "increases the strength of [^%.]- by (" .. NUM .. ")")
+  if a then return { kind = "stat", stat = "str", amount = num(a) } end
+  a = match(t, "increases the agility of [^%.]- by (" .. NUM .. ")")
+  if a then return { kind = "stat", stat = "agi", amount = num(a) } end
   return nil
 end
 
-local AE, OE, UE = "\195\164", "\195\182", "\195\188" -- ä ö ü
-
 local function weaponDE(t)
+  local p, a = match(t, "(" .. NUM .. ")%% waffenschaden sowie mit jeder waffe zus" .. AE .. "tzlich (" .. NUM .. ")")
+  if p then return { kind = "both", pct = num(p), bonus = num(a) } end
   if find(t, "chance", 1, true) or find(t, "mit jeder waffe", 1, true) then return nil end
-  local p, a = match(t, "(" .. NUM .. ")%% [^%.]-schaden plus (" .. NUM .. ")")
+  local school, lo, hi = match(t, "jedem nahkampfangriff zus" .. AE .. "tzlichen ([a-z]*)schaden in h" .. OE .. "he von ("
+    .. NUM .. ") %- (" .. NUM .. ")")
+  if not lo then
+    lo, hi, school = match(t, "jeder treffer f" .. UE .. "gt zus" .. AE .. "tzlich (" .. NUM .. ") bis (" .. NUM
+      .. ") punkt%(e%) ([a-z]*)schaden")
+  end
+  if lo then return { kind = "perhit", min = num(lo), max = num(hi), school = SCHOOL_DE[school] } end
+  p = match(t, "schaden, der (" .. NUM .. ")%% eurer angriffskraft entspricht")
+  if p then return { kind = "appct", pct = num(p), bonus = 0 } end
+  p, a = match(t, "(" .. NUM .. ")%% eurer angriffskraft plus (" .. NUM .. ")")
+  if p then return { kind = "appct", pct = num(p), bonus = num(a) } end
+  a = match(t, "pro sekunde den (" .. NUM .. ")%-fachen schaden eurer waffenhandwaffe")
+  if a then return { kind = "dps", times = num(a), school = find(t, "heiligschaden", 1, true) and "holy" or "physical" } end
+  p, a = match(t, "(" .. NUM .. ")%% [^%.]-schaden plus (" .. NUM .. ")")
   if p then return { kind = "weapon", pct = num(p), bonus = num(a) } end
   p = match(t, "(" .. NUM .. ")%% des normalen schadens")
   if p then return { kind = "weapon", pct = num(p), bonus = 0 } end
@@ -632,6 +687,10 @@ local function weaponDE(t)
   if a then return { kind = "next", bonus = num(a) } end
   a = match(t, "den distanzschaden um (" .. NUM .. ")")
   if a then return { kind = "next", bonus = num(a), ranged = true } end
+  a = match(t, "erh" .. OE .. "ht die st" .. AE .. "rke [^%.]- um (" .. NUM .. ")")
+  if a then return { kind = "stat", stat = "str", amount = num(a) } end
+  a = match(t, "erh" .. OE .. "ht die beweglichkeit [^%.]- um (" .. NUM .. ")")
+  if a then return { kind = "stat", stat = "agi", amount = num(a) } end
   return nil
 end
 
@@ -667,7 +726,7 @@ function Parser.ParseWeapon(text, lang)
   if type(text) ~= "string" or text == "" then return nil end
   local t
   t, lang = prepare(text, lang)
-  t = gsub(t, "^ +", "")
+  t = withoutJudgement(gsub(t, "^ +", ""), lang)
   local w
   if lang == "de" then w = weaponDE(t) else w = weaponEN(t) end
   if w then
@@ -679,6 +738,280 @@ function Parser.ParseWeapon(text, lang)
     if ap and ap.amount > 0 then return ap end
   end
   return nil
+end
+
+---------------------------------------------------------------------------------------------
+-- Seals and Judgement
+---------------------------------------------------------------------------------------------
+
+-- ParseJudgement(text, lang): a seal's Judgement damage, from its last sentence, as
+-- { direct = { min, max }, school }, or nil (a seal whose Judgement does no damage, or any other
+-- spell). "Unleashing this Seal's energy will cause 170 to 187 Holy damage to an enemy." /
+-- "Die Entfesselung der Energie dieses Siegels fügt einem Feind 170 bis 187 Heiligschaden zu."
+-- Seal of Command's "169 to 186 Holy damage, 339 to 373 if the target is stunned" gives the
+-- first range, the one that applies to a target that is not stunned.
+function Parser.ParseJudgement(text, lang)
+  if type(text) ~= "string" or text == "" then return nil end
+  local t
+  t, lang = prepare(text, lang)
+  local s = find(t, JUDGE[lang] or JUDGE.en, 1, true)
+  if not s then return nil end
+  local part = sub(t, s)
+  local lo, hi, school
+  if lang == "de" then
+    -- "Heiligschaden in Höhe von 169 bis 186, oder 339 bis 373 Heiligschaden, sollte das Ziel
+    -- betäubt ... sein": the "in Höhe von" range first, or the stunned one would be taken
+    school, lo, hi = match(part, "([a-z]*)schaden in h" .. OE .. "he von (" .. NUM .. ") bis (" .. NUM .. ")")
+    if not lo then lo, hi, school = match(part, "(" .. NUM .. ") bis (" .. NUM .. ") ([a-z]*)schaden") end
+    school = school and SCHOOL_DE[school]
+  else
+    lo, hi, school = match(part, "(" .. NUM .. ") to (" .. NUM .. ") ([a-z]+) damage")
+    school = school and SCHOOL_EN[school]
+  end
+  if not lo then return nil end
+  return { direct = { min = num(lo), max = num(hi) }, school = school }
+end
+
+-- Is this Judgement itself? Its description names no damage of its own and points at the seals:
+-- "Unleashes the energy of a Seal spell upon an enemy." / "Entfesselt die Energie eines
+-- Siegelzaubers über einem Feind."
+function Parser.IsJudgement(text, lang)
+  if type(text) ~= "string" or text == "" then return false end
+  local t
+  t, lang = prepare(text, lang)
+  if lang == "de" then return find(t, "die energie eines siegelzaubers", 1, true) ~= nil end
+  return find(t, "the energy of a seal spell", 1, true) ~= nil
+end
+
+-- Is this a seal? Every seal ends with what its Judgement does, damage or not.
+function Parser.IsSeal(text, lang)
+  if type(text) ~= "string" or text == "" then return false end
+  local t
+  t, lang = prepare(text, lang)
+  return find(t, JUDGE[lang] or JUDGE.en, 1, true) ~= nil
+end
+
+-- How long a seal lasts, in seconds, or nil: "for 30 sec" / "Lasts 30 sec" / "30 Sek. lang".
+function Parser.SealDuration(text, lang)
+  if type(text) ~= "string" or text == "" then return nil end
+  local t
+  t, lang = prepare(withoutJudgement(text, lang), lang)
+  local n
+  if lang == "de" then
+    n = match(t, "(" .. NUM .. ") sek%.? lang")
+  else
+    n = match(t, "for (" .. NUM .. ") sec") or match(t, "lasts (" .. NUM .. ") sec")
+  end
+  return num(n)
+end
+
+---------------------------------------------------------------------------------------------
+-- Wordings Parse() does not take apart
+---------------------------------------------------------------------------------------------
+-- ParseSpecial(text, lang), used when Parse() finds nothing or cannot say what it finds, returns
+-- Parse()'s shape
+-- (direct, dot, heal, hot, school) with, where it applies:
+--   absorb = n           a shield: Power Word: Shield, Ice Barrier, the wards
+--   healMaxHealth = true Lay on Hands: the paladin's own maximum health
+--   perAttack = true     a totem's attack (Searing Totem), perBlock = true (Holy Shield),
+--   perStrike = true     damage to whatever strikes the party (Retribution Aura),
+--   every = s            a totem's pulse (Healing Stream Totem), perRage = n (Execute)
+-- Each pattern is one family's own wording, from the fixtures, in both languages.
+
+local function D(lo, hi) return { min = num(lo), max = num(hi or lo) } end
+
+local function specialEN(t)
+  local lo, hi, school, hlo, hhi = match(t, "causing (" .. NUM .. ") to (" .. NUM .. ") ([a-z]+) damage to an enemy, or ("
+    .. NUM .. ") to (" .. NUM .. ") healing to an ally")
+  if lo then return { direct = D(lo, hi), heal = D(hlo, hhi), school = SCHOOL_EN[school] } end
+  local n, h, iv, dur
+  n, school, h, iv, dur = match(t, "causing (" .. NUM .. ") ([a-z]+) damage to an enemy, or (" .. NUM
+    .. ") healing to an ally, instantly and every (" .. NUM .. ") sec for (" .. NUM .. ") sec")
+  if n then
+    local hits = 1 + floor(num(dur) / num(iv) + 0.5)
+    return { direct = D(num(n) * hits), heal = D(num(h) * hits), school = SCHOOL_EN[school], hits = hits }
+  end
+  lo, hi, n, dur = match(t, "heals a friendly target for (" .. NUM .. ") to (" .. NUM .. "), an additional ("
+    .. NUM .. ") over (" .. NUM .. ") sec")
+  if lo then return { heal = D(lo, hi), hot = { total = num(n), duration = num(dur) } } end
+  n, school, dur = match(t, "doing (" .. NUM .. ") ([a-z]+) damage over (" .. NUM .. ") sec")
+  if n then return { dot = { total = num(n), duration = num(dur) }, school = SCHOOL_EN[school] } end
+  n, dur = match(t, "restore (" .. NUM .. ") health over (" .. NUM .. ") sec")
+  if n then return { hot = { total = num(n), duration = num(dur) } } end
+  local per
+  n, per = match(t, "causing (" .. NUM .. ") damage and converting each extra point of rage into (" .. NUM .. ") additional damage")
+  if n then return { direct = D(n), school = "physical", perRage = num(per) } end
+  n, dur = match(t, "bleed for (" .. NUM .. ") damage over (" .. NUM .. ") sec")
+  if n then return { dot = { total = num(n), duration = num(dur) }, school = "physical" } end
+  lo, hi, school = match(t, "repeatedly attacks an enemy [^%.]- for (" .. NUM .. ") to (" .. NUM .. ") ([a-z]+) damage")
+  if lo then return { direct = D(lo, hi), school = SCHOOL_EN[school], perAttack = true } end
+  n, iv = match(t, "heals group members [^%.]- for (" .. NUM .. ") every (" .. NUM .. ") seconds?")
+  if n then return { heal = D(n), every = num(iv) } end
+  local f
+  lo, hi, f, school = match(t, "drains (" .. NUM .. ") to (" .. NUM .. ") mana [^%.]-%. for each mana drained in this way, the target takes ("
+    .. NUM .. ") ([a-z]+) damage")
+  if lo then return { direct = D(num(lo) * num(f), num(hi) * num(f)), school = SCHOOL_EN[school] } end
+  n, school = match(t, "causes (" .. NUM .. ") ([a-z]+) damage to any creature that strikes a party member")
+  if n then return { direct = D(n), school = SCHOOL_EN[school], perStrike = true } end
+  n, school = match(t, "deals (" .. NUM .. ") ([a-z]+) damage for each attack blocked")
+  if n then return { direct = D(n), school = SCHOOL_EN[school], perBlock = true } end
+  if find(t, "for an amount equal to the paladin's maximum health", 1, true) then return { healMaxHealth = true } end
+  n = match(t, "absorbing (" .. NUM .. ") damage") or match(t, "absorbs (" .. NUM .. ") [a-z]* ?damage")
+  if n then return { absorb = num(n) } end
+  return nil
+end
+
+local function specialDE(t)
+  local lo, hi, school, hlo, hhi = match(t, "verursacht (" .. NUM .. ") bis (" .. NUM .. ") ([a-z]*)schaden bei feinden oder heilt ("
+    .. NUM .. ") bis (" .. NUM .. ") bei verb" .. UE .. "ndeten")
+  if lo then return { direct = D(lo, hi), heal = D(hlo, hhi), school = SCHOOL_DE[school] } end
+  -- Penance: "die einem Gegner 240 Heiligschaden zufügt oder ein verbündetes Ziel sofort sowie
+  -- 2 Sek. lang alle 1 Sek. um 572 Gesundheit heilt"
+  local dmg, h, dur2, iv2
+  dmg, school, dur2, iv2, h = match(t, "(" .. NUM .. ") ([a-z]*)schaden zuf" .. UE .. "gt oder ein verb" .. UE
+    .. "ndetes ziel sofort sowie (" .. NUM .. ") sek%.? lang alle (" .. NUM .. ") sek%.? um (" .. NUM .. ") gesundheit heilt")
+  if dmg then
+    local hits = 1 + floor(num(dur2) / num(iv2) + 0.5)
+    return { direct = D(num(dmg) * hits), heal = D(num(h) * hits), school = SCHOOL_DE[school], hits = hits }
+  end
+  local n, dur = match(t, "um im verlauf von (" .. NUM .. ") sek%.? (" .. NUM .. ") gesundheit wiederherzustellen")
+  if n then return { hot = { total = num(dur), duration = num(n) } } end
+  local per
+  n, per = match(t, "verursacht (" .. NUM .. ") punkt%(e%) schaden und jeder zus" .. AE .. "tzliche wutpunkt wird in (" .. NUM .. ")")
+  if n then return { direct = D(n), school = "physical", perRage = num(per) } end
+  local iv
+  iv, lo, hi, school = match(t, "alle (" .. NUM .. ") sekunden einen feind [^%.]- angreift und (" .. NUM .. ") bis (" .. NUM
+    .. ") punkt%(e%) ([a-z]*)schaden")
+  if lo then return { direct = D(lo, hi), school = SCHOOL_DE[school], perAttack = true } end
+  iv, n = match(t, "alle (" .. NUM .. ") sekunden um (" .. NUM .. ") punkt%(e%) heilt")
+  if n then return { heal = D(n), every = num(iv) } end
+  local f
+  lo, hi, f, school = match(t, "entzieht dem ziel (" .. NUM .. ") bis (" .. NUM .. ") punkte mana%. f" .. UE
+    .. "r jeden [^%.]- erleidet das ziel (" .. NUM .. ") punkte ([a-z]*)schaden")
+  if lo then return { direct = D(num(lo) * num(f), num(hi) * num(f)), school = SCHOOL_DE[school] } end
+  n, school = match(t, "verursacht (" .. NUM .. ") punkt%(e%) ([a-z]*)schaden f" .. UE .. "r jede kreatur, die ein gruppenmitglied schl" .. AE .. "gt")
+  if n then return { direct = D(n), school = SCHOOL_DE[school], perStrike = true } end
+  -- Lacerate: "was im Verlauf von 15 Sek. 149 Blutungsschaden ... verursacht"
+  dur, n = match(t, "im verlauf von (" .. NUM .. ") sek%.? (" .. NUM .. ") blutungsschaden")
+  if n then return { dot = { total = num(n), duration = num(dur) }, school = "physical" } end
+  n, school = match(t, "mit jedem geblockten angriff (" .. NUM .. ") ([a-z]*)schaden")
+  if n then return { direct = D(n), school = SCHOOL_DE[school], perBlock = true } end
+  if find(t, "bis zur maximalen gesundheit des paladins", 1, true) then return { healMaxHealth = true } end
+  n = match(t, "absorbiert dabei (" .. NUM .. ") punkt") or match(t, "absorbiert (" .. NUM .. ") punkt")
+  if n then return { absorb = num(n) } end
+  return nil
+end
+
+function Parser.ParseSpecial(text, lang)
+  if type(text) ~= "string" or text == "" then return nil end
+  local t
+  t, lang = prepare(text, lang)
+  if lang == "de" then return specialDE(t) end
+  return specialEN(t)
+end
+
+---------------------------------------------------------------------------------------------
+-- Finishers
+---------------------------------------------------------------------------------------------
+-- ParseFinisher(text, lang): a finisher's per-combo-point table as { points = { [1] = ...,
+-- [5] = ... }, top = the highest point listed }, each entry { min, max } (Eviscerate, Ferocious
+-- Bite) or { total, duration } (Rupture, Rip); nil for anything else, including per-point tables
+-- of seconds or armour (Kidney Shot, Slice and Dice, Expose Armor). The numbers are the
+-- description's own; the attack power the text says it adds is not in them.
+function Parser.ParseFinisher(text, lang)
+  if type(text) ~= "string" or text == "" then return nil end
+  local t
+  t, lang = prepare(text, lang)
+  t = " " .. t .. " "
+  local marker = (lang == "de") and "punkte?" or "points?"
+  local marks, init = {}, 1
+  while true do
+    local s, e, n = find(t, "[^0-9]([1-5]) " .. marker .. " *:", init)
+    if not s then break end
+    marks[#marks + 1] = { s = s, e = e, n = tonumber(n) }
+    init = e + 1
+  end
+  if #marks < 2 then return nil end
+  local points, top, kind = {}, nil, nil
+  for i, m in ipairs(marks) do
+    local seg = sub(t, m.e + 1, marks[i + 1] and (marks[i + 1].s) or #t)
+    local lo, hi = match(seg, "^ *(" .. NUM .. ")%-(" .. NUM .. ") ")
+    local total, dur
+    if lang == "de" then
+      if lo and not find(seg, "schaden", 1, true) then lo = nil end
+      total, dur = match(seg, "^ *(" .. NUM .. ") schaden " .. UE .. "ber (" .. NUM .. ") sekunden")
+      if not total then total, dur = match(seg, "^ *(" .. NUM .. ") schaden im verlauf von (" .. NUM .. ") sek") end
+    else
+      if lo and not find(seg, "damage", 1, true) then lo = nil end
+      total, dur = match(seg, "^ *(" .. NUM .. ") damage over (" .. NUM .. ") sec")
+    end
+    if lo then
+      if kind and kind ~= "direct" then return nil end
+      kind = "direct"
+      points[m.n] = { min = num(lo), max = num(hi) }
+    elseif total then
+      if kind and kind ~= "dot" then return nil end
+      kind = "dot"
+      points[m.n] = { total = num(total), duration = num(dur) }
+    else
+      return nil
+    end
+    if not top or m.n > top then top = m.n end
+  end
+  return { points = points, top = top, kind = kind }
+end
+
+---------------------------------------------------------------------------------------------
+-- Everything one description gives, and which of it the addon shows
+---------------------------------------------------------------------------------------------
+
+-- ParseSpecial wins over Parse only where it knows something Parse's shape cannot say: a
+-- shield, the paladin's own health, a totem's attack or pulse, damage per block, per strike or
+-- per extra rage, several hits. Where both read the same numbers (Rend, Blizzard), Parse stays.
+local SPECIAL_FLAGS = { "absorb", "healMaxHealth", "perAttack", "perBlock", "perStrike", "every", "perRage", "hits" }
+
+local function specialWins(s)
+  for _, k in ipairs(SPECIAL_FLAGS) do
+    if s[k] then return true end
+  end
+  return false
+end
+
+-- Read(text, lang, noWeapon) runs every reader once and decides, in one place, what the addon
+-- shows for the spell (show):
+--   "weapon"     the weapon or attack power view (not with noWeapon: Retail's descriptions
+--                already hold the player's stats, and Parse reads their finished numbers)
+--   "judgement"  Judgement itself: the active seal's Judgement
+--   nil          a seal with nothing per hit (its Judgement belongs on Judgement's button), or
+--                nothing read at all
+--   "special", "parsed", "finisher"  as their readers say
+-- The reduction is shown beside any of these, or alone.
+function Parser.Read(text, lang, noWeapon)
+  local e = {
+    parsed = Parser.Parse(text, lang) or false,
+    reduction = Parser.ParseReduction(text, lang) or false,
+    weapon = Parser.ParseWeapon(text, lang) or false,
+    special = Parser.ParseSpecial(text, lang) or false,
+    finisher = Parser.ParseFinisher(text, lang) or false,
+    judgement = Parser.ParseJudgement(text, lang) or false,
+    isSeal = Parser.IsSeal(text, lang),
+    isJudgement = Parser.IsJudgement(text, lang),
+    sealDuration = Parser.SealDuration(text, lang),
+  }
+  if e.weapon and not noWeapon then
+    e.show = "weapon"
+  elseif e.isJudgement then
+    e.show = "judgement"
+  elseif e.isSeal then
+    e.show = nil
+  elseif e.special and (not e.parsed or specialWins(e.special)) then
+    e.show = "special"
+  elseif e.parsed then
+    e.show = "parsed"
+  elseif e.finisher then
+    e.show = "finisher"
+  end
+  return e
 end
 
 -- Exposed for the tests.

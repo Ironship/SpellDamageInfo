@@ -72,12 +72,9 @@ local function getEntry(spellID)
     requestLoad(spellID)
     return nil
   end
-  entry = {
-    parsed = Parser.Parse(text, ns.DescriptionLang()) or false,
-    reduction = Parser.ParseReduction(text, ns.DescriptionLang()) or false,
-    weapon = Parser.ParseWeapon(text, ns.DescriptionLang()) or false,
-    text = text,
-  }
+  -- Parser.Read runs every reader and decides what is shown; see there.
+  entry = Parser.Read(text, ns.DescriptionLang(), ns.IsRetail and ns.IsRetail())
+  entry.text = text
   parsedCache[spellID] = entry
   return entry
 end
@@ -103,6 +100,19 @@ local function getCastTime(spellID)
   return nil
 end
 
+-- Retail's descriptions already hold the player's spell power and attack power in their
+-- numbers, so there the estimate and the weapon arithmetic would count them twice. Forever
+-- answers WOW_PROJECT_ID like Retail, so the client's version decides: Retail is 10 and up,
+-- Forever 1.60, Classic Era 1.15.
+local function isRetail()
+  if type(GetBuildInfo) ~= "function" then return false end
+  local ok, version = pcall(GetBuildInfo)
+  if not ok or isSecret(version) or type(version) ~= "string" then return false end
+  local major = tonumber(version:match("^(%d+)"))
+  return major ~= nil and major >= 10
+end
+ns.IsRetail = isRetail
+
 -- Last readable spell power by school index (2..7) and for healing. In combat the client may
 -- return secret values; then the last value read out of combat stays in use.
 local bonus = { damage = {}, heal = nil }
@@ -120,35 +130,80 @@ local function readBonus()
   end
 end
 
--- The player's weapons, as the client reports them: the average hit (the character sheet's
--- damage, which already holds attack power and form) and the time between swings, for the
--- melee and the ranged weapon. WoW: Forever hides attack power in combat and these come from
+-- The player's weapons and the stats the weapon abilities need, as the client reports them:
+-- the average hit (the character sheet's damage, which already holds attack power and form) and
+-- the time between swings for the main hand, the off hand and the ranged weapon, attack power,
+-- maximum health, class and form. WoW: Forever hides attack power in combat and these come from
 -- it, so in combat the last numbers read out of combat stay in use.
 local weaponStats = {}
 
+local function number(v) return not isSecret(v) and type(v) == "number" and v or nil end
+
 local function readWeapon()
   if type(UnitDamage) == "function" then
-    local ok, lo, hi = pcall(UnitDamage, "player")
-    if ok and not isSecret(lo) and not isSecret(hi) and type(lo) == "number" and type(hi) == "number" and hi > 0 then
-      weaponStats.melee = (lo + hi) / 2
+    local ok, lo, hi, olo, ohi = pcall(UnitDamage, "player")
+    if ok then
+      lo, hi, olo, ohi = number(lo), number(hi), number(olo), number(ohi)
+      if lo and hi and hi > 0 then weaponStats.melee = (lo + hi) / 2 end
+      -- a single weapon reports its off hand as nothing, or 0
+      if olo and ohi then weaponStats.offhand = (ohi > 0) and (olo + ohi) / 2 or nil end
     end
   end
   if type(UnitAttackSpeed) == "function" then
-    local ok, speed = pcall(UnitAttackSpeed, "player")
-    if ok and not isSecret(speed) and type(speed) == "number" and speed > 0 then weaponStats.meleeSpeed = speed end
+    local ok, speed, off = pcall(UnitAttackSpeed, "player")
+    if ok then
+      speed = number(speed)
+      if speed and speed > 0 then weaponStats.meleeSpeed = speed end
+      off = number(off)
+      if off ~= nil or speed then weaponStats.offhandSpeed = (off and off > 0) and off or nil end
+    end
   end
   if type(UnitRangedDamage) == "function" then
     local ok, speed, lo, hi = pcall(UnitRangedDamage, "player")
-    if ok and not isSecret(speed) and not isSecret(lo) and not isSecret(hi) and type(speed) == "number"
-      and type(lo) == "number" and type(hi) == "number" and speed > 0 and hi > 0 then
-      weaponStats.ranged, weaponStats.rangedSpeed = (lo + hi) / 2, speed
+    if ok then
+      speed, lo, hi = number(speed), number(lo), number(hi)
+      if speed and lo and hi and speed > 0 and hi > 0 then
+        weaponStats.ranged, weaponStats.rangedSpeed = (lo + hi) / 2, speed
+      end
     end
+  end
+  if type(UnitAttackPower) == "function" then
+    local ok, base, pos, neg = pcall(UnitAttackPower, "player")
+    if ok then
+      base, pos, neg = number(base), number(pos), number(neg)
+      if base then weaponStats.ap = base + (pos or 0) + (neg or 0) end
+    end
+  end
+  if type(UnitHealthMax) == "function" then
+    local ok, v = pcall(UnitHealthMax, "player")
+    v = ok and number(v) or nil
+    if v and v > 0 then weaponStats.maxHealth = v end
+  end
+  if not weaponStats.class and type(UnitClass) == "function" then
+    local ok, _, file = pcall(UnitClass, "player")
+    if ok and not isSecret(file) and type(file) == "string" then weaponStats.class = file end
+  end
+  if type(GetShapeshiftFormID) == "function" then
+    local ok, form = pcall(GetShapeshiftFormID)
+    if ok and not isSecret(form) then weaponStats.form = (type(form) == "number") and form or nil end
   end
 end
 
--- What a result of Parser.ParseWeapon is worth per hit with the weapon in stats ({ melee,
--- meleeSpeed, ranged, rangedSpeed }): { value, hit, pct, bonus, bonusMax, ranged } for an attack,
--- { gain, amount, speed, ranged, plusAgility } for attack power, or nil while a number it needs
+-- Attack power a point of strength or agility gives, by class (Classic's rules). Agility gives
+-- melee attack power only to rogues and hunters, and to a druid in Cat Form (form 1).
+local STR_AP = { WARRIOR = 2, PALADIN = 2, SHAMAN = 2, DRUID = 2 }
+local AGI_AP = { ROGUE = 1, HUNTER = 1 }
+local CAT_FORM = 1
+
+local function statToAP(stat, stats)
+  if stat == "str" then return STR_AP[stats.class or ""] or 1 end
+  if AGI_AP[stats.class or ""] then return 1 end
+  if stats.class == "DRUID" and stats.form == CAT_FORM then return 1 end
+  return 0
+end
+
+-- What a result of Parser.ParseWeapon is worth per hit with the weapon in stats: a hit
+-- ({ value, ... }) or a gain added to every hit ({ gain, ... }), or nil while a number it needs
 -- is not known. Classic's rule: 14 attack power add 1 damage for each second of weapon speed.
 -- Two things make it an estimate, and the tooltip says so: the speed is the one the client
 -- reports, which haste shortens, and instant attacks count attack power at a normalised weapon
@@ -162,31 +217,179 @@ function ns.WeaponView(w, stats)
     if not speed then return nil end
     return { gain = w.amount / 14 * speed, amount = w.amount, speed = speed, ranged = w.ranged, plusAgility = w.plusAgility }
   end
+  if w.kind == "stat" then
+    local factor = statToAP(w.stat, stats)
+    if not speed or factor == 0 then return nil end
+    return { gain = w.amount * factor / 14 * speed, stat = w.stat, amount = w.amount, factor = factor, speed = speed }
+  end
+  if w.kind == "perhit" then
+    return { gain = (w.min + w.max) / 2, perhit = true, min = w.min, max = w.max, school = w.school }
+  end
+  if w.kind == "appct" then
+    if not stats.ap then return nil end
+    return { value = stats.ap * w.pct / 100 + (w.bonus or 0), appct = true, ap = stats.ap, pct = w.pct, bonus = w.bonus or 0 }
+  end
   if not hit then return nil end
+  if w.kind == "dps" then
+    if not speed then return nil end
+    local dps = hit / speed
+    return { value = w.times * dps, times = w.times, dps = dps }
+  end
   local pct = w.pct or 100
   local bonusAvg = w.bonusMax and (w.bonus + w.bonusMax) / 2 or w.bonus or 0
+  if w.kind == "both" then
+    local off = stats.offhand
+    local value = hit * pct / 100 + bonusAvg + (off and (off * pct / 100 + bonusAvg) or 0)
+    return { value = value, both = true, hit = hit, off = off, pct = pct, bonus = w.bonus or 0 }
+  end
   return { value = hit * pct / 100 + bonusAvg, hit = hit, pct = pct, bonus = w.bonus or 0, bonusMax = w.bonusMax,
     ranged = w.ranged }
 end
 
--- What to show for a spell: the view from Estimate.Apply, a weapon view ({ weapon = ... }), or
--- nil. A pet's spell gets the description's numbers only: the pet has its own spell power, and
--- the player's would be wrong; the player's weapon means nothing to it either.
+-- The seal on the player now. The seal's buff has the seal's own spell id, so the player's buffs
+-- are read and the first one whose description is a seal's is it. Where the client will not say
+-- (a secret aura), the last seal the player cast stands in until it would have run out.
+local sealCast = { id = nil, at = 0, duration = 0 }
+
+local function now()
+  if type(GetTime) ~= "function" then return nil end
+  local ok, t = pcall(GetTime)
+  if ok and not isSecret(t) and type(t) == "number" then return t end
+  return nil
+end
+
+local function buffSpellID(i)
+  -- returns id (or nil), done, unreadable
+  if C_UnitAuras and type(C_UnitAuras.GetBuffDataByIndex) == "function" then
+    local ok, aura = pcall(C_UnitAuras.GetBuffDataByIndex, "player", i)
+    if not ok then return nil, true, false end
+    if isSecret(aura) then return nil, true, true end
+    if type(aura) ~= "table" then return nil, true, false end
+    local id = aura.spellId
+    if isSecret(id) then return nil, false, true end
+    return type(id) == "number" and id or nil, false, false
+  end
+  if type(UnitBuff) == "function" then
+    local ok, name, _, _, _, _, _, _, _, _, id = pcall(UnitBuff, "player", i)
+    if not ok then return nil, true, false end
+    if isSecret(name) or isSecret(id) then return nil, false, true end
+    if name == nil then return nil, true, false end
+    return type(id) == "number" and id or nil, false, false
+  end
+  return nil, true, false
+end
+
+local function activeSeal()
+  local unreadable = false
+  for i = 1, 40 do
+    local id, done, secret = buffSpellID(i)
+    if secret then unreadable = true end
+    if done then break end
+    if id then
+      local e = getEntry(id)
+      if e and e.isSeal then return id end
+    end
+  end
+  local t = now()
+  if unreadable and sealCast.id and t and t - sealCast.at < sealCast.duration then return sealCast.id end
+  return nil
+end
+ns.ActiveSeal = activeSeal
+
+local function noteSealCast(spellID)
+  local e = getEntry(spellID)
+  if not e or not e.isSeal then return end
+  sealCast.id, sealCast.at, sealCast.duration = spellID, now() or 0, e.sealDuration or 30
+end
+
+-- A spell name, or nil.
+local function spellName(spellID)
+  local fn = (C_Spell and C_Spell.GetSpellName) or GetSpellInfo
+  if type(fn) ~= "function" then return nil end
+  local ok, name = pcall(fn, spellID)
+  if ok and not isSecret(name) and type(name) == "string" then return name end
+  return nil
+end
+
+local function withEstimate(parsed, spellID, pet, castTime)
+  if pet or not db.estimate or isRetail() then return Estimate.Apply(parsed, nil, nil, nil) end
+  if castTime == nil then castTime = getCastTime(spellID) end
+  return Estimate.Apply(parsed, castTime, Estimate.DamageBonus(parsed.school, bonus.damage), bonus.heal)
+end
+
+local function specialView(s, spellID, pet)
+  if s.absorb then return { absorb = s.absorb } end
+  if s.healMaxHealth then
+    local mh = weaponStats.maxHealth
+    if pet or not mh then return nil end
+    return { heal = { min = mh, max = mh, added = 0 }, healMax = true }
+  end
+  local view = withEstimate(s, spellID, pet)
+  if view then
+    view.perAttack, view.perBlock, view.every, view.perRage, view.hits = s.perAttack, s.perBlock, s.every, s.perRage, s.hits
+    view.perStrike = s.perStrike
+  end
+  return view
+end
+
+local function finisherView(f, spellID, pet)
+  local top = f.points[f.top]
+  if not top then return nil end
+  local parsed = { school = "physical" }
+  if f.kind == "dot" then parsed.dot = top else parsed.direct = top end
+  local view = Estimate.Apply(parsed, nil, nil, nil)
+  if view then view.finisher = f end
+  return view
+end
+
+-- Judgement: the active seal's Judgement damage, with the spell power estimate an instant spell
+-- gets; nil without a seal, or with one whose Judgement does no damage.
+local function judgementView(pet)
+  if pet then return nil end
+  local sealID = activeSeal()
+  if not sealID then return nil end
+  local seal = getEntry(sealID)
+  if not seal or not seal.judgement then return nil end
+  local view = withEstimate(seal.judgement, nil, false, 0)
+  if view then view.fromSeal = spellName(sealID) or tostring(sealID) end
+  return view
+end
+
+-- What to show for a spell: a view from Estimate.Apply, a weapon view ({ weapon = ... }), a
+-- shield ({ absorb = n }), or nil. A pet's spell gets the description's numbers only: the pet
+-- has its own spell power, and the player's would be wrong; the player's weapon means nothing to
+-- it either.
 function ns.Compute(spellID, pet)
   local entry = getEntry(spellID)
   if not entry then return nil end
+  local show = entry.show
   -- An ability the parser reads as a weapon attack is shown that way or not at all: the number
   -- Parse finds in some of them ("causing 115 additional damage") is only the part on top.
-  if entry.weapon then
+  if show == "weapon" then
     if pet or not db.weapon then return nil end
     local w = ns.WeaponView(entry.weapon, weaponStats)
     return w and { weapon = w } or nil
+  elseif show == "judgement" then
+    return judgementView(pet)
+  elseif show == "special" then
+    return specialView(entry.special, spellID, pet)
+  elseif show == "parsed" then
+    return withEstimate(entry.parsed, spellID, pet)
+  elseif show == "finisher" then
+    return finisherView(entry.finisher, spellID, pet)
   end
-  local parsed = entry.parsed
-  if not parsed then return nil end
-  if pet or not db.estimate then return Estimate.Apply(parsed, nil, nil, nil) end
-  local castTime = getCastTime(spellID)
-  return Estimate.Apply(parsed, castTime, Estimate.DamageBonus(parsed.school, bonus.damage), bonus.heal)
+  return nil
+end
+
+-- A seal's Judgement damage, for the seal's own tooltip, or nil.
+function ns.SealJudgement(spellID)
+  local entry = getEntry(spellID)
+  return entry and entry.judgement or nil
+end
+
+function ns.IsJudgementSpell(spellID)
+  local entry = getEntry(spellID)
+  return entry and entry.isJudgement or false
 end
 
 -- How much the spell lowers the enemy's damage or attack power (from Parser.ParseReduction), or nil.
@@ -435,6 +638,9 @@ local function buttonText(view, reduction)
       local t = Format.ReductionText(reduction, ns.L)
       if #t <= SIDE_MAX_CHARS then sideText = t end
     end
+  elseif view and view.absorb and view.absorb >= 0.5 then
+    mainText = Format.Short(view.absorb)
+    mainColor = Format.ABSORB_COLOR
   elseif reduction then
     mainText = Format.ReductionText(reduction, ns.L)
     mainColor = Format.REDUCTION_COLOR
@@ -479,18 +685,11 @@ ns.NewLabel = newLabel
 local MISSES_MAX = 200
 local missSeen, missCount = {}, 0
 
-local function spellName(spellID)
-  local fn = (C_Spell and C_Spell.GetSpellName) or GetSpellInfo
-  if type(fn) ~= "function" then return nil end
-  local ok, name = pcall(fn, spellID)
-  if ok and not isSecret(name) and type(name) == "string" then return name end
-  return nil
-end
-
 local function noteMiss(spellID)
   if missSeen[spellID] or missCount >= MISSES_MAX or type(db.misses) ~= "table" then return end
   local entry = parsedCache[spellID]
-  if not entry or entry.parsed or entry.reduction or entry.weapon then return end
+  -- a seal with nothing per hit shows nothing on purpose: its Judgement is on Judgement's button
+  if not entry or entry.show or entry.reduction or entry.isSeal then return end
   missSeen[spellID] = true
   missCount = missCount + 1
   local build
@@ -500,6 +699,76 @@ local function noteMiss(spellID)
   end
   db.misses[#db.misses + 1] = { id = spellID, name = spellName(spellID), text = entry.text,
     lang = ns.DescriptionLang(), build = build }
+end
+
+-- /sdi dump: every spell in the player's spellbook, with the description as this client shows
+-- it and what the addon reads from it, into the saved variables (db.dump). Written to disk at
+-- the next logout or /reload; for testing the parser against the game's own texts rather than
+-- a website's. Spells whose text has not loaded yet are asked for and counted as missing: a
+-- second /sdi dump a moment later has them.
+local function spellbookIDs()
+  local ids = {}
+  if C_SpellBook and type(C_SpellBook.GetNumSpellBookSkillLines) == "function" then
+    local bank = (type(Enum) == "table" and type(Enum.SpellBookSpellBank) == "table" and Enum.SpellBookSpellBank.Player) or 0
+    local okN, n = pcall(C_SpellBook.GetNumSpellBookSkillLines)
+    n = okN and not isSecret(n) and type(n) == "number" and n or 0
+    for line = 1, n do
+      local ok, info = pcall(C_SpellBook.GetSpellBookSkillLineInfo, line)
+      if ok and type(info) == "table" and type(info.itemIndexOffset) == "number" and type(info.numSpellBookItems) == "number" then
+        for i = info.itemIndexOffset + 1, info.itemIndexOffset + info.numSpellBookItems do
+          local ok2, item = pcall(C_SpellBook.GetSpellBookItemInfo, i, bank)
+          if ok2 and type(item) == "table" and not isSecret(item.spellID) and type(item.spellID) == "number" then
+            ids[#ids + 1] = item.spellID
+          end
+        end
+      end
+    end
+  elseif type(GetNumSpellTabs) == "function" and type(GetSpellTabInfo) == "function" and type(GetSpellBookItemInfo) == "function" then
+    local okN, tabs = pcall(GetNumSpellTabs)
+    for tab = 1, (okN and type(tabs) == "number" and tabs or 0) do
+      local ok, _, _, offset, count = pcall(GetSpellTabInfo, tab)
+      if ok and type(offset) == "number" and type(count) == "number" then
+        for i = offset + 1, offset + count do
+          local ok2, kind, id = pcall(GetSpellBookItemInfo, i, "spell")
+          if ok2 and kind == "SPELL" and type(id) == "number" then ids[#ids + 1] = id end
+        end
+      end
+    end
+  end
+  return ids
+end
+
+local function readsAs(entry)
+  local parts = { "show=" .. tostring(entry.show) }
+  for _, k in ipairs({ "parsed", "reduction", "weapon", "special", "finisher", "judgement" }) do
+    if entry[k] then parts[#parts + 1] = k end
+  end
+  if entry.isSeal then parts[#parts + 1] = "seal" end
+  if entry.isJudgement then parts[#parts + 1] = "judgement-spell" end
+  return #parts > 0 and table.concat(parts, ",") or "nothing"
+end
+
+function ns.Dump()
+  local build
+  if type(GetBuildInfo) == "function" then
+    local ok, v, b = pcall(GetBuildInfo)
+    if ok and not isSecret(b) then build = tostring(v) .. "." .. tostring(b) end
+  end
+  local out = { build = build, lang = ns.DescriptionLang(), class = weaponStats.class, spells = {}, missing = 0 }
+  local seen = {}
+  for _, id in ipairs(spellbookIDs()) do
+    if not seen[id] then
+      seen[id] = true
+      local entry = getEntry(id)
+      if entry then
+        out.spells[#out.spells + 1] = { id = id, name = spellName(id), text = entry.text, reads = readsAs(entry) }
+      else
+        out.missing = out.missing + 1
+      end
+    end
+  end
+  db.dump = out
+  return out
 end
 
 local function updateButton(button, pet)
@@ -550,7 +819,16 @@ ns.Refresh = requestUpdate
 -- Adds our lines; returns how many. A pet's spell says so at the end of each line.
 local function addTooltipLines(tooltip, spellID, pet)
   if not db.tooltip or isSecret(spellID) or type(spellID) ~= "number" then return 0 end
-  local lines = Format.TooltipLines(ns.Compute(spellID, pet), L)
+  local view = ns.Compute(spellID, pet)
+  local lines = Format.TooltipLines(view, L)
+  local gray = Format.NOTE_COLOR
+  -- Judgement's number is its seal's; without a seal there is none, and the tooltip says why
+  if not view and not pet and ns.IsJudgementSpell(spellID) then
+    lines[#lines + 1] = { L.NO_SEAL, gray[1], gray[2], gray[3] }
+  end
+  -- a seal's own tooltip also says what its Judgement does
+  local judgement = not pet and ns.SealJudgement(spellID)
+  if judgement then lines[#lines + 1] = Format.JudgementLine(judgement, L) end
   if db.reduction then
     local reduction = ns.Reduction(spellID)
     if reduction then lines[#lines + 1] = Format.ReductionLine(reduction, L) end
@@ -689,6 +967,11 @@ local function slash(msg)
     for _, line in ipairs(L.HELP) do say(line) end
     return
   end
+  if cmd == "dump" then
+    local list = ns.Dump()
+    say(string.format(L.DUMP_DONE, #list.spells, list.missing))
+    return
+  end
   if cmd == "misses" then
     if arg == "clear" then
       db.misses = {}
@@ -793,7 +1076,7 @@ frame:RegisterEvent("PLAYER_LOGIN")
 local isReset = {}
 for _, e in ipairs(RESET_EVENTS) do isReset[e] = true end
 
-frame:SetScript("OnEvent", function(_, event, arg1)
+frame:SetScript("OnEvent", function(_, event, arg1, _, arg3)
   if event == "ADDON_LOADED" then
     if arg1 == ADDON then
       ns.DecideLangsAtLoad()
@@ -808,8 +1091,9 @@ frame:SetScript("OnEvent", function(_, event, arg1)
     for _, e in ipairs(RESET_EVENTS) do register(e) end
     register("SPELL_TEXT_UPDATE")
     -- The weapon's numbers change with gear, forms and buffs; these say so for the player.
+    -- A seal cast says which seal Judgement unleashes where the buffs cannot be read.
     for _, e in ipairs({ "UNIT_AURA", "UNIT_PET", "UNIT_ATTACK_POWER", "UNIT_RANGED_ATTACK_POWER", "UNIT_DAMAGE",
-      "UNIT_ATTACK_SPEED", "UNIT_RANGEDDAMAGE" }) do
+      "UNIT_ATTACK_SPEED", "UNIT_RANGEDDAMAGE", "UNIT_MAXHEALTH", "UNIT_SPELLCAST_SUCCEEDED" }) do
       if type(frame.RegisterUnitEvent) == "function" then
         pcall(frame.RegisterUnitEvent, frame, e, "player")
       else
@@ -827,8 +1111,13 @@ frame:SetScript("OnEvent", function(_, event, arg1)
   elseif event == "SPELL_TEXT_UPDATE" then
     if not isSecret(arg1) and type(arg1) == "number" then parsedCache[arg1] = nil end
     requestUpdate()
+  elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
+    if not isSecret(arg1) and arg1 == "player" and not isSecret(arg3) and type(arg3) == "number" then
+      noteSealCast(arg3)
+      requestUpdate()
+    end
   elseif event == "UNIT_AURA" or event == "UNIT_PET" or event == "UNIT_ATTACK_POWER" or event == "UNIT_RANGED_ATTACK_POWER"
-    or event == "UNIT_DAMAGE" or event == "UNIT_ATTACK_SPEED" or event == "UNIT_RANGEDDAMAGE" then
+    or event == "UNIT_DAMAGE" or event == "UNIT_ATTACK_SPEED" or event == "UNIT_RANGEDDAMAGE" or event == "UNIT_MAXHEALTH" then
     if not isSecret(arg1) and arg1 == "player" then requestUpdate() end
   elseif event == "PET_BAR_UPDATE" then
     collectPetButtons()

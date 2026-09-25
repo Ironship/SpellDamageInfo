@@ -29,7 +29,7 @@ local n = tonumber
 local function describe(r)
   if r == nil then return "nil" end
   local parts = { tostring(r.kind) }
-  for _, k in ipairs({ "pct", "bonus", "bonusMax", "amount" }) do
+  for _, k in ipairs({ "pct", "bonus", "bonusMax", "amount", "min", "max", "school", "times", "stat" }) do
     if r[k] ~= nil then parts[#parts + 1] = k .. "=" .. tostring(r[k]) end
   end
   if r.ranged then parts[#parts + 1] = "ranged" end
@@ -39,7 +39,7 @@ end
 
 local function same(a, b)
   if a == nil or b == nil then return a == b end
-  for _, k in ipairs({ "kind", "pct", "bonus", "bonusMax", "amount" }) do
+  for _, k in ipairs({ "kind", "pct", "bonus", "bonusMax", "amount", "min", "max", "school", "times", "stat" }) do
     if a[k] ~= b[k] then return false end
   end
   return (a.ranged and true or false) == (b.ranged and true or false)
@@ -55,8 +55,19 @@ end
 -- The English expectation for an ability, from the text's own numbers. Square brackets are
 -- Wowhead's annotations (Season of Discovery overrides on Trueshot Aura, talent text), which the
 -- game does not show and the parser drops; so does the expectation.
+-- A bracket of plain arithmetic is a number the game prints worked out ("[26 * 8]"); the test
+-- works it out with Lua itself, not with the parser's evaluator. Any other bracket is dropped.
+local function brackets(text)
+  text = text:gsub("%[([%d%s%.%+%-%*/%(%)]+)%]", function(expr)
+    local f = (loadstring or load)("return " .. expr)
+    local ok, v = pcall(f)
+    if ok and type(v) == "number" then return tostring(math.floor(v * 100 + 0.5) / 100) end
+  end)
+  return (text:gsub("%b[]", ""))
+end
+
 local function expectEN(name, text)
-  local t = (text:gsub("%b[]", "")):lower()
+  local t = brackets(text):lower()
   if name == "Heroic Strike" or name == "Raptor Strike" and t:find("increases melee damage") then
     return { kind = "next", bonus = n(t:match("melee damage by (%d+)")) }
   end
@@ -71,6 +82,22 @@ local function expectEN(name, text)
     return nil -- Classic's Mongoose Bite: flat damage, Parse() reads it
   end
   if name == "Whirlwind" then return { kind = "weapon", pct = 100, bonus = 0 } end
+  if name == "Mutilate" then
+    local p, b = t:match("(%d+)%% weapon damage plus an additional ([%d%.]+) with each weapon")
+    return { kind = "both", pct = n(p), bonus = n(b) }
+  end
+  if name == "Seal of Righteousness" then
+    local lo, hi = t:match("each melee attack an additional ([%d%.]+) to ([%d%.]+) holy damage")
+    return { kind = "perhit", min = n(lo), max = n(hi), school = "holy" }
+  end
+  if name == "Flametongue Weapon" then
+    local lo, hi = t:match("each hit causes ([%d%.]+) to ([%d%.]+) additional fire damage")
+    return { kind = "perhit", min = n(lo), max = n(hi), school = "fire" }
+  end
+  if name == "Seal of Fury" then
+    local a = t:match("melee attacks to deal an additional ([%d%.]+) holy damage")
+    return { kind = "perhit", min = n(a), max = n(a), school = "holy" }
+  end
   if name == "Sinister Strike" then
     return { kind = "weapon", pct = 100, bonus = n(t:match("causes (%d+) damage in addition")) }
   end
@@ -109,8 +136,10 @@ end
 -- Nothing here gives one number per hit: a chance, both weapons, a per-combo-point table, a
 -- mana or healing seal, attack power traded for speed.
 local NEVER = {
-  ["Seal of Command"] = true, ["Mutilate"] = true, ["Seal of the Crusader"] = true, ["Windfury Weapon"] = true,
+  ["Seal of Command"] = true, ["Seal of the Crusader"] = true, ["Windfury Weapon"] = true,
 }
+-- The imbues and seals that add the same to every hit; every other one is a chance or no damage.
+local PER_HIT = { ["Seal of Righteousness"] = true, ["Flametongue Weapon"] = true, ["Seal of Fury"] = true }
 -- German texts that lost the words the English still has: Wowhead's German Trueshot Aura keeps
 -- "attack power" only inside brackets that hold talent text, which the parser drops.
 local GERMAN_SILENT = { ["Trueshot Aura"] = true }
@@ -123,7 +152,7 @@ for _, row in ipairs(rows) do
   local gotEN = en and PW(en, "en") or nil
   if en then
     local want
-    if row.category == "imbue_seal" or row.category == "finisher_ap" or NEVER[name] then
+    if (row.category == "imbue_seal" and not PER_HIT[name]) or row.category == "finisher_ap" or NEVER[name] then
       want = nil
     else
       want = expectEN(name, en)
@@ -144,7 +173,7 @@ for _, row in ipairs(rows) do
   if fv then
     local gotFV = PW(fv, "en")
     local want
-    if row.category == "imbue_seal" or row.category == "finisher_ap" or NEVER[name] then
+    if (row.category == "imbue_seal" and not PER_HIT[name]) or row.category == "finisher_ap" or NEVER[name] then
       want = nil
     else
       want = expectEN(name, fv)

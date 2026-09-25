@@ -6,6 +6,7 @@ Classic English and German text per spell id. Nothing here is written by hand
 or translated: a text that cannot be fetched stays missing.
 
     python tools/build_corpus.py tests/fixtures/attack_power_weapon_damage.json <coverage.md>
+    python tools/build_corpus.py --all tests/fixtures/forever_spellbook_all.json
 
 Responses are cached in tools/corpus-cache (git-ignored), so a second run is
 offline; delete it to fetch again.
@@ -150,5 +151,35 @@ def main(out_path, coverage_path):
     print(Counter(c[0] for c in coverage if c[4] not in ("-", "ap_reduction")))
 
 
+def main_all(out_path):
+    """Every rank of every ability of all nine classes, whatever it does: the corpus the
+    language-agreement test runs every parser over."""
+    rows = []
+    for cls in CLASSES:
+        for ab in abilities(cls):
+            for rank in ab["ranks"]:
+                fv, cl = rank_text(rank, "forever"), rank_text(rank, "classic")
+                sid = (fv or cl or {}).get("spell_id")
+                if not sid:
+                    continue
+                en_name, en = description(fetch("https://nether.wowhead.com/tooltip/spell/%d?dataEnv=4&locale=0" % sid, "wh_%d_en.json" % sid))
+                de_name, de = description(fetch("https://nether.wowhead.com/tooltip/spell/%d?dataEnv=4&locale=3" % sid, "wh_%d_de.json" % sid))
+                rows.append({
+                    "id": sid, "namespace": "wowhead-classic",
+                    "source": "wowhead classic tooltip (dataEnv=4); forever text from foreverchanges.pro",
+                    "expected_name": ab["name"], "class": cls, "rank": rank.get("rank"),
+                    "forever_status": ab.get("status"),
+                    "forever_en_description": (fv or {}).get("text"),
+                    "en_name": en_name, "en_description": en,
+                    "de_name": de_name, "de_description": de,
+                })
+    pathlib.Path(out_path).write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
+    print("rows:", len(rows), " with German:", sum(1 for r in rows if r["de_description"]),
+          " with Classic English:", sum(1 for r in rows if r["en_description"]))
+
+
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    if sys.argv[1] == "--all":
+        main_all(sys.argv[2])
+    else:
+        main(sys.argv[1], sys.argv[2])

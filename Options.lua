@@ -383,10 +383,14 @@ local function buildSettings(area)
     { id = "top", label = L.OPT_POS_TOP },
   }, { tooltip = L.OPT_POSITION_TIP, enabledIf = numbersShown }))
   y = y + 8
-  place("estimate", checkbox(area, "estimate", L.OPT_ESTIMATE, { tooltip = L.OPT_ESTIMATE_TIP }))
+  -- On Retail the descriptions already hold the player's stats, so both estimates stand down.
+  local notRetail = function() return not ns.IsRetail() end
+  local retailNote = ns.IsRetail() and (" " .. L.OPT_RETAIL) or ""
+  place("estimate", checkbox(area, "estimate", L.OPT_ESTIMATE,
+    { tooltip = L.OPT_ESTIMATE_TIP .. retailNote, enabledIf = notRetail }))
   place("tooltip", checkbox(area, "tooltip", L.OPT_TOOLTIP, { tooltip = L.OPT_TOOLTIP_TIP }))
   place("reduction", checkbox(area, "reduction", L.OPT_REDUCTION, { tooltip = L.OPT_REDUCTION_TIP }))
-  place("weapon", checkbox(area, "weapon", L.OPT_WEAPON, { tooltip = L.OPT_WEAPON_TIP }))
+  place("weapon", checkbox(area, "weapon", L.OPT_WEAPON, { tooltip = L.OPT_WEAPON_TIP .. retailNote, enabledIf = notRetail }))
   y = y + 8
   place("interfaceLang", choice(area, "interfaceLang", L.OPT_LANGUAGE, {
     { id = "auto", label = L.LANG_AUTO },

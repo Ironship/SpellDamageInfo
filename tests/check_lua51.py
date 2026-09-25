@@ -27,7 +27,7 @@ for name in files:
 # the game may not. Run the tests under that locale and under plain "C": string.lower and the
 # %a/%d pattern classes follow it, and the parser must give the same answers either way.
 for ctype in ("process default", "C"):
-    for test in ("tests/test_parser.lua", "tests/test_weapon.lua", "tests/test_reduction.lua", "tests/test_estimate.lua", "tests/test_smoke.lua"):
+    for test in ("tests/test_parser.lua", "tests/test_weapon.lua", "tests/test_corpus.lua", "tests/test_reduction.lua", "tests/test_estimate.lua", "tests/test_smoke.lua"):
         rt = lua51.LuaRuntime()
         if ctype == "C":
             rt.execute('os.setlocale("C", "ctype")')

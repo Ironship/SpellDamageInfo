@@ -35,7 +35,7 @@ local KNOWN_EVENTS = {
   PLAYER_REGEN_ENABLED = true, SPELLS_CHANGED = true, CHARACTER_POINTS_CHANGED = true,
   SPELL_TEXT_UPDATE = true, UNIT_AURA = true, PET_BAR_UPDATE = true, UNIT_PET = true,
   UNIT_ATTACK_POWER = true, UNIT_RANGED_ATTACK_POWER = true, UNIT_DAMAGE = true, UNIT_ATTACK_SPEED = true,
-  UNIT_RANGEDDAMAGE = true,
+  UNIT_RANGEDDAMAGE = true, UNIT_MAXHEALTH = true, UNIT_SPELLCAST_SUCCEEDED = true,
   -- PLAYER_TALENT_UPDATE and PET_BAR_UPDATE_USABLE are left out on purpose: registering an
   -- event the client does not know must not break loading
 }
@@ -258,7 +258,40 @@ function UnitDamage(unit) if unit == "player" then return weapon.lo, weapon.hi e
 function UnitAttackSpeed(unit) if unit == "player" then return weapon.speed end end
 function UnitRangedDamage(unit) if unit == "player" then return weapon.rSpeed, weapon.rLo, weapon.rHi end end
 function GetBuildInfo() return "1.60.1", "70009", "Sep 23 2026", 16001 end
-local spellNames = { [5138] = "Mana entziehen" }
+local spellNames = { [5138] = "Mana entziehen", [20293] = "Siegel der Rechtschaffenheit", [20920] = "Siegel des Befehls" }
+
+-- The rest of the German texts this test uses, from the whole-spellbook fixture (Wowhead Classic
+-- German, every rank of every class): two seals and Judgement, a shield, Lay on Hands, two totems,
+-- Execute, Eviscerate, Bloodthirst, Hammer of the Righteous and the strength and agility totems.
+local allRows = json.decode(T.readFile("tests/fixtures/forever_spellbook_all.json"))
+local function germanText(id)
+  for _, r in ipairs(allRows) do if r.id == id and r.de_description then return r.de_description end end
+  error("the whole-spellbook fixture has no German text for spell " .. id)
+end
+for _, id in ipairs({ 20293, 20920, 20271, 10901, 10310, 10438, 10463, 20662, 31016, 23894, 407632, 25361, 25359 }) do
+  descriptions[id] = germanText(id)
+end
+
+-- Attack power 1000 + 200 - 50, a warrior with 3000 health in no form.
+function UnitAttackPower(unit) if unit == "player" then return 1000, 200, -50 end end
+function UnitClass(unit) if unit == "player" then return "Krieger", "WARRIOR", 1 end end
+function UnitHealthMax(unit) if unit == "player" then return 3000 end end
+function GetShapeshiftFormID() return nil end
+-- The player's buffs, by spell id; SECRET stands for a client that hides them.
+local playerBuffs = {}
+C_UnitAuras = { GetBuffDataByIndex = function(unit, i)
+  if playerBuffs == SECRET then return SECRET end
+  local id = playerBuffs[i]
+  if id then return { spellId = id } end
+end }
+local clock = 1000
+function GetTime() return clock end
+-- The spellbook, for /sdi dump: three entries, the last one's text not loaded yet.
+C_SpellBook = {
+  GetNumSpellBookSkillLines = function() return 1 end,
+  GetSpellBookSkillLineInfo = function(i) if i == 1 then return { itemIndexOffset = 0, numSpellBookItems = 3 } end end,
+  GetSpellBookItemInfo = function(i) local ids = { 172, 20293, 999 }; if ids[i] then return { spellID = ids[i] } end end,
+}
 
 local castTimes = { [172] = 2000, [686] = 3000, [348] = 2000, [5138] = 0, [689] = 0, [755] = 0, [999] = 1500,
   [702] = 0, [24579] = 0, [90001] = 0, [3110] = 2000, [7799] = 2000 }
@@ -279,6 +312,10 @@ local actions = {
   [9] = { "spell", 702 }, [10] = { "spell", 24579 }, [11] = { "spell", 90001 },
   [61] = { "spell", 172 }, [73] = { "spell", 686 }, [130] = { "spell", SECRET },
   [62] = { "spell", 25286 }, [63] = { "spell", 16316 }, [64] = { "spell", 9850 }, [65] = { "spell", 20904 },
+  [66] = { "spell", 20293 }, [67] = { "spell", 20920 }, [68] = { "spell", 20271 }, [69] = { "spell", 10901 },
+  [70] = { "spell", 10310 }, [71] = { "spell", 10438 }, [72] = { "spell", 10463 }, [74] = { "spell", 20662 },
+  [75] = { "spell", 31016 }, [76] = { "spell", 23894 }, [77] = { "spell", 407632 }, [78] = { "spell", 25361 },
+  [79] = { "spell", 25359 },
 }
 function GetActionInfo(slot) local a = actions[slot]; if a then return a[1], a[2] end end
 local counts = { [2] = 5, [3] = SECRET } -- a reagent count on Shadow Bolt's slot; a secret one on Immolate's
@@ -663,6 +700,92 @@ T.eq(#SpellDamageInfoDB.misses, 200, "the list stops at 200")
 SlashCmdList.SPELLDAMAGEINFO("misses clear")
 for id = 800001, 800300 do ns._parsedCache[id] = nil end
 
+-- Seals and Judgement. The seal's own button: what every hit gains; its Judgement's number is not
+-- put on it. Judgement's button: the active seal's Judgement, nothing without a seal.
+local function tipFor(id) tip.lines = {}; postCalls[1].fn(tip, { id = id, type = 1 }); return tip.lines end
+local function hasLine(lines, text) for _, l in ipairs(lines) do if l == text then return true end end return false end
+T.eq(shown(MultiBarBottomLeftButton6), "+49", "Siegel der Rechtschaffenheit: 22-75 on every hit, 48.5 on average")
+T.check(weaponColoured(MultiBarBottomLeftButton6), "a seal's gain per hit is blue")
+T.check(hasLine(tipFor(20293), "Richturteil: 170-187 Schaden"), "the seal's tooltip says what its Judgement does")
+T.eq(shown(MultiBarBottomLeftButton7), nil, "Siegel des Befehls: a chance per hit is no number, and its Judgement is not put here")
+T.eq(shown(MultiBarBottomLeftButton8), nil, "Richturteil without a seal: nothing")
+T.check(hasLine(tipFor(20271), "Kein Siegel aktiv: der Schaden des Richturteils kommt vom Siegel."), "and the tooltip says why")
+playerBuffs = { 999999, 20293 }
+fire("UNIT_AURA", "player")
+flush()
+T.eq(shown(MultiBarBottomLeftButton8), "179", "Richturteil under Siegel der Rechtschaffenheit: 170-187")
+local jt = tipFor(20271)
+T.check(hasLine(jt, "Schaden: 170-187") and hasLine(jt, "Aus Siegel der Rechtschaffenheit"), "Judgement's tooltip names the seal")
+playerBuffs = { 20920 }
+fire("UNIT_AURA", "player")
+flush()
+T.eq(shown(MultiBarBottomLeftButton8), "178", "Richturteil under Siegel des Befehls: 169-186, not the stunned 339-373")
+-- a client that hides the buffs: the last seal cast stands in for its 30 seconds
+playerBuffs = SECRET
+fire("UNIT_AURA", "player")
+flush()
+T.eq(shown(MultiBarBottomLeftButton8), nil, "secret buffs and no seal cast: nothing")
+fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-GUID", 20293)
+flush()
+T.eq(shown(MultiBarBottomLeftButton8), "179", "secret buffs: the seal just cast")
+clock = clock + 31
+fire("UNIT_AURA", "player")
+flush()
+T.eq(shown(MultiBarBottomLeftButton8), nil, "and not after it would have run out")
+playerBuffs = {}
+fire("UNIT_AURA", "player")
+flush()
+
+-- A shield, Lay on Hands, two totems, Execute, a finisher
+T.eq(shown(MultiBarBottomLeftButton9), "942", "Machtwort: Schild absorbs 942")
+T.check(label(MultiBarBottomLeftButton9).color[1] == ns.Format.ABSORB_COLOR[1]
+  and label(MultiBarBottomLeftButton9).color[3] == ns.Format.ABSORB_COLOR[3], "a shield has its own colour")
+T.eq(tipFor(10901)[1], "Absorbiert: 942", "shield tooltip")
+T.eq(shown(MultiBarBottomLeftButton10), "3000", "Handauflegung heals for the paladin's maximum health, not the 550 mana")
+T.eq(tipFor(10310)[1], "Heilung: 3.000 (Eure maximale Gesundheit)", "Lay on Hands tooltip")
+T.eq(shown(MultiBarBottomLeftButton11), "47", "Totem der Verbrennung: 40-54 per attack")
+T.eq(tipFor(10438)[1], "Schaden: 40-54 pro Angriff", "totem attack tooltip")
+T.eq(shown(MultiBarBottomLeftButton12), "14", "Totem des heilenden Flusses: 14 per pulse")
+T.eq(tipFor(10463)[1], "Heilung: 14 alle 2 Sek.", "totem pulse tooltip")
+T.eq(shown(MultiBarBottomRightButton2), "600", "Hinrichten: 600")
+T.check(hasLine(tipFor(20662), "Plus 15 für jeden zusätzlichen Wutpunkt"), "and what each extra rage point adds")
+T.eq(shown(MultiBarBottomRightButton3), "958", "Ausweiden at 5 combo points: 904-1012")
+T.check(hasLine(tipFor(31016), "Bei 5 Combopunkten, ohne Angriffskraft; 1-4: 224-332 / 394-502 / 564-672 / 734-842"),
+  "the finisher's tooltip gives the other points")
+
+-- From attack power and the weapon's damage per second, and a strength totem
+T.eq(shown(MultiBarBottomRightButton4), "518", "Blutdurst: 45% of 1150 attack power")
+T.eq(tipFor(23894)[1], "Möglicher Schaden: etwa 518 (45 % der Angriffskraft 1.150, geschätzt)", "Bloodthirst tooltip")
+T.eq(shown(MultiBarBottomRightButton5), "185", "Hammer der Rechtschaffenen: 4 x (120 / 2.6)")
+T.eq(shown(MultiBarBottomRightButton6), "+29", "Totem der Erdstärke for a warrior: 77 x 2 attack power on a 2.6 sec weapon")
+T.eq(tipFor(25361)[1], "Stärke +77 (154 Angriffskraft): etwa +29 Schaden pro Treffer (Waffe 2,6 Sek.), geschätzt",
+  "strength totem tooltip")
+T.eq(shown(MultiBarBottomRightButton7), nil, "Totem der luftgleichen Anmut gives a warrior no attack power")
+
+-- Retail's descriptions already hold the player's stats: no estimate, no weapon arithmetic
+local buildInfo = GetBuildInfo
+GetBuildInfo = function() return "12.1.0", "69814", "Sep 1 2026", 120100 end
+-- a different client: the texts are read again (a real client never changes in a session)
+fire("SPELLS_CHANGED")
+flush()
+T.eq(shown(ActionButton1), "822", "Retail: Corruption without the spell power estimate")
+T.eq(shown(MultiBarBottomLeftButton2), nil, "Retail: no weapon arithmetic on Heroic Strike")
+GetBuildInfo = buildInfo
+fire("SPELLS_CHANGED")
+flush()
+T.eq(shown(ActionButton1), "922", "back on Forever: the estimate again")
+
+-- /sdi dump
+local dumpBefore = #messages
+SlashCmdList.SPELLDAMAGEINFO("dump")
+local dump = SpellDamageInfoDB.dump
+T.check(dump and #dump.spells == 2 and dump.missing == 1, "/sdi dump writes the two loaded spells and counts the third")
+T.check(dump and dump.spells[2].id == 20293 and dump.spells[2].text == descriptions[20293]
+  and dump.spells[2].reads:find("weapon", 1, true) and dump.spells[2].reads:find("seal", 1, true),
+  "each with its text and what the addon reads from it")
+T.check(dump and dump.lang == "de" and dump.build == "1.60.1.70009" and dump.class == "WARRIOR", "and the client it came from")
+T.check(#messages == dumpBefore + 1 and messages[#messages]:find("2 Zauber", 1, true), "/sdi dump says how many")
+
 -- Spell power turns secret in combat: keep the last readable value
 spellPower[6] = SECRET
 ok, err = pcall(function() fire("UNIT_AURA", "player"); flush() end)
@@ -730,7 +853,7 @@ SlashCmdList.SPELLDAMAGEINFO("button sideways")
 T.check(#messages == before + 1 and messages[#messages]:find("Unbekannte Option"), "bad option answered in German")
 before = #messages
 SlashCmdList.SPELLDAMAGEINFO("help")
-T.check(#messages == before + 13, "/sdi help prints thirteen lines")
+T.check(#messages == before + 14, "/sdi help prints fourteen lines")
 T.check(messages[before + 2] and messages[before + 2]:find("^|cff66ccffSpellDamageInfo|r: /sdi %- "), "help names bare /sdi first")
 
 -- Reduction, size and position settings

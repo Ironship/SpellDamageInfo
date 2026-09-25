@@ -35,6 +35,7 @@ Locales.en = {
     "/sdi lang auto|en|de - addon interface language",
     "/sdi weapon [on|off] - potential damage of weapon abilities and attack power buffs (blue)",
     "/sdi misses [clear] - spells on your bars that give no number",
+    "/sdi dump - write your spellbook's descriptions to the saved variables, for testing",
     "/sdi status - show the settings",
   },
   STATUS = "estimate: %s, button: %s, tooltip: %s, reduction: %s, weapon: %s, size: %d%%, position: %s, language: %s",
@@ -51,6 +52,27 @@ Locales.en = {
   MISSES_NONE = "No spells without a number recorded.",
   MISSES_HEAD = "%d spells on your bars give no number:",
   MISSES_CLEARED = "List of spells without a number cleared.",
+  PERHIT_LINE = "Each hit: +%s damage, about +%s on average",
+  STAT_LINE = "%s +%s (%s attack power): about +%s damage per hit (%s %s sec), estimate",
+  STAT_STR = "Strength",
+  STAT_AGI = "Agility",
+  WEAPON_AP = "%s%% of attack power %s",
+  WEAPON_DPS = "%s x weapon damage per second %s",
+  WEAPON_BOTH = "%s%% of both weapon hits %s and %s, plus %s with each",
+  ABSORB_LINE = "Absorbs: %s",
+  PER_ATTACK = " per attack",
+  PER_STRIKE = " to whatever strikes the party",
+  PER_BLOCK = " per block",
+  EVERY = " every %s sec",
+  HITS = " in %d hits",
+  HEAL_MAX = " (your maximum health)",
+  PER_RAGE = "Plus %s for each extra point of rage",
+  FINISHER_NOTE = "At %d combo points, attack power not included; 1-%d: %s",
+  FROM_SEAL = "From %s",
+  JUDGEMENT_LINE = "Judgement: %s damage",
+  NO_SEAL = "No seal active: Judgement's damage comes from the seal.",
+  DUMP_DONE = "%d spells written to the saved variables (%d not loaded yet: /sdi dump again in a moment). They are saved at logout or /reload.",
+  OPT_RETAIL = "Retail's descriptions already include your stats.",
   LANG_AUTO = "Auto (game)",
   LANG_EN = "English",
   LANG_DE = "Deutsch",
@@ -120,6 +142,7 @@ Locales.de = {
     "/sdi lang auto|en|de - Sprache der Addon-Oberfl\195\164che",
     "/sdi weapon [on|off] - m\195\182glicher Schaden von Waffenf\195\164higkeiten und Angriffskraft-Buffs (blau)",
     "/sdi misses [clear] - Zauber auf Euren Leisten, die keine Zahl ergeben",
+    "/sdi dump - die Beschreibungen Eures Zauberbuchs zum Testen in die gespeicherten Variablen schreiben",
     "/sdi status - Einstellungen anzeigen",
   },
   STATUS = "Sch\195\164tzung: %s, Tasten: %s, Tooltip: %s, Schw\195\164chung: %s, Waffe: %s, Gr\195\182\195\159e: %d%%, Position: %s, Sprache: %s",
@@ -136,6 +159,27 @@ Locales.de = {
   MISSES_NONE = "Keine Zauber ohne Zahl erfasst.",
   MISSES_HEAD = "%d Zauber auf Euren Leisten ergeben keine Zahl:",
   MISSES_CLEARED = "Liste der Zauber ohne Zahl geleert.",
+  PERHIT_LINE = "Jeder Treffer: +%s Schaden, im Schnitt etwa +%s",
+  STAT_LINE = "%s +%s (%s Angriffskraft): etwa +%s Schaden pro Treffer (%s %s Sek.), gesch\195\164tzt",
+  STAT_STR = "St\195\164rke",
+  STAT_AGI = "Beweglichkeit",
+  WEAPON_AP = "%s %% der Angriffskraft %s",
+  WEAPON_DPS = "%s x Waffenschaden pro Sekunde %s",
+  WEAPON_BOTH = "%s %% beider Waffentreffer %s und %s, plus je %s",
+  ABSORB_LINE = "Absorbiert: %s",
+  PER_ATTACK = " pro Angriff",
+  PER_STRIKE = " f\195\188r jeden, der die Gruppe trifft",
+  PER_BLOCK = " pro Block",
+  EVERY = " alle %s Sek.",
+  HITS = " in %d Treffern",
+  HEAL_MAX = " (Eure maximale Gesundheit)",
+  PER_RAGE = "Plus %s f\195\188r jeden zus\195\164tzlichen Wutpunkt",
+  FINISHER_NOTE = "Bei %d Combopunkten, ohne Angriffskraft; 1-%d: %s",
+  FROM_SEAL = "Aus %s",
+  JUDGEMENT_LINE = "Richturteil: %s Schaden",
+  NO_SEAL = "Kein Siegel aktiv: der Schaden des Richturteils kommt vom Siegel.",
+  DUMP_DONE = "%d Zauber in die gespeicherten Variablen geschrieben (%d noch nicht geladen: gleich noch einmal /sdi dump). Gespeichert wird beim Ausloggen oder mit /reload.",
+  OPT_RETAIL = "Die Beschreibungen in Retail enthalten Eure Werte bereits.",
   LANG_AUTO = "Auto (Spiel)",
   LANG_EN = "English",
   LANG_DE = "Deutsch",
@@ -288,6 +332,10 @@ local DAMAGE_COLOR = { 1, 0.82, 0.3 }
 local WEAPON_COLOR = { 0.45, 0.85, 1 }
 local HEAL_COLOR = { 0.4, 1, 0.4 }
 local REDUCTION_COLOR = { 1, 0.25, 0.25 }
+-- What a shield absorbs is neither damage nor healing, so it takes neither of their colours.
+local ABSORB_COLOR = { 0.8, 0.7, 1 }
+-- Notes under a number.
+local NOTE_COLOR = { 0.7, 0.7, 0.7 }
 
 -- A reduction from Parser.ParseReduction as button text: "-3", "-146", "-10%", "-7.5%".
 -- L (optional) gives the decimal mark.
@@ -308,27 +356,52 @@ function Format.ReductionLine(r, L)
   return { string.format(template, amount), REDUCTION_COLOR[1], REDUCTION_COLOR[2], REDUCTION_COLOR[3] }
 end
 
--- Tooltip lines for a view from Estimate.Apply: a list of { text, r, g, b }.
 -- The tooltip line for a weapon view from ns.WeaponView: { text, r, g, b }.
 --   "Potential damage: about 412 (225% of weapon hit 103 + 180, estimate)"
 --   "Attack power +554: about +103 damage per hit (weapon 2.6 sec), estimate"
+--   "Each hit: +22-75 damage, about +49 on average"
 function Format.WeaponLine(w, L)
   local c = WEAPON_COLOR
+  if w.perhit then
+    return { string.format(L.PERHIT_LINE, rangeText(w, L), Format.Thousands(w.gain, L)), c[1], c[2], c[3] }
+  end
+  if w.stat then
+    local text = string.format(L.STAT_LINE, (w.stat == "str") and L.STAT_STR or L.STAT_AGI, Format.Thousands(w.amount, L),
+      Format.Thousands(w.amount * w.factor, L), Format.Thousands(w.gain, L), L.AP_WEAPON, Format.Seconds(w.speed, L))
+    return { text, c[1], c[2], c[3] }
+  end
   if w.gain then
     local text = string.format(L.AP_LINE, Format.Thousands(w.amount, L), w.plusAgility and L.AP_PLUS_AGILITY or "",
       Format.Thousands(w.gain, L), w.ranged and L.AP_RANGED or L.AP_WEAPON, Format.Seconds(w.speed, L))
     return { text, c[1], c[2], c[3] }
   end
-  local body = string.format(w.ranged and L.WEAPON_HIT_RANGED or L.WEAPON_HIT, Format.Thousands(w.hit, L))
-  if w.pct ~= 100 then body = string.format(L.WEAPON_PCT, Format.Thousands(w.pct, L), body) end
-  if w.bonusMax then
-    body = string.format(L.WEAPON_PLUS, body, Format.Thousands(w.bonus, L) .. "-" .. Format.Thousands(w.bonusMax, L))
-  elseif w.bonus > 0 then
-    body = string.format(L.WEAPON_PLUS, body, Format.Thousands(w.bonus, L))
+  local body
+  if w.appct then
+    body = string.format(L.WEAPON_AP, Format.Thousands(w.pct, L), Format.Thousands(w.ap, L))
+    if w.bonus > 0 then body = string.format(L.WEAPON_PLUS, body, Format.Thousands(w.bonus, L)) end
+  elseif w.dps then
+    body = string.format(L.WEAPON_DPS, Format.Thousands(w.times, L), Format.Seconds(w.dps, L))
+  elseif w.both then
+    body = string.format(L.WEAPON_BOTH, Format.Thousands(w.pct, L), Format.Thousands(w.hit, L),
+      w.off and Format.Thousands(w.off, L) or "-", Format.Thousands(w.bonus, L))
+  else
+    body = string.format(w.ranged and L.WEAPON_HIT_RANGED or L.WEAPON_HIT, Format.Thousands(w.hit, L))
+    if w.pct ~= 100 then body = string.format(L.WEAPON_PCT, Format.Thousands(w.pct, L), body) end
+    if w.bonusMax then
+      body = string.format(L.WEAPON_PLUS, body, Format.Thousands(w.bonus, L) .. "-" .. Format.Thousands(w.bonusMax, L))
+    elseif w.bonus > 0 then
+      body = string.format(L.WEAPON_PLUS, body, Format.Thousands(w.bonus, L))
+    end
   end
   return { string.format(L.WEAPON_LINE, Format.Thousands(w.value, L), body), c[1], c[2], c[3] }
 end
 
+-- A seal's Judgement, for the seal's own tooltip: { text, r, g, b }.
+function Format.JudgementLine(j, L)
+  return { string.format(L.JUDGEMENT_LINE, rangeText(j.direct, L)), DAMAGE_COLOR[1], DAMAGE_COLOR[2], DAMAGE_COLOR[3] }
+end
+
+-- Tooltip lines for a view: a list of { text, r, g, b }.
 function Format.TooltipLines(view, L)
   local lines = {}
   if not view then return lines end
@@ -336,8 +409,21 @@ function Format.TooltipLines(view, L)
     lines[1] = Format.WeaponLine(view.weapon, L)
     return lines
   end
+  if view.absorb then
+    lines[1] = { string.format(L.ABSORB_LINE, Format.Thousands(view.absorb, L)), ABSORB_COLOR[1], ABSORB_COLOR[2], ABSORB_COLOR[3] }
+    return lines
+  end
+  -- what the number is for, after the first figure: per totem attack, per block, per pulse, in
+  -- how many hits, or the paladin's own health
+  local note = ""
+  if view.perAttack then note = L.PER_ATTACK
+  elseif view.perBlock then note = L.PER_BLOCK
+  elseif view.perStrike then note = L.PER_STRIKE
+  elseif view.every then note = string.format(L.EVERY, Format.Seconds(view.every, L))
+  elseif view.hits then note = string.format(L.HITS, view.hits)
+  elseif view.healMax then note = L.HEAL_MAX end
   local function add(label, body, added, color)
-    lines[#lines + 1] = { label .. ": " .. body .. suffix(added, L), color[1], color[2], color[3] }
+    lines[#lines + 1] = { label .. ": " .. body .. note .. suffix(added, L), color[1], color[2], color[3] }
   end
   local function periodic(p)
     return string.format(L.OVER, Format.Thousands(p.total, L), Format.Seconds(p.duration, L))
@@ -346,6 +432,22 @@ function Format.TooltipLines(view, L)
   if view.dot then add(L.DOT, periodic(view.dot), view.dot.added, DAMAGE_COLOR) end
   if view.heal then add(L.HEAL, rangeText(view.heal, L), view.heal.added, HEAL_COLOR) end
   if view.hot then add(L.HOT, periodic(view.hot), view.hot.added, HEAL_COLOR) end
+  if view.perRage then
+    lines[#lines + 1] = { string.format(L.PER_RAGE, Format.Thousands(view.perRage, L)), DAMAGE_COLOR[1], DAMAGE_COLOR[2], DAMAGE_COLOR[3] }
+  end
+  local f = view.finisher
+  if f then
+    local others = {}
+    for i = 1, f.top - 1 do
+      local p = f.points[i]
+      if p then others[#others + 1] = p.total and Format.Thousands(p.total, L) or rangeText(p, L) end
+    end
+    lines[#lines + 1] = { string.format(L.FINISHER_NOTE, f.top, f.top - 1, table.concat(others, " / ")),
+      NOTE_COLOR[1], NOTE_COLOR[2], NOTE_COLOR[3] }
+  end
+  if view.fromSeal then
+    lines[#lines + 1] = { string.format(L.FROM_SEAL, view.fromSeal), NOTE_COLOR[1], NOTE_COLOR[2], NOTE_COLOR[3] }
+  end
   return lines
 end
 
@@ -353,3 +455,5 @@ Format.DAMAGE_COLOR = DAMAGE_COLOR
 Format.HEAL_COLOR = HEAL_COLOR
 Format.REDUCTION_COLOR = REDUCTION_COLOR
 Format.WEAPON_COLOR = WEAPON_COLOR
+Format.ABSORB_COLOR = ABSORB_COLOR
+Format.NOTE_COLOR = NOTE_COLOR
