@@ -69,7 +69,7 @@ Locales.en = {
   OPT_REDUCTION_TIP = "Shows in red, on the button and in the tooltip, by how much a debuff such as Curse of Weakness lowers the enemy's damage or attack power.",
   OPT_RESET = "Reset to defaults",
   OPT_RESET_DONE = "Settings reset to defaults.",
-  OPT_LANG_CHANGED = "Addon interface language changed. Type /reload to update window labels and tooltips.",
+  OPT_LANG_CHANGED = "Addon interface language changed. Type /reload to update the settings window's labels.",
   OPT_OPEN = "Open SpellDamageInfo settings",
   OPT_PANEL_TEXT = "The settings have their own window with a live preview. You can also type /sdi.",
 }
@@ -109,7 +109,7 @@ Locales.de = {
   LANG_DE = "Deutsch",
   -- options window
   OPT_LANGUAGE = "Sprache",
-  OPT_LANGUAGE_TIP = "Sprache der Addon-Oberfl\195\164che: Auto folgt der Spielsprache, oder w\195\164hlen Sie English oder Deutsch.",
+  OPT_LANGUAGE_TIP = "Sprache der Addon-Oberfl\195\164che: Auto folgt der Spielsprache, oder w\195\164hlt English oder Deutsch.",
   OPT_PREVIEW = "Vorschau",
   OPT_PREVIEW_HINT = "Beispielzauber mit 50 Zaubermacht, gezeichnet vom selben Code wie die Zahlen auf Euren Aktionsleisten.",
   OPT_PREVIEW_OFF = "Keine Zahlen auf den Tasten.",
@@ -136,7 +136,7 @@ Locales.de = {
   OPT_REDUCTION_TIP = "Zeigt in Rot, auf der Taste und im Tooltip, um wie viel ein Schw\195\164chungszauber wie Fluch der Schw\195\164che den Schaden oder die Angriffskraft des Gegners senkt.",
   OPT_RESET = "Standard wiederherstellen",
   OPT_RESET_DONE = "Einstellungen auf Standard zur\195\188ckgesetzt.",
-  OPT_LANG_CHANGED = "Sprache der Addon-Oberfl\195\164che ge\195\164ndert. Tippen Sie /reload, um die Fensterbezeichnungen und Tooltips zu aktualisieren.",
+  OPT_LANG_CHANGED = "Sprache der Addon-Oberfl\195\164che ge\195\164ndert. Gebt /reload ein, um die Beschriftungen des Einstellungsfensters zu aktualisieren.",
   OPT_OPEN = "SpellDamageInfo-Einstellungen \195\182ffnen",
   OPT_PANEL_TEXT = "Die Einstellungen haben ein eigenes Fenster mit Vorschau. Ihr k\195\182nnt auch /sdi eingeben.",
 }
@@ -148,13 +148,14 @@ ns.InterfaceLang = function() return interfaceLang end
 
 -- Description language: what the parser reads. Decided at login from textLocale CVar if it is
 -- "deDE", else from GetLocale(), and cannot be changed (the player would only see spell descriptions
--- in one language anyway). Used to call Parser.Parse(text, ns.lang).
+-- in one language anyway). Core.lua passes it to Parser.Parse and Parser.ParseReduction.
 local descriptionLang = nil
 ns.DescriptionLang = function() return descriptionLang end
 
 -- Locale table that code captured at file load uses (e.g. "local L = ns.L" in Core.lua).
 -- When the interface language changes, this table's contents are replaced to apply the switch
--- live where code reads L.KEY (not helpful for "local L = ..." at load time; those must rebuild).
+-- live wherever code reads L.KEY when it runs, "local L = ns.L" included, since that is this
+-- same table. Only text already set into a widget waits for the window to be rebuilt (/reload).
 local L = {}
 ns.L = L
 
