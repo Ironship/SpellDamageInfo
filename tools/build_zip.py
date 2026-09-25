@@ -14,7 +14,7 @@ toc_path = root / "SpellDamageInfo.toc"
 toc = toc_path.read_text(encoding="utf-8")
 version = re.search(r"^## Version:\s*(\S+)", toc, re.M).group(1)
 files = ["SpellDamageInfo.toc"] + [l.strip() for l in toc.splitlines() if l.strip() and not l.startswith("##")]
-# the icon the .toc names in "## IconTexture" (tools/make_icon.py draws it)
+# the icon the .toc names in "## IconTexture" (tools/make_icon.py exports it)
 files.append("icon.tga")
 # the licence, which carries the MIT notice of DoesItDie that Options.lua is adapted from
 files.append("LICENSE")
