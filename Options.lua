@@ -101,7 +101,12 @@ local function changed()
 end
 
 local function set(key, value)
-  ns.SetSetting(key, value)
+  if key == "interfaceLang" then
+    ns.SetSetting(key, value)
+    ns.SetInterfaceAndRefreshL(value)
+  else
+    ns.SetSetting(key, value)
+  end
   changed()
 end
 
@@ -365,6 +370,12 @@ local function buildSettings(area)
   place("estimate", checkbox(area, "estimate", L.OPT_ESTIMATE, { tooltip = L.OPT_ESTIMATE_TIP }))
   place("tooltip", checkbox(area, "tooltip", L.OPT_TOOLTIP, { tooltip = L.OPT_TOOLTIP_TIP }))
   place("reduction", checkbox(area, "reduction", L.OPT_REDUCTION, { tooltip = L.OPT_REDUCTION_TIP }))
+  y = y + 8
+  place("interfaceLang", choice(area, "interfaceLang", L.OPT_LANGUAGE, {
+    { id = "auto", label = L.LANG_AUTO },
+    { id = "en", label = L.LANG_EN },
+    { id = "de", label = L.LANG_DE },
+  }, { tooltip = L.OPT_LANGUAGE_TIP }))
   return rows
 end
 

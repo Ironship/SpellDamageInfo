@@ -14,6 +14,7 @@ local DEFAULTS = {
   reduction = true,     -- show by how much a debuff lowers the enemy's damage, in red
   size = 100,           -- button number size in percent of the default (SIZE_MIN..SIZE_MAX)
   position = "bottom",  -- where the number sits on the button: bottom, center or top
+  interfaceLang = "auto",  -- interface language: "auto", "en", "de"
 }
 local BUTTON_MODES = { total = true, direct = true, off = true }
 local POSITIONS = { bottom = true, center = true, top = true }
@@ -70,8 +71,8 @@ local function getEntry(spellID)
     return nil
   end
   entry = {
-    parsed = Parser.Parse(text, ns.lang) or false,
-    reduction = Parser.ParseReduction(text, ns.lang) or false,
+    parsed = Parser.Parse(text, ns.DescriptionLang()) or false,
+    reduction = Parser.ParseReduction(text, ns.DescriptionLang()) or false,
   }
   parsedCache[spellID] = entry
   return entry
@@ -536,6 +537,7 @@ local function validSetting(key, value)
   if key == "position" then return POSITIONS[value] == true end
   if key == "size" then return type(value) == "number" and value >= SIZE_MIN and value <= SIZE_MAX end
   if key == "estimate" or key == "tooltip" or key == "reduction" then return type(value) == "boolean" end
+  if key == "interfaceLang" then return value == "auto" or value == "en" or value == "de" end
   return false
 end
 
@@ -560,6 +562,12 @@ end
 function ns.ResetSettings()
   for k, v in pairs(DEFAULTS) do db[k] = v end
   requestUpdate()
+end
+
+local function langLabel(lang)
+  if lang == "en" then return L.LANG_EN end
+  if lang == "de" then return L.LANG_DE end
+  return L.LANG_AUTO
 end
 
 local function slash(msg)
@@ -587,12 +595,16 @@ local function slash(msg)
   elseif cmd == "position" then
     if not POSITIONS[arg] then say(L.BAD_ARG) return end
     db.position = arg
+  elseif cmd == "lang" then
+    if not (arg == "auto" or arg == "en" or arg == "de") then say(L.BAD_ARG) return end
+    db.interfaceLang = arg
+    ns.SetInterfaceAndRefreshL(arg)
   elseif cmd ~= "status" then
     say(L.BAD_ARG)
     return
   end
   say(string.format(L.STATUS, onOff(db.estimate), db.button, onOff(db.tooltip), onOff(db.reduction), db.size,
-    db.position))
+    db.position, langLabel(db.interfaceLang)))
   requestUpdate()
   settingsChanged()
 end
@@ -611,6 +623,9 @@ local function loadSettings()
   if type(db.tooltip) ~= "boolean" then db.tooltip = DEFAULTS.tooltip end
   if type(db.reduction) ~= "boolean" then db.reduction = DEFAULTS.reduction end
   if not POSITIONS[db.position] then db.position = DEFAULTS.position end
+  if db.interfaceLang ~= "auto" and db.interfaceLang ~= "en" and db.interfaceLang ~= "de" then
+    db.interfaceLang = DEFAULTS.interfaceLang
+  end
   if type(db.size) ~= "number" or db.size ~= db.size then
     db.size = DEFAULTS.size
   elseif db.size < SIZE_MIN then
@@ -644,7 +659,11 @@ for _, e in ipairs(RESET_EVENTS) do isReset[e] = true end
 
 frame:SetScript("OnEvent", function(_, event, arg1)
   if event == "ADDON_LOADED" then
-    if arg1 == ADDON then loadSettings() end
+    if arg1 == ADDON then
+      ns.DecideLangsAtLoad()
+      loadSettings()
+      ns.InitInterfaceL(db.interfaceLang)
+    end
   elseif event == "PLAYER_LOGIN" then
     collectButtons()
     collectPetButtons()

@@ -32,11 +32,17 @@ Locales.en = {
     "/sdi reduction [on|off] - show by how much a debuff lowers the enemy's damage (red)",
     "/sdi size 50-200 - size of the button numbers in percent (100 = default)",
     "/sdi position bottom|center|top - where the number sits on the button",
+    "/sdi lang auto|en|de - addon interface language",
     "/sdi status - show the settings",
   },
-  STATUS = "estimate: %s, button: %s, tooltip: %s, reduction: %s, size: %d%%, position: %s",
+  STATUS = "estimate: %s, button: %s, tooltip: %s, reduction: %s, size: %d%%, position: %s, language: %s",
   BAD_ARG = "Unknown option. Type /sdi help for the commands.",
+  LANG_AUTO = "Auto (game)",
+  LANG_EN = "English",
+  LANG_DE = "Deutsch",
   -- options window
+  OPT_LANGUAGE = "Language",
+  OPT_LANGUAGE_TIP = "Addon interface language: Auto follows the game language, or choose English or German.",
   OPT_PREVIEW = "Live preview",
   OPT_PREVIEW_HINT = "Sample spells with 50 spell power, drawn by the same code as the numbers on your action bars.",
   OPT_PREVIEW_OFF = "No numbers on the buttons.",
@@ -92,11 +98,17 @@ Locales.de = {
     "/sdi reduction [on|off] - zeigen, um wie viel ein Schw\195\164chungszauber den Schaden des Gegners senkt (rot)",
     "/sdi size 50-200 - Gr\195\182\195\159e der Zahlen auf den Tasten in Prozent (100 = Standard)",
     "/sdi position bottom|center|top - wo die Zahl auf der Taste steht",
+    "/sdi lang auto|en|de - Sprache der Addon-Oberfl\195\164che",
     "/sdi status - Einstellungen anzeigen",
   },
-  STATUS = "Sch\195\164tzung: %s, Tasten: %s, Tooltip: %s, Schw\195\164chung: %s, Gr\195\182\195\159e: %d%%, Position: %s",
+  STATUS = "Sch\195\164tzung: %s, Tasten: %s, Tooltip: %s, Schw\195\164chung: %s, Gr\195\182\195\159e: %d%%, Position: %s, Sprache: %s",
   BAD_ARG = "Unbekannte Option. /sdi help zeigt die Befehle.",
+  LANG_AUTO = "Auto (Spiel)",
+  LANG_EN = "English",
+  LANG_DE = "Deutsch",
   -- options window
+  OPT_LANGUAGE = "Sprache",
+  OPT_LANGUAGE_TIP = "Sprache der Addon-Oberfl\195\164che: Auto folgt der Spielsprache, oder w\195\164hlen Sie English oder Deutsch.",
   OPT_PREVIEW = "Vorschau",
   OPT_PREVIEW_HINT = "Beispielzauber mit 50 Zaubermacht, gezeichnet vom selben Code wie die Zahlen auf Euren Aktionsleisten.",
   OPT_PREVIEW_OFF = "Keine Zahlen auf den Tasten.",
@@ -127,9 +139,61 @@ Locales.de = {
   OPT_PANEL_TEXT = "Die Einstellungen haben ein eigenes Fenster mit Vorschau. Ihr k\195\182nnt auch /sdi eingeben.",
 }
 
-local locale = (type(GetLocale) == "function") and GetLocale() or "enUS"
-ns.L = (locale == "deDE") and Locales.de or Locales.en
-ns.lang = (locale == "deDE") and "de" or ((type(locale) == "string" and locale:sub(1, 2) == "en") and "en" or nil)
+-- Interface language: what the addon's own UI shows (labels, chat lines, number formatting).
+-- Stored in SavedVariables; "auto" means follow GetLocale(). Not decided until ADDON_LOADED.
+local interfaceLang = nil
+ns.InterfaceLang = function() return interfaceLang end
+
+-- Description language: what the parser reads. Decided at login from textLocale CVar if it is
+-- "deDE", else from GetLocale(), and cannot be changed (the player would only see spell descriptions
+-- in one language anyway). Used to call Parser.Parse(text, ns.lang).
+local descriptionLang = nil
+ns.DescriptionLang = function() return descriptionLang end
+
+-- Locale table that code captured at file load uses (e.g. "local L = ns.L" in Core.lua).
+-- When the interface language changes, this table's contents are replaced to apply the switch
+-- live where code reads L.KEY (not helpful for "local L = ..." at load time; those must rebuild).
+local L = {}
+ns.L = L
+
+-- Returns the locale string ("deDE", "enUS", etc.) for the description language.
+local function getDescriptionLocale()
+  local locale = nil
+  if type(C_CVar) == "table" and type(C_CVar.GetCVar) == "function" then
+    local ok, result = pcall(C_CVar.GetCVar, "textLocale")
+    if ok and result == "deDE" then locale = "deDE" end
+  end
+  if not locale and type(GetCVar) == "function" then
+    local ok, result = pcall(GetCVar, "textLocale")
+    if ok and result == "deDE" then locale = "deDE" end
+  end
+  if not locale and type(GetLocale) == "function" then
+    locale = GetLocale()
+  end
+  return locale or "enUS"
+end
+
+-- Decide the description language at addon load, and set up ns.L with the interface strings.
+function ns.DecideLangsAtLoad()
+  local descLocale = getDescriptionLocale()
+  descriptionLang = (descLocale == "deDE") and "de" or ((type(descLocale) == "string" and descLocale:sub(1, 2) == "en") and "en" or nil)
+end
+
+-- Set the interface language and refresh ns.L. "auto" -> follow GetLocale().
+function ns.SetInterfaceAndRefreshL(lang)
+  interfaceLang = lang or "auto"
+  local locale = (interfaceLang == "auto") and ((type(GetLocale) == "function") and GetLocale() or "enUS") or "en"
+  if interfaceLang == "de" or interfaceLang == "auto" and locale == "deDE" then
+    for k, v in pairs(Locales.de) do L[k] = v end
+  else
+    for k, v in pairs(Locales.en) do L[k] = v end
+  end
+end
+
+-- Init: called at ADDON_LOADED to set up the interface language from SavedVariables.
+function ns.InitInterfaceL(savedLang)
+  ns.SetInterfaceAndRefreshL(savedLang or "auto")
+end
 
 local Format = {}
 ns.Format = Format

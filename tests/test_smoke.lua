@@ -217,6 +217,11 @@ end
 -- German client, like the owner's
 function GetLocale() return "deDE" end
 
+-- CVar stubs for textLocale testing
+local cvarValues = { textLocale = "deDE" }
+function GetCVar(key) return cvarValues[key] end
+C_CVar = { GetCVar = function(key) return cvarValues[key] end }
+
 local descriptions = {
   [172] = "Verdirbt das Ziel und verursacht 18 Sek. lang 822 Punkt(e) Schattenschaden.",
   [686] = "Schleudert einen Schattenblitz auf den Feind, der 455 bis 507 Punkt(e) Schattenschaden verursacht.",
@@ -382,7 +387,7 @@ for line in toc:gmatch("[^\r\n]+") do
 end
 T.check(#loaded == 5, "toc lists five files")
 T.eq(loaded[5], "Options.lua", "Options.lua loads after Core.lua")
-T.check(ns.lang == "de", "German client detected")
+T.check(ns.DescriptionLang() == nil and ns.InterfaceLang() == nil, "languages not decided yet at file load")
 
 local function label(button) return ns._labels[button] end
 local function shown(button)
@@ -398,6 +403,9 @@ T.check(type(SpellDamageInfoDB) == "table" and SpellDamageInfoDB.estimate == tru
 T.eq(SpellDamageInfoDB.size, 100, "default number size 100%")
 T.eq(SpellDamageInfoDB.position, "bottom", "default position")
 T.eq(SpellDamageInfoDB.reduction, true, "reductions shown by default")
+T.eq(SpellDamageInfoDB.interfaceLang, "auto", "default interface language is auto")
+T.eq(ns.DescriptionLang(), "de", "German client: description language is German")
+T.check(ns.L.DAMAGE == "Schaden", "interface language auto (German): strings are German")
 
 local ok, err = pcall(fire, "PLAYER_LOGIN")
 T.check(ok, "PLAYER_LOGIN runs: " .. tostring(err))
@@ -553,7 +561,29 @@ fire("PLAYER_EQUIPMENT_CHANGED")
 flush()
 T.eq(shown(ActionButton1), "922", "gear change updates")
 
--- /sdi
+-- /sdi: language
+local langBefore = #messages
+SlashCmdList.SPELLDAMAGEINFO("lang en")
+flush()
+T.eq(SpellDamageInfoDB.interfaceLang, "en", "/sdi lang en: setting changed")
+T.check(ns.L.DAMAGE == "Damage", "/sdi lang en: interface strings are English")
+T.check(messages[#messages]:find("language:"), "/sdi lang: status line shows language")
+T.check(messages[#messages]:find("English"), "/sdi lang en: status shows English")
+SlashCmdList.SPELLDAMAGEINFO("lang de")
+flush()
+T.eq(SpellDamageInfoDB.interfaceLang, "de", "/sdi lang de: setting changed")
+T.check(ns.L.DAMAGE == "Schaden", "/sdi lang de: interface strings are German")
+T.check(messages[#messages]:find("Deutsch"), "/sdi lang de: status shows Deutsch")
+SlashCmdList.SPELLDAMAGEINFO("lang auto")
+flush()
+T.eq(SpellDamageInfoDB.interfaceLang, "auto", "/sdi lang auto: setting changed")
+T.check(ns.L.DAMAGE == "Schaden", "/sdi lang auto (German client): interface strings are German")
+T.check(messages[#messages]:find("Auto"), "/sdi lang auto: status shows Auto")
+local langBefore2 = #messages
+SlashCmdList.SPELLDAMAGEINFO("lang invalid")
+T.check(#messages == langBefore2 + 1 and messages[#messages]:find("Unbekannte Option"), "bad lang option answered in German")
+
+-- /sdi: other commands still work with language changed
 T.check(slashTable == rawget(_G, "SlashCmdList") and type(SlashCmdList.SPELLDAMAGEINFO) == "function", "slash command added as a key")
 T.eq(SLASH_SPELLDAMAGEINFO1, "/sdi", "/sdi")
 SlashCmdList.SPELLDAMAGEINFO("estimate off")
@@ -584,7 +614,7 @@ SlashCmdList.SPELLDAMAGEINFO("button sideways")
 T.check(#messages == before + 1 and messages[#messages]:find("Unbekannte Option"), "bad option answered in German")
 before = #messages
 SlashCmdList.SPELLDAMAGEINFO("help")
-T.check(#messages == before + 10, "/sdi help prints ten lines")
+T.check(#messages == before + 11, "/sdi help prints eleven lines")
 T.check(messages[before + 2] and messages[before + 2]:find("^|cff66ccffSpellDamageInfo|r: /sdi %- "), "help names bare /sdi first")
 
 -- Reduction, size and position settings
@@ -668,7 +698,7 @@ T.check(win.shown, "/sdi options opens it")
 -- Every control, localized, with a tooltip
 local rows = win.rows
 local KEYS = { button = DE.OPT_BUTTON, size = DE.OPT_SIZE, position = DE.OPT_POSITION, estimate = DE.OPT_ESTIMATE,
-  tooltip = DE.OPT_TOOLTIP, reduction = DE.OPT_REDUCTION }
+  tooltip = DE.OPT_TOOLTIP, reduction = DE.OPT_REDUCTION, interfaceLang = DE.OPT_LANGUAGE }
 for key, text in pairs(KEYS) do
   local row = rows[key]
   T.check(row ~= nil and row.widget ~= nil, "control for " .. key)
@@ -684,10 +714,12 @@ end
 T.eq(rows.estimate.widget.kind, "CheckButton", "estimate is a check box")
 T.eq(rows.size.widget.kind, "Slider", "size is a slider")
 T.eq(rows.button.widget.kind, "Button", "button mode is a choice")
+T.eq(rows.interfaceLang.widget.kind, "Button", "language is a choice")
 T.eq(win.reset.text, DE.OPT_RESET, "reset button in German")
 T.eq(rows.button.text.text, DE.OPT_BUTTON_TOTAL, "choice shows the current mode")
 T.eq(rows.position.text.text, DE.OPT_POS_BOTTOM, "choice shows the current position")
 T.eq(rows.size.widget.value, 100, "slider at the current size")
+T.eq(rows.interfaceLang.text.text, DE.LANG_AUTO, "language choice shows auto")
 T.check(rows.estimate.widget.checked and rows.tooltip.widget.checked and rows.reduction.widget.checked, "boxes checked")
 
 -- The preview: three mock buttons of our own, drawn like the real ones
@@ -838,9 +870,24 @@ SlashCmdList.SPELLDAMAGEINFO("position bottom")
 T.eq(rows.position.text.text, DE.OPT_POS_BOTTOM, "/sdi position updates the open window")
 T.eq(anchor(mocks[1].main), "BOTTOM", "/sdi position updates the preview")
 
+-- Language menu
+pick(rows.interfaceLang, 2)
+T.eq(SpellDamageInfoDB.interfaceLang, "en", "language menu: English")
+T.check(ns.L.DAMAGE == "Damage", "language menu: interface strings are English")
+T.eq(rows.interfaceLang.text.text, ns.Locales.en.LANG_EN, "language menu: shows English")
+pick(rows.interfaceLang, 3)
+T.eq(SpellDamageInfoDB.interfaceLang, "de", "language menu: Deutsch")
+T.check(ns.L.DAMAGE == "Schaden", "language menu: interface strings are German")
+T.eq(rows.interfaceLang.text.text, ns.Locales.de.LANG_DE, "language menu: shows Deutsch")
+pick(rows.interfaceLang, 1)
+T.eq(SpellDamageInfoDB.interfaceLang, "auto", "language menu: auto")
+T.check(ns.L.DAMAGE == "Schaden", "language menu: auto on German client: interface strings are German")
+T.eq(rows.interfaceLang.text.text, DE.LANG_AUTO, "language menu: shows auto")
+
 -- Reset to defaults
 SpellDamageInfoDB.estimate, SpellDamageInfoDB.button, SpellDamageInfoDB.tooltip = false, "direct", false
 SpellDamageInfoDB.reduction, SpellDamageInfoDB.size, SpellDamageInfoDB.position = false, 180, "top"
+SpellDamageInfoDB.interfaceLang = "en"
 before = #messages
 clicked(win.reset)
 for k, v in pairs(ns.DEFAULTS) do T.eq(SpellDamageInfoDB[k], v, "reset: " .. k) end
@@ -849,6 +896,8 @@ T.check(#messages == before + 1 and messages[#messages]:find(DE.OPT_RESET_DONE, 
 T.check(rows.estimate.widget.checked and rows.tooltip.widget.checked and rows.reduction.widget.checked, "reset: boxes checked")
 T.eq(rows.button.text.text, DE.OPT_BUTTON_TOTAL, "reset: button menu shows total")
 T.eq(bar.value, 100, "reset: slider back")
+T.eq(rows.interfaceLang.text.text, DE.LANG_AUTO, "reset: language back to auto")
+T.check(ns.L.DAMAGE == "Schaden", "reset: interface strings back to German (auto)")
 T.eq(mockText(1), "831", "reset: preview back")
 flush()
 sameAsBar("reset")
@@ -896,13 +945,25 @@ T.check(not ns._optionsMenu().shown, "closing the window closes the menu")
 
 -- Bad saved values are repaired on load
 SpellDamageInfoDB.size, SpellDamageInfoDB.position, SpellDamageInfoDB.reduction = 999, "left", "yes"
+SpellDamageInfoDB.interfaceLang = "invalid"
 fire("ADDON_LOADED", "SpellDamageInfo")
 T.eq(SpellDamageInfoDB.size, 200, "saved size above the range is clamped")
 T.eq(SpellDamageInfoDB.position, "bottom", "saved unknown position reset")
 T.eq(SpellDamageInfoDB.reduction, true, "saved non-boolean reduction reset")
+T.eq(SpellDamageInfoDB.interfaceLang, "auto", "saved invalid language reset to auto")
 SpellDamageInfoDB.size = "big"
 fire("ADDON_LOADED", "SpellDamageInfo")
 T.eq(SpellDamageInfoDB.size, 100, "saved size that is not a number reset")
+
+-- Language: GetLocale enUS but textLocale deDE should parse German
+cvarValues.textLocale = "deDE"
+local savedDescLang = ns.DescriptionLang()
+rawset(_G, "GetLocale", function() return "enUS" end)
+ns.DecideLangsAtLoad()
+T.eq(ns.DescriptionLang(), "de", "textLocale deDE wins over GetLocale enUS: description lang is German")
+rawset(_G, "GetLocale", function() return "deDE" end)
+ns.DecideLangsAtLoad()
+T.eq(ns.DescriptionLang(), "de", "GetLocale deDE: description lang is German")
 
 -- Spell text arriving later
 descriptions[999] = "Verursacht 100 bis 120 Punkt(e) Frostschaden."
