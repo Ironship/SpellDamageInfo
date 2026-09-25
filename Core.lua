@@ -125,7 +125,7 @@ local function readWeaponStats()
   -- Main hand weapon average damage: (min + max) / 2
   if type(UnitDamage) == "function" then
     local ok, min, max, offhandMin, offhandMax = pcall(UnitDamage, "player")
-    if ok and not isSecret(min) and type(min) == "number" and type(max) == "number" then
+    if ok and not isSecret(min) and not isSecret(max) and type(min) == "number" and type(max) == "number" then
       weaponStats.damage = (min + max) / 2
     end
   end

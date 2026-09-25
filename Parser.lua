@@ -423,6 +423,9 @@ local function tryNextAttack(t, lang)
     -- "den nahkampfschaden um N punkt(e) erh\195\164ht" (ä = \195\164)
     local bonus = match(t, "den nahkampfschaden um (" .. NUM .. ")")
     if bonus then return { next_attack_bonus = tonumber(bonus) } end
+    -- Also match "angriffsschaden" variant used by druids in bear form (Maul/Zermalmen)
+    bonus = match(t, "den %w+angriffsschaden um (" .. NUM .. ")")
+    if bonus then return { next_attack_bonus = tonumber(bonus) } end
   else
     -- "increases melee damage by N"
     local bonus = match(t, "increases melee damage by (" .. NUM .. ")")
@@ -441,10 +444,11 @@ end
 -- Returns the AP buff amount N. Ignore "for X min" or other conditions.
 local function tryAPBuff(t, lang)
   if lang == "de" then
-    -- "die nahkampfangriffskraft .* um N erh\195\164ht" or "die distanzangriffskraft .* um N erh\195\164ht"
-    local buff = match(t, "nahkampfangriffskraft [^%d]* um (" .. NUM .. ")")
+    -- "die nahkampfangriffskraft ... um N erh\195\164ht" or "die distanzangriffskraft ... um N erh\195\164ht"
+    -- Match any text (including digits like "20 metern") between keyword and "um N"
+    local buff = match(t, "nahkampfangriffskraft [^e]* um (" .. NUM .. ")")
     if buff then return { ap_buff = tonumber(buff) } end
-    buff = match(t, "distanzangriffskraft [^%d]* um (" .. NUM .. ")")
+    buff = match(t, "distanzangriffskraft [^e]* um (" .. NUM .. ")")
     if buff then return { ap_buff = tonumber(buff) } end
   else
     -- "increasing melee attack power by N" (simple)

@@ -123,9 +123,9 @@ end
 -- bonus: from parsed result (e.g., weapon_damage = 35 from "weapon damage plus 35")
 function Estimate.WeaponDamage(weaponDamage, attackPower, weaponSpeed, bonus)
   if not weaponDamage or not weaponSpeed or not bonus then return nil end
-  -- Formula: (weapon_avg_dmg + AP/14) * speed + bonus
+  -- Formula: weapon_avg_dmg + (AP/14) * speed + bonus
   local apFactor = (attackPower or 0) / 14
-  local totalDamage = (weaponDamage + apFactor) * weaponSpeed + bonus
+  local totalDamage = weaponDamage + apFactor * weaponSpeed + bonus
   return { direct = { min = totalDamage, max = totalDamage }, weapon_ability = true }
 end
 
