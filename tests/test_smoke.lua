@@ -1205,6 +1205,21 @@ T.check(mocks[3].main.color[1] == 1 and mocks[3].main.color[2] < 0.5, "preview: 
 T.eq(mockText(4), "277", "preview: Heroic Strike on the sample weapon, 120 + 157")
 T.eq(mockText(5), "+103", "preview: Rockbiter's 554 attack power on a 2.6 sec weapon")
 T.check(mocks[4].main.color[3] == 1 and mocks[4].main.color[1] < 0.5, "preview: weapon numbers are blue")
+-- Retail: the bars add no estimate and no weapon arithmetic, and the preview shows the same
+local foreverBuild = GetBuildInfo
+GetBuildInfo = function() return "12.1.0", "69814", "Sep 1 2026", 120100 end
+fire("SPELLS_CHANGED")
+flush()
+ns.OptionsChanged()
+T.eq(mockText(1), "789", "Retail preview: Immolate without the estimate")
+sameAsBar("Retail")
+T.eq(mockText(4), nil, "Retail preview: no weapon number on Heroic Strike, as on the bar")
+T.eq(mockText(5), nil, "Retail preview: no attack power gain on Rockbiter")
+GetBuildInfo = foreverBuild
+fire("SPELLS_CHANGED")
+flush()
+ns.OptionsChanged()
+T.eq(mockText(1), "832", "back on Forever: the preview with the estimate again")
 
 -- Each control writes its setting, refreshes the real buttons and the preview
 -- flushed first, so the queue is empty before the click (dropping a queued refresh instead

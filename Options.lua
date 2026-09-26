@@ -81,14 +81,16 @@ end
 -- Preview
 ---------------------------------------------------------------------------------------------
 
--- What the real bar would draw for a sample, under the current settings.
+-- What the real bar would draw for a sample, under the current settings. On Retail the bars add
+-- neither the estimate nor the weapon arithmetic (the descriptions hold the stats), so neither does this.
 local function sampleText(sample)
   local view
+  local retail = ns.IsRetail and ns.IsRetail()
   if sample.weapon then
-    local w = db().weapon and ns.WeaponView(sample.weapon, SAMPLE_WEAPON) or nil
+    local w = db().weapon and not retail and ns.WeaponView(sample.weapon, SAMPLE_WEAPON) or nil
     view = w and { weapon = w } or nil
   elseif sample.parsed then
-    local bonus = db().estimate and Estimate.DamageBonus(sample.parsed.school, SAMPLE_POWER) or nil
+    local bonus = db().estimate and not retail and Estimate.DamageBonus(sample.parsed.school, SAMPLE_POWER) or nil
     local coef = sample.spellID and ns.SpellCoefficientsFor and ns.SpellCoefficientsFor(sample.spellID) or nil
     view = Estimate.Apply(sample.parsed, sample.castTime, bonus, nil, coef)
   end
