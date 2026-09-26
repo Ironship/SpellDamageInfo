@@ -610,10 +610,21 @@ local function fitWidth(fs, button)
   end
 end
 
--- Does the button show a count (reagents, charges) in its bottom right corner?
+-- Does the button show a count (reagents, charges) in its bottom right corner? Blizzard's buttons
+-- draw C_ActionBar.GetActionDisplayCount, "" when there is none; the global GetActionCount exists
+-- on Forever and Classic Era only in a deprecation file that loads when a setting asks for it.
 local function hasCount(slot)
-  if type(GetActionCount) ~= "function" or isSecret(slot) or type(slot) ~= "number" then return false end
-  local ok, n = pcall(GetActionCount, slot)
+  if isSecret(slot) or type(slot) ~= "number" then return false end
+  local bar = type(C_ActionBar) == "table" and C_ActionBar or nil
+  if bar and type(bar.GetActionDisplayCount) == "function" then
+    local ok, text = pcall(bar.GetActionDisplayCount, slot)
+    if ok and isSecret(text) then return false end
+    if ok and type(text) == "string" then return text ~= "" end
+  end
+  local get = bar and bar.GetActionUseCount
+  if type(get) ~= "function" then get = GetActionCount end
+  if type(get) ~= "function" then return false end
+  local ok, n = pcall(get, slot)
   return ok and not isSecret(n) and type(n) == "number" and n > 0
 end
 

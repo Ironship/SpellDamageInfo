@@ -329,7 +329,14 @@ local actions = {
 }
 function GetActionInfo(slot) local a = actions[slot]; if a then return a[1], a[2] end end
 local counts = { [2] = 5, [3] = SECRET } -- a reagent count on Shadow Bolt's slot; a secret one on Immolate's
-function GetActionCount(slot) return counts[slot] or 0 end
+-- What Blizzard's buttons draw the count from; the global GetActionCount is only in a deprecation
+-- file the client loads when a setting asks for it, so it is not stubbed here
+local function displayCount(slot)
+  local n = counts[slot]
+  if n == SECRET then return SECRET end
+  return (n and n > 0) and tostring(n) or ""
+end
+C_ActionBar = { GetActionDisplayCount = displayCount, GetActionUseCount = function(slot) return counts[slot] or 0 end }
 
 local BAR_NAMES = {
   "ActionButton", "MultiBarBottomLeftButton", "MultiBarBottomRightButton", "MultiBarLeftButton",
@@ -515,6 +522,22 @@ T.eq(font(MultiBarBottomLeftButton1).size, 14, "number on a 30 px button is smal
 T.eq(anchor(label(ActionButton1)), "BOTTOM", "bottom centre when the button shows no count")
 T.eq(anchor(label(ActionButton2)), "BOTTOMLEFT", "bottom left when the count sits bottom right")
 T.eq(anchor(label(ActionButton3)), "BOTTOM", "a secret count is not read")
+-- clients with the use count only, and with only the old global
+C_ActionBar.GetActionDisplayCount = nil
+fire("ACTIONBAR_SLOT_CHANGED", 2)
+flush()
+T.eq(anchor(label(ActionButton2)), "BOTTOMLEFT", "count from GetActionUseCount")
+T.eq(anchor(label(ActionButton3)), "BOTTOM", "a secret use count is not read")
+C_ActionBar.GetActionUseCount = nil
+rawset(_G, "GetActionCount", function(slot) return counts[slot] or 0 end)
+fire("ACTIONBAR_SLOT_CHANGED", 2)
+flush()
+T.eq(anchor(label(ActionButton2)), "BOTTOMLEFT", "count from the old GetActionCount")
+rawset(_G, "GetActionCount", nil)
+C_ActionBar.GetActionDisplayCount = displayCount
+C_ActionBar.GetActionUseCount = function(slot) return counts[slot] or 0 end
+fire("ACTIONBAR_SLOT_CHANGED", 2)
+flush()
 for button, fs in pairs(ns._labels) do
   if fs.shown and fs.text then
     T.check(fs:GetStringWidth() <= button:GetWidth() - 2, "number fits its button: " .. tostring(button.name))
