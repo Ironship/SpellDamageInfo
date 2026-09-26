@@ -279,6 +279,16 @@ function ns.WeaponView(w, stats, formSpeed, sealUp)
     return { gain = w.amount * factor / 14 * speed, stat = w.stat, amount = w.amount, factor = factor, speed = speed }
   end
   if w.kind == "perhit" then
+    -- Where slower weapons do more per swing, a hit gains in proportion to the weapon's speed (a
+    -- 4.0 sec weapon twice what a 2.0 sec one does, the Seal of Righteousness page says). The
+    -- client's own text puts the range at base / 87 (or / 77) to base / 25, i.e. base x speed / 100
+    -- from about 1.15 (1.3) sec to 4.0 sec, so the top of the range is the 4.0 sec weapon's.
+    if w.bySpeed and stats.meleeSpeed then
+      local gain = w.max * stats.meleeSpeed / 4
+      if gain < w.min then gain = w.min end
+      if gain > w.max then gain = w.max end
+      return { gain = gain, perhit = true, min = w.min, max = w.max, school = w.school, speed = stats.meleeSpeed }
+    end
     return { gain = (w.min + w.max) / 2, perhit = true, min = w.min, max = w.max, school = w.school }
   end
   if w.kind == "appct" then

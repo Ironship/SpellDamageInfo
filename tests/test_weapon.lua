@@ -30,7 +30,7 @@ local n = tonumber
 local function describe(r)
   if r == nil then return "nil" end
   local parts = { tostring(r.kind) }
-  for _, k in ipairs({ "pct", "bonus", "bonusMax", "amount", "min", "max", "school", "times", "stat", "attacks", "faster" }) do
+  for _, k in ipairs({ "pct", "bonus", "bonusMax", "amount", "min", "max", "school", "times", "stat", "attacks", "faster", "bySpeed" }) do
     if r[k] ~= nil then parts[#parts + 1] = k .. "=" .. tostring(r[k]) end
   end
   if r.ranged then parts[#parts + 1] = "ranged" end
@@ -40,7 +40,7 @@ end
 
 local function same(a, b)
   if a == nil or b == nil then return a == b end
-  for _, k in ipairs({ "kind", "pct", "bonus", "bonusMax", "amount", "min", "max", "school", "times", "stat", "attacks", "faster" }) do
+  for _, k in ipairs({ "kind", "pct", "bonus", "bonusMax", "amount", "min", "max", "school", "times", "stat", "attacks", "faster", "bySpeed" }) do
     if a[k] ~= b[k] then return false end
   end
   return (a.ranged and true or false) == (b.ranged and true or false)
@@ -67,6 +67,9 @@ local function brackets(text)
   return (text:gsub("%b[]", ""))
 end
 
+-- The seals and imbues whose text says slower weapons do more per swing
+local function slower(t) return t:find("slower weapons cause more", 1, true) and true or nil end
+
 local function expectEN(name, text)
   local t = brackets(text):lower()
   if name == "Heroic Strike" or name == "Raptor Strike" and t:find("increases melee damage") then
@@ -89,11 +92,11 @@ local function expectEN(name, text)
   end
   if name == "Seal of Righteousness" then
     local lo, hi = t:match("each melee attack an additional ([%d%.]+) to ([%d%.]+) holy damage")
-    return { kind = "perhit", min = n(lo), max = n(hi), school = "holy" }
+    return { kind = "perhit", min = n(lo), max = n(hi), school = "holy", bySpeed = slower(t) }
   end
   if name == "Flametongue Weapon" then
     local lo, hi = t:match("each hit causes ([%d%.]+) to ([%d%.]+) additional fire damage")
-    return { kind = "perhit", min = n(lo), max = n(hi), school = "fire" }
+    return { kind = "perhit", min = n(lo), max = n(hi), school = "fire", bySpeed = slower(t) }
   end
   -- chance effects, per trigger
   if name == "Windfury Weapon" then

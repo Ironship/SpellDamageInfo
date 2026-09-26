@@ -719,6 +719,21 @@ local function hasLine(lines, text) for _, l in ipairs(lines) do if l == text th
 T.eq(shown(MultiBarBottomLeftButton6), "+49", "Siegel der Rechtschaffenheit: 22-75 on every hit, 48.5 on average")
 T.check(weaponColoured(MultiBarBottomLeftButton6), "a seal's gain per hit is blue")
 T.check(hasLine(tipFor(20293), "Richturteil: 170-187 Schaden"), "the seal's tooltip says what its Judgement does")
+-- "Langsamere Waffen verursachen mehr Heiligschaden pro Schlag": the gain follows the weapon's speed,
+-- the top of the range being the 4.0 sec weapon's (75 x 2.6 / 4 = 48.75 with the 2.6 sec weapon)
+T.check(hasLine(tipFor(20293), "Jeder Treffer: +22-75 Schaden, langsamere Waffen mehr; etwa +49 mit Eurer Waffe (2,6 Sek.), gesch\195\164tzt"),
+  "the seal's tooltip names the weapon speed")
+weapon.speed = 1.5
+fire("UNIT_AURA", "player")
+flush()
+T.eq(shown(MultiBarBottomLeftButton6), "+28", "Siegel der Rechtschaffenheit with a 1.5 sec weapon: 75 x 1.5 / 4")
+weapon.speed = 4.5
+fire("UNIT_AURA", "player")
+flush()
+T.eq(shown(MultiBarBottomLeftButton6), "+75", "slower than 4.0 sec: the top of the range")
+weapon.speed = 2.6
+fire("UNIT_AURA", "player")
+flush()
 T.eq(shown(MultiBarBottomLeftButton7), "84", "Siegel des Befehls: one trigger is 70% of the 120 hit; its Judgement is not put here")
 T.check(weaponColoured(MultiBarBottomLeftButton7), "and it is blue")
 local soc = tipFor(20920)

@@ -54,6 +54,7 @@ Locales.en = {
   MISSES_HEAD = "%d spells on your bars give no number:",
   MISSES_CLEARED = "List of spells without a number cleared.",
   PERHIT_LINE = "Each hit: +%s damage, about +%s on average",
+  PERHIT_SPEED_LINE = "Each hit: +%s damage, slower weapons more; about +%s with your weapon (%s sec), estimate",
   STAT_LINE = "%s +%s (%s attack power): about +%s damage per hit (%s %s sec), estimate",
   STAT_STR = "Strength",
   STAT_AGI = "Agility",
@@ -169,6 +170,7 @@ Locales.de = {
   MISSES_HEAD = "%d Zauber auf Euren Leisten ergeben keine Zahl:",
   MISSES_CLEARED = "Liste der Zauber ohne Zahl geleert.",
   PERHIT_LINE = "Jeder Treffer: +%s Schaden, im Schnitt etwa +%s",
+  PERHIT_SPEED_LINE = "Jeder Treffer: +%s Schaden, langsamere Waffen mehr; etwa +%s mit Eurer Waffe (%s Sek.), gesch\195\164tzt",
   STAT_LINE = "%s +%s (%s Angriffskraft): etwa +%s Schaden pro Treffer (%s %s Sek.), gesch\195\164tzt",
   STAT_STR = "St\195\164rke",
   STAT_AGI = "Beweglichkeit",
@@ -376,9 +378,14 @@ end
 --   "Potential damage: about 412 (225% of weapon hit 103 + 180, estimate)"
 --   "Attack power +554: about +103 damage per hit (weapon 2.6 sec), estimate"
 --   "Each hit: +22-75 damage, about +49 on average"
+--   "Each hit: +22-75 damage, slower weapons more; about +49 with your weapon (2.6 sec), estimate"
 function Format.WeaponLine(w, L)
   local c = WEAPON_COLOR
   if w.perhit then
+    if w.speed then
+      local text = string.format(L.PERHIT_SPEED_LINE, rangeText(w, L), Format.Thousands(w.gain, L), Format.Seconds(w.speed, L))
+      return { text, c[1], c[2], c[3] }
+    end
     return { string.format(L.PERHIT_LINE, rangeText(w, L), Format.Thousands(w.gain, L)), c[1], c[2], c[3] }
   end
   if w.stat then

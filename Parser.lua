@@ -582,9 +582,11 @@ end
 --   { kind = "appct", pct = p, bonus = n }             p% of attack power plus n: Bloodthirst
 --   { kind = "dps", times = n, school = s }            n times the main hand's damage per second:
 --                                                      Hammer of the Righteous
---   { kind = "perhit", min = n, max = m, school = s }  what every hit gains while the seal or the
+--   { kind = "perhit", min = n, max = m, school = s, bySpeed = bool }
+--                                                      what every hit gains while the seal or the
 --                                                      imbue lasts: Seal of Righteousness,
---                                                      Flametongue Weapon
+--                                                      Flametongue Weapon; bySpeed where the text
+--                                                      says slower weapons do more per swing
 --   { kind = "ap", amount = n, ranged = bool, plusAgility = bool }
 --                                                      attack power the spell adds: Battle Shout,
 --                                                      Rockbiter Weapon, Bear Form, Aspect of the Hawk
@@ -629,7 +631,10 @@ local function weaponEN(t)
   local lo, hi, school = match(t, "each melee attack an additional (" .. NUM .. ") to (" .. NUM .. ") ([a-z]+) damage")
   -- "Each hit causes 6 to 22 additional ..."; later Flametongue Totem ranks: "Each main hand hit causes  9 to 31 ..."
   if not lo then lo, hi, school = match(t, "each [a-z ]-hit causes +(" .. NUM .. ") to (" .. NUM .. ") additional ([a-z]+) damage") end
-  if lo then return { kind = "perhit", min = num(lo), max = num(hi), school = SCHOOL_EN[school] } end
+  if lo then
+    return { kind = "perhit", min = num(lo), max = num(hi), school = SCHOOL_EN[school],
+      bySpeed = find(t, "slower weapons cause more", 1, true) and true or nil }
+  end
   a, school = match(t, "melee attacks to deal an additional (" .. NUM .. ") ([a-z]+) damage")
   if a then return { kind = "perhit", min = num(a), max = num(a), school = SCHOOL_EN[school] } end
   p, a = match(t, "damage equal to (" .. NUM .. ")%% of your attack power plus (" .. NUM .. ")")
@@ -704,7 +709,10 @@ local function weaponDE(t)
     lo, hi, school = match(t, "jeder treffer [a-z ]-f" .. UE .. "gt (" .. NUM .. ") bis (" .. NUM .. ") zus" .. AE
       .. "tzlichen ([a-z]*)schaden")
   end
-  if lo then return { kind = "perhit", min = num(lo), max = num(hi), school = SCHOOL_DE[school] } end
+  if lo then
+    return { kind = "perhit", min = num(lo), max = num(hi), school = SCHOOL_DE[school],
+      bySpeed = find(t, "langsamere waffen verursachen mehr", 1, true) and true or nil }
+  end
   -- Forever's Seal of Fury: "wodurch jeder Nahkampfangriff zusätzlich 14 Heiligschaden verursacht"
   a, school = match(t, "jeder nahkampfangriff zus" .. AE .. "tzlich (" .. NUM .. ") ([a-z]*)schaden")
   if a then return { kind = "perhit", min = num(a), max = num(a), school = SCHOOL_DE[school] } end
