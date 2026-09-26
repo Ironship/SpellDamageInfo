@@ -70,6 +70,11 @@ end
 -- cache. (That the sickness is in the text is not proven: no sick description has been read.) A text
 -- that cannot be read now leaves the last one in use.
 local RECHECK = 2
+-- A refresh of the bars reads at most PARSE_BUDGET changed texts (on Retail a buff can change every
+-- one at once, and each read costs about a millisecond); the rest keep their last reading and the
+-- next refresh reads them. parseBudget is nil outside a refresh, so a tooltip is never held back.
+local PARSE_BUDGET = 10
+local parseBudget, parseDeferred = nil, false
 local function textClock()
   local ok, t = pcall(GetTime)
   return ok and type(t) == "number" and t or 0
@@ -85,6 +90,13 @@ local function getEntry(spellID)
   if not text then -- not loaded yet; SPELL_TEXT_UPDATE will ask again
     requestLoad(spellID)
     return nil
+  end
+  if entry and parseBudget then
+    if parseBudget <= 0 then
+      parseDeferred = true
+      return entry
+    end
+    parseBudget = parseBudget - 1
   end
   -- Parser.Read runs every reader and decides what is shown; see there.
   entry = Parser.Read(text, ns.DescriptionLang(), ns.IsRetail and ns.IsRetail())
@@ -944,7 +956,10 @@ local function requestUpdate()
     pending = false
     readBonus()
     readWeapon()
+    parseBudget, parseDeferred = PARSE_BUDGET, false
     updateAllButtons()
+    parseBudget = nil
+    if parseDeferred then requestUpdate() end
   end
   -- A short delay lets Blizzard's own handlers set button.action after a page change first.
   if C_Timer and type(C_Timer.After) == "function" then C_Timer.After(0.1, run) else run() end

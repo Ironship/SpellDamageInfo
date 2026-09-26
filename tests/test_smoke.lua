@@ -1009,6 +1009,40 @@ fire("UNIT_AURA", "player")
 flush()
 T.eq(shown(ActionButton1), "902", "the text back: the full number again, without a /reload")
 
+-- Every text on the bars changing at once (on Retail a buff can do that): one refresh reads at most
+-- ten of them again, and the refreshes after it read the rest
+local changedTexts, textsBefore = 0, {}
+for id, text in pairs(descriptions) do
+  if ns._parsedCache[id] and type(text) == "string" then
+    textsBefore[id] = text
+    descriptions[id] = text .. " "
+    changedTexts = changedTexts + 1
+  end
+end
+local parserRead, reads = ns.Parser.Read, 0
+ns.Parser.Read = function(...) reads = reads + 1; return parserRead(...) end
+clock = clock + 3
+fire("UNIT_AURA", "player")
+table.remove(timers, 1)()
+T.check(changedTexts > 20, "most texts on the bars changed: " .. changedTexts)
+T.eq(reads, 10, "one refresh reads ten changed texts, not " .. changedTexts)
+T.eq(#timers, 1, "and asks for another refresh for the rest")
+T.eq(shown(ActionButton1), "902", "a text not read yet keeps its number meanwhile")
+flush()
+T.eq(reads, changedTexts, "the following refreshes read every changed text once")
+T.eq(shown(ActionButton1), "902", "the numbers after all texts were read again")
+tip.lines = {}
+reads = 0
+for id, text in pairs(textsBefore) do descriptions[id] = text end
+clock = clock + 3
+postCalls[1].fn(tip, { id = 172, type = 1 })
+T.eq(reads, 1, "a tooltip outside a refresh reads its changed text at once")
+flush()
+fire("UNIT_AURA", "player")
+flush()
+ns.Parser.Read = parserRead
+T.eq(shown(ActionButton2), "530", "texts back: Shadow Bolt as before")
+
 -- /sdi: language
 local langBefore = #messages
 SlashCmdList.SPELLDAMAGEINFO("lang en")
