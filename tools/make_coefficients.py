@@ -5,8 +5,8 @@ own spell tables give it, on WoW: Forever and on Classic Era.
 
 The tables are wago.tools' CSVs of the client's DB2 files: SpellEffect (EffectBonusCoefficient,
 BonusCoefficientFromAP, the aura, its period and the spell it triggers), SpellMisc and SpellDuration
-(how long an aura lasts, so how many ticks it has) and SpellItemEnchantment (the spell a weapon imbue
-casts on a hit). Forever is build 1.60.1.70009; Classic Era is the newest wow_classic_era build
+(how long an aura lasts, so how many ticks it has), SpellItemEnchantment (the spell a weapon imbue
+casts on a hit) and SpellShapeshiftForm. Forever is build 1.60.1.70009; Classic Era is the newest wow_classic_era build
 wago.tools lists. They are cached in tools/db2-cache (git-ignored); delete it to fetch again.
 
 Per spell and client:
@@ -23,6 +23,9 @@ Spells whose damage comes from a script or an area trigger (Forever's Blizzard, 
 Shock, the seals' per-hit damage) are left out, and the addon's rules stand in for them. A part of a
 listed spell that comes from such a link (Forever's Flamestrike burn, Holy Nova's heal) gets none.
 
+It also writes ns.FormSpeeds: for a spell that shifts into a form, that form's own swing time
+(SpellShapeshiftForm.CombatRoundTime: Cat Form 1.0, Bear and Dire Bear Form 2.5 sec).
+
 It also writes tests/fixtures/coefficient_rows.json, the raw rows behind the spells the tests check,
 so test_coefficients.lua can work the shares out again from the client's numbers.
 """
@@ -38,7 +41,7 @@ from pathlib import Path
 root = Path(__file__).resolve().parent.parent
 CACHE = root / "tools" / "db2-cache"
 FOREVER = "1.60.1.70009"
-TABLES = ("SpellEffect", "SpellMisc", "SpellDuration", "SpellItemEnchantment", "SpellName")
+TABLES = ("SpellEffect", "SpellMisc", "SpellDuration", "SpellItemEnchantment", "SpellName", "SpellShapeshiftForm")
 
 # Effects and auras that carry damage or healing
 DIRECT_DAMAGE = {2, 9, 62}          # school damage, health leech, power burn (Mana Burn)
@@ -50,6 +53,7 @@ PERIODIC_TRIGGER = 23               # casts a spell every tick
 PROC_TRIGGER = 42                   # casts a spell on a proc
 PER_STRIKE = {15, 43}               # damage shield (Thorns), proc damage (Holy Shield)
 TRIGGER_SPELL = 64
+SHAPESHIFT = 36                     # the form is EffectMiscValue_0, a SpellShapeshiftForm row
 # The two builds number some effects differently: a trap's object is 104 on Forever and 320 on Era,
 # a weapon imbue 360 on Forever and 54 on Era (the report below lists the spells, to check)
 SUMMONS = {28, 104, 320}
@@ -109,6 +113,16 @@ class Client:
                 self.duration[int(r["SpellID"])] = durations.get(r["DurationIndex"], 0)
         self.enchants = {r["ID"]: r for r in rows("SpellItemEnchantment", build)}
         self.names = {int(r["ID"]): r["Name_lang"] for r in rows("SpellName", build)}
+        self.round_time = {r["ID"]: int(r["CombatRoundTime"]) for r in rows("SpellShapeshiftForm", build)}
+
+    def form_speed(self, sid):
+        """The swing time of the form a shapeshift spell turns into (Cat Form 1.0), in seconds, or None."""
+        for e in self.effects.get(sid, []):
+            if int(e["EffectAura"]) == SHAPESHIFT:
+                ms = self.round_time.get(e["EffectMiscValue_0"], 0)
+                if ms > 0:
+                    return ms / 1000
+        return None
 
     def ticks(self, sid, period):
         d = self.duration.get(sid, 0)
@@ -241,6 +255,14 @@ def main():
             lines.append("    " + ",".join(out[i:i + per_line]) + ",")
         lines.append("  },")
         report[key] = (len(out), n_summon, n_ap, unlinked)
+    lines.append("}")
+    lines.append("")
+    lines.append("-- [spell id] = the swing time in seconds of the form the spell shifts into")
+    lines.append("-- (SpellShapeshiftForm.CombatRoundTime): what its attack power counts per hit")
+    lines.append("ns.FormSpeeds = {")
+    for key, client in clients.items():
+        speeds = [f"[{sid}]={fmt(client.form_speed(sid))}" for sid in ids if client.form_speed(sid)]
+        lines.append(f"  {key} = {{ " + ", ".join(speeds) + " },")
     lines.append("}")
     lines.append("")
     (root / "SpellCoefficients.lua").write_text("\n".join(lines), encoding="utf-8", newline="\n")

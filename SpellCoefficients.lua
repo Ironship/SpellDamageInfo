@@ -194,3 +194,10 @@ ns.SpellCoefficients = {
     [408490]={d=0.571},[408521]={h=0.108,ho=0.25},[412758]={d=0.714},[414644]={o=0},[437009]=false,
   },
 }
+
+-- [spell id] = the swing time in seconds of the form the spell shifts into
+-- (SpellShapeshiftForm.CombatRoundTime): what its attack power counts per hit
+ns.FormSpeeds = {
+  forever = { [768]=1, [5487]=2.5, [9634]=2.5 },
+  era = { [768]=1, [5487]=2.5, [9634]=2.5 },
+}

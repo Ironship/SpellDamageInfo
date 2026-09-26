@@ -150,6 +150,13 @@ local function spellCoefficients(spellID)
 end
 ns.SpellCoefficientsFor = spellCoefficients
 
+-- The swing time of the form a shapeshift spell turns into (Cat Form 1.0 sec), or nil.
+local function formSpeed(spellID)
+  local all, client = ns.FormSpeeds, coefficientClient()
+  if type(all) ~= "table" or not client or type(all[client]) ~= "table" then return nil end
+  return all[client][spellID]
+end
+
 -- Last readable spell power by school index (2..7) and for healing. In combat the client may
 -- return secret values; then the last value read out of combat stays in use.
 local bonus = { damage = {}, heal = nil }
@@ -245,12 +252,15 @@ end
 -- Two things make it an estimate, and the tooltip says so: the speed is the one the client
 -- reports, which haste shortens, and instant attacks count attack power at a normalised weapon
 -- speed rather than the real one; either moves the number by a few percent. Cat Form's
--- "plus Agility" is left out of the gain and named in the tooltip.
-function ns.WeaponView(w, stats)
+-- "plus Agility" is left out of the gain and named in the tooltip. formSpeed: the swing time of
+-- the form the spell shifts into (Cat or Bear Form), which its attack power counts in whatever
+-- form the player is in now.
+function ns.WeaponView(w, stats, formSpeed)
   if type(w) ~= "table" or type(stats) ~= "table" then return nil end
   local hit = w.ranged and stats.ranged or stats.melee
   local speed = w.ranged and stats.rangedSpeed or stats.meleeSpeed
   if w.kind == "ap" then
+    if formSpeed then speed = formSpeed end
     if not speed then return nil end
     -- Seal of the Crusader: its hits come 40% faster, so each counts the attack power over a
     -- shorter swing
@@ -421,7 +431,7 @@ function ns.Compute(spellID, pet)
   -- Parse finds in some of them ("causing 115 additional damage") is only the part on top.
   if show == "weapon" then
     if pet or not db.weapon then return nil end
-    local w = ns.WeaponView(entry.weapon, weaponStats)
+    local w = ns.WeaponView(entry.weapon, weaponStats, formSpeed(spellID))
     view = w and { weapon = w } or nil
   elseif show == "judgement" then
     return judgementView(pet)
