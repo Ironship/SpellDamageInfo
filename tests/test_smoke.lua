@@ -454,8 +454,8 @@ for line in toc:gmatch("[^\r\n]+") do
     loaded[#loaded + 1] = line
   end
 end
-T.check(#loaded == 6, "toc lists six files")
-T.eq(loaded[6], "Options.lua", "Options.lua loads after Core.lua")
+T.check(#loaded == 7, "toc lists seven files")
+T.eq(loaded[7], "Options.lua", "Options.lua loads after Core.lua")
 T.check(type(ns.AllSpellIDs) == "string" and #ns.AllSpellIDs > 5000, "SpellIDs.lua gives the ids for /sdi dump all")
 T.check(ns.DescriptionLang() == nil and ns.InterfaceLang() == nil, "languages not decided yet at file load")
 
@@ -482,9 +482,10 @@ T.check(ok, "PLAYER_LOGIN runs: " .. tostring(err))
 flush()
 
 T.check(#ns._buttons == 96, "found all 96 buttons on eight bars, got " .. #ns._buttons)
-T.eq(shown(ActionButton1), "922", "Corruption 822 + 100 spell power x 1.0")
-T.eq(shown(ActionButton2), "567", "Shadow Bolt avg 481 + 100 x 3/3.5")
-T.eq(shown(ActionButton3), "831", "Immolate 279 + 510 + 50 x (0.2078 + 0.6364)")
+-- The shares are Forever's own for these spell ids (SpellCoefficients.lua), not the rules'
+T.eq(shown(ActionButton1), "902", "Corruption 822 + 100 spell power x 0.8")
+T.eq(shown(ActionButton2), "530", "Shadow Bolt avg 481 + 100 x 0.486")
+T.eq(shown(ActionButton3), "832", "Immolate 279 + 510 + 50 x (0.2 + 0.65)")
 T.eq(shown(ActionButton4), nil, "item: no number")
 T.eq(shown(ActionButton5), nil, "Drain Mana: no number")
 T.eq(shown(ActionButton6), "355", "Drain Life 71 x 5, no school so no estimate")
@@ -492,7 +493,7 @@ T.eq(shown(ActionButton7), "1530", "Health Funnel heal 153 x 10")
 T.check(label(ActionButton7) and label(ActionButton7).color[2] == 1, "heals are green")
 T.eq(shown(ActionButton8), nil, "spell text not loaded yet")
 T.eq(shown(ActionButton12), nil, "secret spell id: no number, no error")
-T.eq(shown(MultiBarBottomLeftButton1), "922", "second bar (slot 61)")
+T.eq(shown(MultiBarBottomLeftButton1), "902", "second bar (slot 61)")
 T.eq(shown(MultiBar5Button1), nil, "secret slot: no number, no error")
 for button, fs in pairs(ns._labels) do
   T.check(#fs.points >= 1 and fs.points[1][2] == button, "label anchored to its button " .. tostring(button.name))
@@ -553,11 +554,11 @@ T.check(#postCalls == 2 and postCalls[1].kind == Enum.TooltipDataType.Spell
 local tip = { lines = {} }
 function tip:AddLine(t) self.lines[#self.lines + 1] = t end
 postCalls[1].fn(tip, { id = 172, type = 1 })
-T.eq(tip.lines[1], "Schaden \195\188ber Zeit: 922 in 18 Sek. (inkl. +100 durch Zaubermacht, gesch\195\164tzt)", "tooltip line (German)")
+T.eq(tip.lines[1], "Schaden \195\188ber Zeit: 902 in 18 Sek. (inkl. +80 durch Zaubermacht, gesch\195\164tzt)", "tooltip line (German)")
 tip.lines = {}
 postCalls[1].fn(tip, { id = 348, type = 1 })
 T.eq(tip.lines[1], "Schaden: 289 (inkl. +10 durch Zaubermacht, gesch\195\164tzt)", "Immolate direct line")
-T.eq(tip.lines[2], "Schaden \195\188ber Zeit: 542 in 15 Sek. (inkl. +32 durch Zaubermacht, gesch\195\164tzt)", "Immolate DoT line")
+T.eq(tip.lines[2], "Schaden \195\188ber Zeit: 543 in 15 Sek. (inkl. +33 durch Zaubermacht, gesch\195\164tzt)", "Immolate DoT line")
 tip.lines = {}
 postCalls[1].fn(tip, { id = 702, type = 1 })
 T.eq(tip.lines[1], "Schaden des Gegners: -3", "tooltip: Curse of Weakness")
@@ -816,10 +817,33 @@ fire("SPELLS_CHANGED")
 flush()
 T.eq(shown(ActionButton1), "822", "Retail: Corruption without the spell power estimate")
 T.eq(shown(MultiBarBottomLeftButton2), nil, "Retail: no weapon arithmetic on Heroic Strike")
+-- Classic Era takes Era's own shares (Corruption r1 0.08 x 4, Shadow Bolt r1 0.14 with the penalty
+-- for a spell learned before level 20); a client with no table of its own, the rules
+GetBuildInfo = function() return "1.15.9", "69722", "Sep 1 2026", 11509 end
+fire("SPELLS_CHANGED")
+flush()
+T.eq(shown(ActionButton1), "854", "Classic Era: Corruption 822 + 100 x 0.32")
+T.eq(shown(ActionButton2), "495", "Classic Era: Shadow Bolt 481 + 100 x 0.14")
+GetBuildInfo = function() return "2.5.5", "65000", "Sep 1 2026", 20505 end
+fire("SPELLS_CHANGED")
+flush()
+T.eq(shown(ActionButton1), "922", "another client: Corruption 822 + 100 x 18 / 15 capped at 1")
+T.eq(shown(ActionButton2), "567", "another client: Shadow Bolt 481 + 100 x 3 / 3.5")
 GetBuildInfo = buildInfo
 fire("SPELLS_CHANGED")
 flush()
-T.eq(shown(ActionButton1), "922", "back on Forever: the estimate again")
+T.eq(shown(ActionButton1), "902", "back on Forever: the estimate again")
+-- A totem attacks with its own spell, which the tables do not name: no share of the summoning
+-- spell's cast time, even when the client reports one
+spellPower[3] = 300
+castTimes[10438] = 0
+fire("UNIT_AURA", "player")
+flush()
+T.eq(shown(MultiBarBottomLeftButton11), "47", "Searing Totem with fire power: still 40-54 per attack")
+spellPower[3] = 50
+castTimes[10438] = nil
+fire("UNIT_AURA", "player")
+flush()
 
 -- /sdi dump
 local dumpBefore = #messages
@@ -865,15 +889,15 @@ ns.AllSpellIDs = allIDs
 spellPower[6] = SECRET
 ok, err = pcall(function() fire("UNIT_AURA", "player"); flush() end)
 T.check(ok, "secret spell power does not error: " .. tostring(err))
-T.eq(shown(ActionButton1), "922", "secret spell power: last value kept")
+T.eq(shown(ActionButton1), "902", "secret spell power: last value kept")
 spellPower[6] = 200
 fire("PLAYER_REGEN_ENABLED")
 flush()
-T.eq(shown(ActionButton1), "1022", "spell power read again after combat")
+T.eq(shown(ActionButton1), "982", "spell power read again after combat")
 spellPower[6] = 100
 fire("PLAYER_EQUIPMENT_CHANGED")
 flush()
-T.eq(shown(ActionButton1), "922", "gear change updates")
+T.eq(shown(ActionButton1), "902", "gear change updates")
 
 -- A description that changes with no SPELL_TEXT_UPDATE (as after Resurrection Sickness): read again once
 -- two seconds have passed since that spell was last looked at, not on every update.
@@ -881,21 +905,21 @@ local corruptionText = descriptions[172]
 descriptions[172] = "Verdirbt das Ziel und verursacht 18 Sek. lang 206 Punkt(e) Schattenschaden."
 fire("UNIT_AURA", "player")
 flush()
-T.eq(shown(ActionButton1), "922", "within two seconds of the last look: the text is not read again")
+T.eq(shown(ActionButton1), "902", "within two seconds of the last look: the text is not read again")
 clock = clock + 3
 fire("UNIT_AURA", "player")
 flush()
-T.eq(shown(ActionButton1), "306", "after two seconds a changed description is read again (206 + 100)")
+T.eq(shown(ActionButton1), "286", "after two seconds a changed description is read again (206 + 80)")
 descriptions[172] = SECRET
 clock = clock + 3
 fire("UNIT_AURA", "player")
 flush()
-T.eq(shown(ActionButton1), "306", "a description that cannot be read keeps the text read last")
+T.eq(shown(ActionButton1), "286", "a description that cannot be read keeps the text read last")
 descriptions[172] = corruptionText
 clock = clock + 3
 fire("UNIT_AURA", "player")
 flush()
-T.eq(shown(ActionButton1), "922", "the text back: the full number again, without a /reload")
+T.eq(shown(ActionButton1), "902", "the text back: the full number again, without a /reload")
 
 -- /sdi: language
 local langBefore = #messages
@@ -944,7 +968,7 @@ SlashCmdList.SPELLDAMAGEINFO("estimate on")
 SlashCmdList.SPELLDAMAGEINFO("tooltip")
 flush()
 T.eq(SpellDamageInfoDB.tooltip, true, "tooltip toggled back on")
-T.eq(shown(ActionButton1), "922", "back to total with estimate")
+T.eq(shown(ActionButton1), "902", "back to total with estimate")
 local before = #messages
 SlashCmdList.SPELLDAMAGEINFO("button sideways")
 T.check(#messages == before + 1 and messages[#messages]:find("Unbekannte Option"), "bad option answered in German")
@@ -1081,7 +1105,7 @@ local function sameAsBar(what)
     T.eq(mock.justify, real.justify, what .. ": preview justify as on the bar")
   end
 end
-T.eq(mockText(1), "831", "preview: Immolate with the estimate")
+T.eq(mockText(1), "832", "preview: Immolate with the estimate")
 sameAsBar("defaults")
 T.eq(mockText(2), "36", "preview: Screech damage")
 T.eq(mockSide(2), "-100", "preview: Screech reduction next to it")
@@ -1110,7 +1134,7 @@ sameAsBar("estimate off")
 clicked(rows.estimate.widget)
 flush()
 T.eq(SpellDamageInfoDB.estimate, true, "estimate box: on again")
-T.eq(shown(ActionButton3), "831", "estimate box: bar with the estimate again")
+T.eq(shown(ActionButton3), "832", "estimate box: bar with the estimate again")
 
 clicked(rows.tooltip.widget)
 T.eq(SpellDamageInfoDB.tooltip, false, "tooltip box: setting off")
@@ -1237,7 +1261,7 @@ T.eq(rows.button.text.text, DE.OPT_BUTTON_TOTAL, "reset: button menu shows total
 T.eq(bar.value, 100, "reset: slider back")
 T.eq(rows.interfaceLang.text.text, DE.LANG_AUTO, "reset: language back to auto")
 T.check(ns.L.DAMAGE == "Schaden", "reset: interface strings back to German (auto)")
-T.eq(mockText(1), "831", "reset: preview back")
+T.eq(mockText(1), "832", "reset: preview back")
 flush()
 sameAsBar("reset")
 
@@ -1314,11 +1338,11 @@ T.eq(shown(ActionButton8), "110", "late spell text shows up after SPELL_TEXT_UPD
 actions[1] = { "spell", 348 }
 fire("ACTIONBAR_SLOT_CHANGED", 1)
 flush()
-T.eq(shown(ActionButton1), "831", "slot changed")
+T.eq(shown(ActionButton1), "832", "slot changed")
 ActionButton1.action = 73
 fire("UPDATE_BONUS_ACTIONBAR")
 flush()
-T.eq(shown(ActionButton1), "567", "bonus bar page")
+T.eq(shown(ActionButton1), "530", "bonus bar page")
 ActionButton1.action = 200 -- empty slot
 fire("ACTIONBAR_PAGE_CHANGED")
 flush()
@@ -1351,7 +1375,7 @@ flush()
 descriptions[686] = "Schleudert einen Schattenblitz auf den Feind, der 500 bis 600 Punkt(e) Schattenschaden verursacht."
 fire("SPELLS_CHANGED")
 flush()
-T.eq(shown(ActionButton2), "636", "SPELLS_CHANGED re-reads descriptions (550 + 85.7)")
+T.eq(shown(ActionButton2), "599", "SPELLS_CHANGED re-reads descriptions (550 + 48.6)")
 
 -- Nothing of Blizzard's was replaced
 local allowed = { SpellDamageInfoDB = true, SLASH_SPELLDAMAGEINFO1 = true }

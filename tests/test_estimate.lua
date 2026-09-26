@@ -2,7 +2,8 @@
 --
 --   lua tests/test_estimate.lua [addon folder]
 --
--- Reference coefficients are worked out by hand from the Classic rules:
+-- The rules below are what a spell gets when SpellCoefficients.lua (test_coefficients.lua) does
+-- not have it. Reference coefficients are worked out by hand from the Classic rules:
 --   direct a = max(1.5, min(cast, 3.5)) / 3.5, over time b = min(duration / 15, 1),
 --   both in one spell: direct a*a/(a+b), over time b*b/(a+b).
 

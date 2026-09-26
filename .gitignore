@@ -1,3 +1,4 @@
 dist/
 __pycache__/
 tools/corpus-cache/
+tools/db2-cache/

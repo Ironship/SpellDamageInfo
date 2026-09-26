@@ -27,15 +27,16 @@ local MOCK_SCALE = 1.5   -- the preview magnifies the whole button, number and a
 local SIZE_STEP = 5
 
 -- The preview's sample spells, as the parser would read them, with 50 spell power in every
--- school: Immolate (direct and over time, 2 sec cast), a pet's Screech (damage and a reduction
--- next to it) and Curse of Weakness (a reduction alone); under them, with a 2.6 sec weapon
--- that hits for 120 on average, Heroic Strike (a weapon hit plus 157) and Forever's Rockbiter
--- Weapon (554 attack power, shown as what it adds to each hit).
+-- school: Immolate r8 (direct and over time, 2 sec cast, the client's shares for spell 25309), a
+-- pet's Screech (damage and a reduction next to it) and Curse of Weakness (a reduction alone);
+-- under them, with a 2.6 sec weapon that hits for 120 on average, Heroic Strike (a weapon hit plus
+-- 157) and Forever's Rockbiter Weapon (554 attack power, shown as what it adds to each hit).
 local SAMPLE_POWER = { [2] = 50, [3] = 50, [4] = 50, [5] = 50, [6] = 50, [7] = 50 }
 local SAMPLE_WEAPON = { melee = 120, meleeSpeed = 2.6 }
 local PER_ROW = 3
 local SAMPLES = {
   { name = "OPT_SAMPLE_1", icon = "Interface\\Icons\\Spell_Fire_Immolation", hotkey = "1", castTime = 2,
+    spellID = 25309,
     parsed = { school = "fire", direct = { min = 279, max = 279 }, dot = { total = 510, duration = 15 } } },
   { name = "OPT_SAMPLE_2", icon = "Interface\\Icons\\Ability_Hunter_Pet_Bat", hotkey = "2", castTime = 0,
     parsed = { direct = { min = 26, max = 46 } },
@@ -88,7 +89,8 @@ local function sampleText(sample)
     view = w and { weapon = w } or nil
   elseif sample.parsed then
     local bonus = db().estimate and Estimate.DamageBonus(sample.parsed.school, SAMPLE_POWER) or nil
-    view = Estimate.Apply(sample.parsed, sample.castTime, bonus, nil)
+    local coef = sample.spellID and ns.SpellCoefficientsFor and ns.SpellCoefficientsFor(sample.spellID) or nil
+    view = Estimate.Apply(sample.parsed, sample.castTime, bonus, nil, coef)
   end
   return ns.ButtonText(view, sample.reduction)
 end

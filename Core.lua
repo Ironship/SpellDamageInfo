@@ -128,6 +128,28 @@ local function isRetail()
 end
 ns.IsRetail = isRetail
 
+-- Which client's spell tables SpellCoefficients.lua holds for this one: "forever" (1.60),
+-- "era" (1.15), or nil for any other client.
+local function coefficientClient()
+  if type(GetBuildInfo) ~= "function" then return nil end
+  local ok, version = pcall(GetBuildInfo)
+  if not ok or isSecret(version) or type(version) ~= "string" then return nil end
+  local major, minor = version:match("^(%d+)%.(%d+)")
+  if tonumber(major) ~= 1 then return nil end
+  return (tonumber(minor) >= 60) and "forever" or "era"
+end
+
+-- The spell's entry in SpellCoefficients for the running client: a table of shares, false (a
+-- totem or trap, whose own spell the tables do not name), or nil when the tables have nothing.
+local function spellCoefficients(spellID)
+  local all, client = ns.SpellCoefficients, coefficientClient()
+  if type(all) ~= "table" or not client or type(spellID) ~= "number" then return nil end
+  local byID = all[client]
+  if type(byID) ~= "table" then return nil end
+  return byID[spellID]
+end
+ns.SpellCoefficientsFor = spellCoefficients
+
 -- Last readable spell power by school index (2..7) and for healing. In combat the client may
 -- return secret values; then the last value read out of combat stays in use.
 local bonus = { damage = {}, heal = nil }
@@ -336,12 +358,16 @@ local function spellName(spellID)
   return nil
 end
 
--- noBonus: the description's own number, without spell power. A chance effect is not the cast's
--- own hit, so the cast time rule would give it a share of spell power it does not get.
+-- The client's own share of spell power where SpellCoefficients has the spell, Classic's rules
+-- otherwise. A totem or trap (false there) shows the description's own number, as a pet's spell
+-- does. noBonus: a chance effect; the cast time rule would give it a share of spell power it does
+-- not get, so without the tables' share for what it triggers it shows the description's number.
 local function withEstimate(parsed, spellID, pet, castTime, noBonus)
-  if pet or noBonus or not db.estimate or isRetail() then return Estimate.Apply(parsed, nil, nil, nil) end
+  if pet or not db.estimate or isRetail() then return Estimate.Apply(parsed, nil, nil, nil) end
+  local coef = spellCoefficients(spellID)
+  if coef == false or (noBonus and not coef) then return Estimate.Apply(parsed, nil, nil, nil) end
   if castTime == nil then castTime = getCastTime(spellID) end
-  return Estimate.Apply(parsed, castTime, Estimate.DamageBonus(parsed.school, bonus.damage), bonus.heal)
+  return Estimate.Apply(parsed, castTime, Estimate.DamageBonus(parsed.school, bonus.damage), bonus.heal, coef)
 end
 
 local function specialView(s, spellID, pet, noBonus)

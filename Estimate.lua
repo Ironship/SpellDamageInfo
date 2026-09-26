@@ -1,4 +1,5 @@
--- SpellDamageInfo: the optional spell-power estimate (Classic rules) and the button value.
+-- SpellDamageInfo: the optional spell-power estimate (the client's own shares, Classic's rules
+-- where it has none) and the button value.
 -- Copyright (c) 2026 Ironship. MIT licence, see LICENSE.
 -- Pure Lua 5.1, no game API.
 
@@ -26,7 +27,7 @@ function Estimate.DamageBonus(school, bonusByIndex)
   return index and bonusByIndex[index] or nil
 end
 
--- Classic spell coefficients.
+-- Classic's rules, for a spell SpellCoefficients does not have.
 --   direct: cast time / 3.5, cast times under 1.5 sec (instants) count as 1.5, capped at 3.5 sec
 --   over time: duration / 15, capped at 1
 --   both in one spell: the two are split so the over-time part gets
@@ -58,17 +59,35 @@ local function copyPeriodic(p, add)
   return { total = p.total + add, duration = p.duration, added = add }
 end
 
+-- The client's shares for a reading's two parts, from a SpellCoefficients entry (direct and over
+-- time, keys dKey and oKey). A reading with one part takes the entry's one part whichever it is:
+-- the text and the tables need not agree on which it is (Arcane Missiles reads as damage over time
+-- and is a missile every second).
+local function tableShares(coef, directPart, periodicPart, dKey, oKey)
+  if type(coef) ~= "table" then return nil, nil end
+  local d, o = coef[dKey], coef[oKey]
+  if directPart and not periodicPart and d == nil and o ~= nil then return o, nil end
+  if periodicPart and not directPart and o == nil and d ~= nil then return nil, d end
+  return d, o
+end
+
 -- Numbers to show for a parsed description. castTime (seconds) may be nil when unknown; then
 -- a part that needs it gets no estimate. damageBonus / healBonus nil or 0 means no estimate.
-function Estimate.Apply(parsed, castTime, damageBonus, healBonus)
+-- coef: the spell's entry in SpellCoefficients for the running client, or nil. With an entry the
+-- shares are the entry's, and a part it has none for (damage an area trigger or a second spell
+-- does, which the tables do not link) gets no estimate; without one, the rules above.
+function Estimate.Apply(parsed, castTime, damageBonus, healBonus, coef)
   if not parsed then return nil end
   local view = { school = parsed.school, estimated = false }
 
-  local function pair(directPart, periodicPart, bonus, directKey, periodicKey)
+  local function pair(directPart, periodicPart, bonus, directKey, periodicKey, dKey, oKey)
     local usable = type(bonus) == "number" and bonus > 0
-    if directPart and castTime == nil then usable = false end
     local cDirect, cPeriodic
-    if usable then
+    if type(coef) == "table" then
+      cDirect, cPeriodic = tableShares(coef, directPart, periodicPart, dKey, oKey)
+    elseif directPart and castTime == nil then
+      usable = false
+    elseif usable then
       cDirect, cPeriodic = Estimate.Coefficients(castTime, directPart ~= nil, periodicPart and periodicPart.duration)
     end
     if directPart then
@@ -83,8 +102,8 @@ function Estimate.Apply(parsed, castTime, damageBonus, healBonus)
     end
   end
 
-  pair(parsed.direct, parsed.dot, damageBonus, "direct", "dot")
-  pair(parsed.heal, parsed.hot, healBonus, "heal", "hot")
+  pair(parsed.direct, parsed.dot, damageBonus, "direct", "dot", "d", "o")
+  pair(parsed.heal, parsed.hot, healBonus, "heal", "hot", "h", "ho")
   return view
 end
 

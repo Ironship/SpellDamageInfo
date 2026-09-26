@@ -1,0 +1,1752 @@
+{
+ "era": {
+  "build": "1.15.9.69722",
+  "spells": {
+   "10187": {
+    "duration": 8000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.04199999943,
+      "effect": 27,
+      "enchantSpells": [],
+      "period": 1000,
+      "target": 28,
+      "trigger": 0
+     }
+    ],
+    "name": "Blizzard"
+   },
+   "10202": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.14300000668,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 22,
+      "trigger": 0
+     }
+    ],
+    "name": "Arcane Explosion"
+   },
+   "10301": {
+    "duration": -1,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 15,
+      "coef": 0.0,
+      "effect": 35,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 1,
+      "trigger": 0
+     }
+    ],
+    "name": "Retribution Aura"
+   },
+   "10318": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.18999999762,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 22,
+      "trigger": 0
+     }
+    ],
+    "name": "Holy Wrath"
+   },
+   "10438": {
+    "duration": 55000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.0,
+      "effect": 28,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 44,
+      "trigger": 0
+     }
+    ],
+    "name": "Searing Totem"
+   },
+   "10463": {
+    "duration": 60000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.0,
+      "effect": 28,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 42,
+      "trigger": 0
+     }
+    ],
+    "name": "Healing Stream Totem"
+   },
+   "10876": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.0,
+      "effect": 62,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Mana Burn"
+   },
+   "10894": {
+    "duration": 18000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.16699999571,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 3000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Shadow Word: Pain"
+   },
+   "11682": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.02199999988,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 18,
+      "trigger": 0
+     }
+    ],
+    "name": "Hellfire Effect"
+   },
+   "11684": {
+    "duration": 15000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 23,
+      "coef": 1.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 1000,
+      "target": 1,
+      "trigger": 11682
+     },
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.02199999988,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 1000,
+      "target": 1,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 77,
+      "coef": 1.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 1,
+      "trigger": 0
+     }
+    ],
+    "name": "Hellfire"
+   },
+   "11695": {
+    "duration": 10000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 8,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 1000,
+      "target": 5,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 88,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 1,
+      "trigger": 0
+     }
+    ],
+    "name": "Health Funnel"
+   },
+   "11700": {
+    "duration": 5000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 53,
+      "coef": 0.10000000149,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 1000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Drain Life"
+   },
+   "11713": {
+    "duration": 24000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.08299999684,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 2000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Curse of Agony"
+   },
+   "139": {
+    "duration": 15000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 8,
+      "coef": 0.1099999994,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 3000,
+      "target": 21,
+      "trigger": 0
+     }
+    ],
+    "name": "Renew"
+   },
+   "14287": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.42899999022,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Arcane Shot"
+   },
+   "14305": {
+    "duration": 60000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 1.0,
+      "effect": 320,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 47,
+      "trigger": 0
+     }
+    ],
+    "name": "Immolation Trap"
+   },
+   "16353": {
+    "duration": 8000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 33,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.10000000149,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Frostbrand Attack"
+   },
+   "16356": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.0,
+      "effect": 54,
+      "enchantSpells": [
+       16353
+      ],
+      "period": 0,
+      "target": 0,
+      "trigger": 0
+     }
+    ],
+    "name": "Frostbrand Weapon"
+   },
+   "17926": {
+    "duration": 3000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.21400000155,
+      "effect": 9,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 7,
+      "coef": 1.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Death Coil"
+   },
+   "18807": {
+    "duration": 3000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.15000000596,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 1000,
+      "target": 6,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 33,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Mind Flay"
+   },
+   "18809": {
+    "duration": 12000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 1.0,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.15000000596,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 3000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Pyroblast"
+   },
+   "18881": {
+    "duration": 30000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 53,
+      "coef": 0.05000000075,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 3000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Siphon Life"
+   },
+   "19280": {
+    "duration": 24000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 53,
+      "coef": 0.06300000101,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 3000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Devouring Plague"
+   },
+   "19305": {
+    "duration": 6000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.16699999571,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 1000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Starshards"
+   },
+   "20116": {
+    "duration": 8000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.04199999943,
+      "effect": 27,
+      "enchantSpells": [],
+      "period": 1000,
+      "target": 18,
+      "trigger": 0
+     }
+    ],
+    "name": "Consecration"
+   },
+   "20424": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.28999999166,
+      "effect": 31,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Seal of Command"
+   },
+   "2050": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.1230000034,
+      "effect": 10,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 21,
+      "trigger": 0
+     }
+    ],
+    "name": "Lesser Heal"
+   },
+   "20920": {
+    "duration": 30000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 42,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 1,
+      "trigger": 20424
+     },
+     {
+      "ap": 0.0,
+      "aura": 4,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 1,
+      "trigger": 0
+     }
+    ],
+    "name": "Seal of Command"
+   },
+   "20928": {
+    "duration": 10000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 51,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 1,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 43,
+      "coef": 0.05000000075,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 1,
+      "trigger": 0
+     }
+    ],
+    "name": "Holy Shield"
+   },
+   "25295": {
+    "duration": 15000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.20000000298,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 3000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Serpent Sting"
+   },
+   "25304": {
+    "duration": 9000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 33,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.81400001049,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Frostbolt"
+   },
+   "25306": {
+    "duration": 8000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 1.0,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 2000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Fireball"
+   },
+   "25311": {
+    "duration": 18000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.16699999571,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 3000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Corruption"
+   },
+   "25316": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.28600001335,
+      "effect": 10,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 20,
+      "trigger": 0
+     }
+    ],
+    "name": "Prayer of Healing"
+   },
+   "25345": {
+    "duration": 5000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 23,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 1000,
+      "target": 1,
+      "trigger": 25346
+     },
+     {
+      "ap": 0.0,
+      "aura": 4,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Arcane Missiles"
+   },
+   "25346": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.23999999464,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Arcane Missiles"
+   },
+   "27801": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.10700000077,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 22,
+      "trigger": 0
+     }
+    ],
+    "name": "Holy Nova"
+   },
+   "401502": {
+    "duration": 9000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 33,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 1.0,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 3000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Frostfire Bolt"
+   },
+   "585": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.1230000034,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Smite"
+   },
+   "603": {
+    "duration": 60000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 1.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 60000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Curse of Doom"
+   },
+   "774": {
+    "duration": 12000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 8,
+      "coef": 0.07999999821,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 3000,
+      "target": 21,
+      "trigger": 0
+     }
+    ],
+    "name": "Rejuvenation"
+   },
+   "9863": {
+    "duration": 10000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 8,
+      "coef": 0.06700000167,
+      "effect": 35,
+      "enchantSpells": [],
+      "period": 2000,
+      "target": 1,
+      "trigger": 0
+     }
+    ],
+    "name": "Tranquility"
+   },
+   "9910": {
+    "duration": 600000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 15,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 21,
+      "trigger": 0
+     }
+    ],
+    "name": "Thorns"
+   }
+  }
+ },
+ "forever": {
+  "build": "1.60.1.70009",
+  "spells": {
+   "10187": {
+    "duration": 8000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.02999999933,
+      "effect": 3,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 87,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.0,
+      "effect": 179,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 87,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 226,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 1000,
+      "target": 1,
+      "trigger": 0
+     }
+    ],
+    "name": "Blizzard"
+   },
+   "10202": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.14300000668,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 22,
+      "trigger": 0
+     }
+    ],
+    "name": "Arcane Explosion"
+   },
+   "10301": {
+    "duration": -1,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 15,
+      "coef": 0.0,
+      "effect": 35,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 1,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 118,
+      "coef": 1.0,
+      "effect": 35,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 1,
+      "trigger": 0
+     }
+    ],
+    "name": "Retribution Aura"
+   },
+   "10318": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.18999999762,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 22,
+      "trigger": 0
+     }
+    ],
+    "name": "Holy Wrath"
+   },
+   "10438": {
+    "duration": 55000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.0,
+      "effect": 28,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 44,
+      "trigger": 0
+     }
+    ],
+    "name": "Searing Totem"
+   },
+   "10463": {
+    "duration": 300000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.0,
+      "effect": 28,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 42,
+      "trigger": 0
+     }
+    ],
+    "name": "Healing Stream Totem"
+   },
+   "10876": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.0,
+      "effect": 62,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Mana Burn"
+   },
+   "10894": {
+    "duration": 18000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.20000000298,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 3000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Shadow Word: Pain"
+   },
+   "11682": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.02199999988,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 18,
+      "trigger": 0
+     }
+    ],
+    "name": "Hellfire Effect"
+   },
+   "11684": {
+    "duration": 15000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 23,
+      "coef": 1.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 1000,
+      "target": 1,
+      "trigger": 11682
+     },
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.02199999988,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 1000,
+      "target": 1,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 77,
+      "coef": 1.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 1,
+      "trigger": 0
+     }
+    ],
+    "name": "Hellfire"
+   },
+   "11695": {
+    "duration": 10000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 8,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 1000,
+      "target": 5,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 88,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 1,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 10,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 5,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 1000,
+      "target": 1,
+      "trigger": 0
+     }
+    ],
+    "name": "Health Funnel"
+   },
+   "11700": {
+    "duration": 5000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 53,
+      "coef": 0.10000000149,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 1000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Drain Life"
+   },
+   "11713": {
+    "duration": 24000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.13300000131,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 2000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Bane of Agony"
+   },
+   "139": {
+    "duration": 15000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 8,
+      "coef": 0.20000000298,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 3000,
+      "target": 21,
+      "trigger": 0
+     }
+    ],
+    "name": "Renew"
+   },
+   "14287": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.0,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Arcane Shot"
+   },
+   "14305": {
+    "duration": 60000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 1.0,
+      "effect": 104,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 47,
+      "trigger": 0
+     }
+    ],
+    "name": "Immolation Trap"
+   },
+   "16353": {
+    "duration": 8000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 33,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.10000000149,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Frostbrand Attack"
+   },
+   "16356": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.0,
+      "effect": 360,
+      "enchantSpells": [
+       16353
+      ],
+      "period": 0,
+      "target": 0,
+      "trigger": 0
+     }
+    ],
+    "name": "Frostbrand Weapon"
+   },
+   "17926": {
+    "duration": 3000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.21400000155,
+      "effect": 9,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 7,
+      "coef": 1.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Death Coil"
+   },
+   "18807": {
+    "duration": 3000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.16699999571,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 1000,
+      "target": 6,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 33,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Mind Flay"
+   },
+   "18809": {
+    "duration": 12000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 1.0,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.15000000596,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 3000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Pyroblast"
+   },
+   "18881": {
+    "duration": 30000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 53,
+      "coef": 0.05000000075,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 3000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Siphon Life"
+   },
+   "19280": {
+    "duration": 24000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 53,
+      "coef": 0.10000000149,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 3000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Devouring Plague"
+   },
+   "19305": {
+    "duration": 6000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.16699999571,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 1000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Starshards"
+   },
+   "20116": {
+    "duration": 8000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.0,
+      "effect": 3,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 18,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.0,
+      "effect": 179,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 87,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 226,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 1000,
+      "target": 1,
+      "trigger": 0
+     }
+    ],
+    "name": "Consecration"
+   },
+   "20424": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.28999999166,
+      "effect": 31,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Seal of Command"
+   },
+   "2050": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.42899999022,
+      "effect": 10,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 21,
+      "trigger": 0
+     }
+    ],
+    "name": "Lesser Heal"
+   },
+   "20920": {
+    "duration": 30000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 42,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 1,
+      "trigger": 20424
+     },
+     {
+      "ap": 0.0,
+      "aura": 4,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 1,
+      "trigger": 0
+     }
+    ],
+    "name": "Seal of Command"
+   },
+   "20928": {
+    "duration": 10000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 51,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 1,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 43,
+      "coef": 0.07999999821,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 1,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 4,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 1,
+      "trigger": 0
+     }
+    ],
+    "name": "Holy Shield"
+   },
+   "25295": {
+    "duration": 15000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 3000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Serpent Sting"
+   },
+   "25304": {
+    "duration": 9000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 33,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.81400001049,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Frostbolt"
+   },
+   "25306": {
+    "duration": 8000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 1.0,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 2000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Fireball"
+   },
+   "25311": {
+    "duration": 18000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.20000000298,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 3000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Corruption"
+   },
+   "25316": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.28600001335,
+      "effect": 10,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 132,
+      "trigger": 0
+     }
+    ],
+    "name": "Prayer of Healing"
+   },
+   "25345": {
+    "duration": 5000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 23,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 1000,
+      "target": 1,
+      "trigger": 25346
+     },
+     {
+      "ap": 0.0,
+      "aura": 4,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Arcane Missiles"
+   },
+   "25346": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.28600001335,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Arcane Missiles"
+   },
+   "27801": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.10700000077,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 22,
+      "trigger": 0
+     }
+    ],
+    "name": "Holy Nova"
+   },
+   "401502": {
+    "duration": 9000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 33,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.81400001049,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     },
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 3000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Frostfire Bolt"
+   },
+   "585": {
+    "duration": 0,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 0,
+      "coef": 0.42899999022,
+      "effect": 2,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Smite"
+   },
+   "603": {
+    "duration": 60000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 3,
+      "coef": 4.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 60000,
+      "target": 6,
+      "trigger": 0
+     }
+    ],
+    "name": "Bane of Doom"
+   },
+   "774": {
+    "duration": 12000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 8,
+      "coef": 0.20000000298,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 3000,
+      "target": 21,
+      "trigger": 0
+     }
+    ],
+    "name": "Rejuvenation"
+   },
+   "9863": {
+    "duration": 10000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 8,
+      "coef": 0.06700000167,
+      "effect": 35,
+      "enchantSpells": [],
+      "period": 2000,
+      "target": 1,
+      "trigger": 0
+     }
+    ],
+    "name": "Tranquility"
+   },
+   "9910": {
+    "duration": 600000,
+    "effects": [
+     {
+      "ap": 0.0,
+      "aura": 15,
+      "coef": 0.0,
+      "effect": 6,
+      "enchantSpells": [],
+      "period": 0,
+      "target": 21,
+      "trigger": 0
+     }
+    ],
+    "name": "Thorns"
+   }
+  }
+ }
+}
