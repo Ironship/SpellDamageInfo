@@ -346,6 +346,10 @@ for barIndex, prefix in ipairs(BAR_NAMES) do
   end
 end
 ActionButton12.action = 130 -- holds a spell whose id reads as secret
+-- Forever's Totem Bar: action buttons of its own that ActionButtonUtil does not list; the first
+-- one holds Searing Totem's slot
+MultiCastActionButton1 = newFrame()
+MultiCastActionButton1.action, MultiCastActionButton1.name, MultiCastActionButton1.height = 71, "MultiCastActionButton1", 30
 MultiBar5Button1.action = SECRET
 
 -- The pet bar as Forever has it: PetActionButton1..10, also listed in PetActionBar.actionButtons.
@@ -482,7 +486,7 @@ local ok, err = pcall(fire, "PLAYER_LOGIN")
 T.check(ok, "PLAYER_LOGIN runs: " .. tostring(err))
 flush()
 
-T.check(#ns._buttons == 96, "found all 96 buttons on eight bars, got " .. #ns._buttons)
+T.check(#ns._buttons == 97, "found all 96 buttons on eight bars and the Totem Bar's one, got " .. #ns._buttons)
 -- The shares are Forever's own for these spell ids (SpellCoefficients.lua), not the rules'
 T.eq(shown(ActionButton1), "902", "Corruption 822 + 100 spell power x 0.8")
 T.eq(shown(ActionButton2), "530", "Shadow Bolt avg 481 + 100 x 0.486")
@@ -803,6 +807,7 @@ T.eq(tipFor(10901)[1], "Absorbiert: 942", "shield tooltip")
 T.eq(shown(MultiBarBottomLeftButton10), "3000", "Handauflegung heals for the paladin's maximum health, not the 550 mana")
 T.eq(tipFor(10310)[1], "Heilung: 3.000 (Eure maximale Gesundheit)", "Lay on Hands tooltip")
 T.eq(shown(MultiBarBottomLeftButton11), "47", "Totem der Verbrennung: 40-54 per attack")
+T.eq(shown(MultiCastActionButton1), "47", "the same totem on the Totem Bar")
 T.eq(tipFor(10438)[1], "Schaden: 40-54 pro Angriff", "totem attack tooltip")
 T.eq(shown(MultiBarBottomLeftButton12), "14", "Totem des heilenden Flusses: 14 per pulse")
 T.eq(tipFor(10463)[1], "Heilung: 14 alle 2 Sek.", "totem pulse tooltip")

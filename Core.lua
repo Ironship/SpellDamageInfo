@@ -484,10 +484,13 @@ end
 ---------------------------------------------------------------------------------------------
 
 -- Blizzard's action bars on Classic Era and Forever (ActionButtonUtil lists them where it
--- exists); BonusActionButton is the old stance/stealth bar of earlier Classic clients.
+-- exists); BonusActionButton is the old stance/stealth bar of earlier Classic clients, and
+-- MultiCastActionButton Forever's Totem Bar, whose buttons are action buttons that ActionButtonUtil
+-- does not list.
 local BAR_PREFIXES = {
   "ActionButton", "MultiBarBottomLeftButton", "MultiBarBottomRightButton", "MultiBarLeftButton",
   "MultiBarRightButton", "MultiBar5Button", "MultiBar6Button", "MultiBar7Button", "BonusActionButton",
+  "MultiCastActionButton",
 }
 
 local buttons = {} -- list of Blizzard action buttons
