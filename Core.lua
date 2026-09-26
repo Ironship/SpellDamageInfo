@@ -1127,6 +1127,18 @@ function ns.ResetSettings()
   requestUpdate()
 end
 
+-- Is a bar addon built on LibActionButton (Bartender4, ElvUI and others) loaded? Its buttons are
+-- its own, and only Blizzard's get numbers; /sdi status says so.
+local function barAddonLoaded()
+  if type(LibStub) ~= "table" or type(LibStub.IterateLibraries) ~= "function" then return false end
+  local ok, iter, state, key = pcall(LibStub.IterateLibraries, LibStub)
+  if not ok or type(iter) ~= "function" then return false end
+  for name in iter, state, key do
+    if type(name) == "string" and name:find("^LibActionButton%-1%.0") then return true end
+  end
+  return false
+end
+
 local function langLabel(lang)
   if lang == "en" then return L.LANG_EN end
   if lang == "de" then return L.LANG_DE end
@@ -1193,6 +1205,7 @@ local function slash(msg)
   end
   say(string.format(L.STATUS, onOff(db.estimate), db.button, onOff(db.tooltip), onOff(db.reduction), onOff(db.weapon),
     db.size, db.position, langLabel(db.interfaceLang)))
+  if cmd == "status" and barAddonLoaded() then say(L.BAR_ADDON) end
   requestUpdate()
   settingsChanged()
 end

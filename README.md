@@ -11,6 +11,8 @@ Seals show what they add to every hit (Seal of Righteousness and Flametongue Wea
 
 The pet bar shows the pet's spells too (the Imp's Firebolt, for example), with the numbers from the description only, since the pet has its own spell power.
 
+The numbers are drawn on Blizzard's own action bars, the pet bar and Forever's Totem Bar. Bars from Bartender4, ElvUI and other addons built on LibActionButton get none (`/sdi status` says so when one is loaded); the tooltip lines work with them all the same.
+
 On Retail, whose descriptions already include your stats, the numbers are the descriptions' own: the spell power estimate and the weapon arithmetic are off there.
 
 The addon's interface language (labels, chat messages, number formatting) can be switched independently of the game language via the settings window or `/sdi lang auto|en|de`. Auto follows the game's language.

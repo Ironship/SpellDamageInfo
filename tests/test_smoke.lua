@@ -1065,6 +1065,25 @@ local langBefore2 = #messages
 SlashCmdList.SPELLDAMAGEINFO("lang invalid")
 T.check(#messages == langBefore2 + 1 and messages[#messages]:find("Unbekannte Option"), "bad lang option answered in German")
 
+-- /sdi status names a bar addon built on LibActionButton, whose buttons get no numbers
+local before = #messages
+SlashCmdList.SPELLDAMAGEINFO("status")
+T.eq(#messages, before + 1, "/sdi status without a bar addon: the settings only")
+rawset(_G, "LibStub", { libs = { ["AceAddon-3.0"] = {}, ["LibActionButton-1.0"] = {} } })
+function LibStub:IterateLibraries() return pairs(self.libs) end
+before = #messages
+SlashCmdList.SPELLDAMAGEINFO("status")
+T.eq(#messages, before + 2, "/sdi status with Bartender4's library: one more line")
+T.eq(messages[#messages], "|cff66ccffSpellDamageInfo|r: " .. ns.L.BAR_ADDON, "and it says only Blizzard's bars get numbers")
+before = #messages
+SlashCmdList.SPELLDAMAGEINFO("size 100")
+T.eq(#messages, before + 1, "other commands do not repeat it")
+LibStub.libs = { ["LibActionButton-1.0-ElvUI"] = {} }
+SlashCmdList.SPELLDAMAGEINFO("status")
+T.eq(messages[#messages], "|cff66ccffSpellDamageInfo|r: " .. ns.L.BAR_ADDON, "a bar addon's own renamed copy of the library counts too")
+rawset(_G, "LibStub", nil)
+flush()
+
 -- /sdi: other commands still work with language changed
 T.check(slashTable == rawget(_G, "SlashCmdList") and type(SlashCmdList.SPELLDAMAGEINFO) == "function", "slash command added as a key")
 T.eq(SLASH_SPELLDAMAGEINFO1, "/sdi", "/sdi")
