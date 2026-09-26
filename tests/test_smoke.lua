@@ -399,7 +399,7 @@ function hooksecurefunc(t, key, fn)
   end
 end
 
-Enum = { TooltipDataType = { Spell = 1, Item = 0, PetAction = 11 } }
+Enum = { TooltipDataType = { Spell = 1, Item = 0, PetAction = 11 }, SpellBookSpellBank = { Player = 0, Pet = 1 } }
 TooltipDataProcessor = { AddTooltipPostCall = function(kind, fn) postCalls[#postCalls + 1] = { kind = kind, fn = fn } end }
 NumberFontNormalSmall = {}
 NumberFontNormal = { GetFont = function() return "Fonts\\ARIALN.TTF", 14, "OUTLINE" end }
@@ -616,6 +616,33 @@ function tip:AddLine(t) self.lines[#self.lines + 1] = t end
 postCalls[1].fn(tip, { id = 3110, type = 1 })
 T.eq(tip.lines[1], PET_LINE, "Spell tooltip on a pet button: pet line")
 T.eq(#tip.lines, 1, "Spell tooltip on a pet button: one line")
+-- Forever's spellbook: the tooltip belongs to the item's Button, and the item holds the bank. The
+-- pet page's Firebolt is the pet's spell, as on the pet bar; the player's page stays the player's.
+local bookItem = { spellBank = Enum.SpellBookSpellBank.Pet }
+local bookButton = { GetParent = function() return bookItem end }
+tip = { lines = {}, GetOwner = function() return bookButton end }
+function tip:AddLine(t) self.lines[#self.lines + 1] = t end
+postCalls[1].fn(tip, { id = 3110, type = 1 })
+T.eq(tip.lines[1], PET_LINE, "pet page of the spellbook: pet line, no spell power")
+bookItem.spellBank = Enum.SpellBookSpellBank.Player
+tip.lines = {}
+postCalls[1].fn(tip, { id = 3110, type = 1 })
+T.check(tip.lines[1] ~= nil and tip.lines[1] ~= PET_LINE and tip.lines[1]:find("Zaubermacht") ~= nil,
+  "player page of the spellbook: the player's spell power, got " .. tostring(tip.lines[1]))
+-- Classic Era's spellbook: a SpellButton, the page in SpellBookFrame.bookType
+rawset(_G, "SpellButtonMixin", { OnEnter = function() end })
+rawset(_G, "SpellBookFrame", { bookType = "pet" })
+local eraButton = { OnEnter = SpellButtonMixin.OnEnter }
+tip = { lines = {}, GetOwner = function() return eraButton end }
+function tip:AddLine(t) self.lines[#self.lines + 1] = t end
+postCalls[1].fn(tip, { id = 3110, type = 1 })
+T.eq(tip.lines[1], PET_LINE, "Classic Era spellbook, pet page: pet line")
+SpellBookFrame.bookType = "spell"
+tip.lines = {}
+postCalls[1].fn(tip, { id = 3110, type = 1 })
+T.check(tip.lines[1] ~= PET_LINE, "Classic Era spellbook, player page: not the pet line")
+rawset(_G, "SpellButtonMixin", nil)
+rawset(_G, "SpellBookFrame", nil)
 tip = { lines = {} }
 function tip:AddLine(t) self.lines[#self.lines + 1] = t end
 

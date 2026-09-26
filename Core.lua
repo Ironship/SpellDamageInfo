@@ -974,6 +974,29 @@ local function ownerPetSlot(tooltip)
   return nil
 end
 
+-- Is the tooltip's owner a spell on the spellbook's pet page? Forever's spellbook item keeps its
+-- bank (Enum.SpellBookSpellBank) on the frame that holds the button the tooltip belongs to;
+-- Classic Era's SpellButton reads the page from SpellBookFrame.bookType.
+local function ownerIsPetSpellBook(tooltip)
+  if type(tooltip.GetOwner) ~= "function" then return false end
+  local ok, owner = pcall(tooltip.GetOwner, tooltip)
+  if not ok or type(owner) ~= "table" then return false end
+  local banks = type(Enum) == "table" and Enum.SpellBookSpellBank
+  if type(banks) == "table" and banks.Pet ~= nil then
+    local item = owner
+    if owner.spellBank == nil and type(owner.GetParent) == "function" then
+      local okP, parent = pcall(owner.GetParent, owner)
+      item = okP and parent or nil
+    end
+    if type(item) == "table" and item.spellBank == banks.Pet then return true end
+  end
+  if type(SpellButtonMixin) == "table" and owner.OnEnter ~= nil and owner.OnEnter == SpellButtonMixin.OnEnter
+    and type(SpellBookFrame) == "table" then
+    return SpellBookFrame.bookType == (BOOKTYPE_PET or "pet")
+  end
+  return false
+end
+
 -- A pet action tooltip can reach us twice: through a tooltip data post-call (on clients that
 -- build tooltips from data, and again when the tooltip refreshes) and through the SetPetAction
 -- hook right after it. The post-call marks the tooltip so the hook does not add the lines again.
@@ -993,14 +1016,14 @@ local function hookTooltips()
         addPetLines(tooltip, slot)
         petLinesDone[tooltip] = true
       elseif type(data) == "table" then
-        addTooltipLines(tooltip, data.id, false)
+        addTooltipLines(tooltip, data.id, ownerIsPetSpellBook(tooltip))
       end
     end)
   elseif GameTooltip and type(GameTooltip.HookScript) == "function" then
     GameTooltip:HookScript("OnTooltipSetSpell", function(tooltip)
       if ownerPetSlot(tooltip) then return end -- the SetPetAction hook below handles it
       local _, spellID = tooltip:GetSpell()
-      addTooltipLines(tooltip, spellID, false)
+      addTooltipLines(tooltip, spellID, ownerIsPetSpellBook(tooltip))
     end)
   end
   if postCalls and Enum.TooltipDataType.PetAction and Enum.TooltipDataType.PetAction ~= Enum.TooltipDataType.Spell then
