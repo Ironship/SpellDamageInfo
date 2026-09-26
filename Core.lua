@@ -197,7 +197,11 @@ local function readWeapon()
     local ok, speed, off = pcall(UnitAttackSpeed, "player")
     if ok then
       speed = number(speed)
-      if speed and speed > 0 then weaponStats.meleeSpeed = speed end
+      if speed and speed > 0 then
+        weaponStats.meleeSpeed = speed
+        -- the seal up while the speed was read: Seal of the Crusader's faster attacks are in it
+        weaponStats.speedSeal = ns.ActiveSeal and ns.ActiveSeal() or nil
+      end
       off = number(off)
       if off ~= nil or speed then weaponStats.offhandSpeed = (off and off > 0) and off or nil end
     end
@@ -254,8 +258,9 @@ end
 -- speed rather than the real one; either moves the number by a few percent. Cat Form's
 -- "plus Agility" is left out of the gain and named in the tooltip. formSpeed: the swing time of
 -- the form the spell shifts into (Cat or Bear Form), which its attack power counts in whatever
--- form the player is in now.
-function ns.WeaponView(w, stats, formSpeed)
+-- form the player is in now. sealUp: the speed was read with this seal up, so its faster attacks
+-- are already in it.
+function ns.WeaponView(w, stats, formSpeed, sealUp)
   if type(w) ~= "table" or type(stats) ~= "table" then return nil end
   local hit = w.ranged and stats.ranged or stats.melee
   local speed = w.ranged and stats.rangedSpeed or stats.meleeSpeed
@@ -263,8 +268,8 @@ function ns.WeaponView(w, stats, formSpeed)
     if formSpeed then speed = formSpeed end
     if not speed then return nil end
     -- Seal of the Crusader: its hits come 40% faster, so each counts the attack power over a
-    -- shorter swing
-    if w.faster then speed = speed / (1 + w.faster / 100) end
+    -- shorter swing; the client's speed has that in it already while the seal is up
+    if w.faster and not sealUp then speed = speed / (1 + w.faster / 100) end
     return { gain = w.amount / 14 * speed, amount = w.amount, speed = speed, ranged = w.ranged, plusAgility = w.plusAgility,
       faster = w.faster }
   end
@@ -431,7 +436,7 @@ function ns.Compute(spellID, pet)
   -- Parse finds in some of them ("causing 115 additional damage") is only the part on top.
   if show == "weapon" then
     if pet or not db.weapon then return nil end
-    local w = ns.WeaponView(entry.weapon, weaponStats, formSpeed(spellID))
+    local w = ns.WeaponView(entry.weapon, weaponStats, formSpeed(spellID), weaponStats.speedSeal == spellID)
     view = w and { weapon = w } or nil
   elseif show == "judgement" then
     return judgementView(pet)

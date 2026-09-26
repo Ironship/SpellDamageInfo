@@ -801,6 +801,18 @@ T.check(hasLine(tipFor(17953), "Schaden: 80-120"), "the Firestone's own range, n
 T.eq(shown(MultiBarLeftButton1), "+43", "Siegel des Kreuzfahrers: 326 / 14 x 2.6 / 1.4")
 T.eq(tipFor(20308)[1], "Angriffskraft +326: etwa +43 Schaden pro Treffer (Waffe 40 % schneller, 1,9 Sek.), gesch\195\164tzt",
   "Seal of the Crusader tooltip")
+-- With the seal up the client's speed already has the 40% in it (2.6 / 1.4): not divided again
+playerBuffs = { 20308 }
+weapon.speed = 2.6 / 1.4
+fire("UNIT_AURA", "player")
+flush()
+T.eq(shown(MultiBarLeftButton1), "+43", "Siegel des Kreuzfahrers up: 326 / 14 x 1.86, the same gain")
+T.eq(tipFor(20308)[1], "Angriffskraft +326: etwa +43 Schaden pro Treffer (Waffe 40 % schneller, 1,9 Sek.), gesch\195\164tzt",
+  "Seal of the Crusader up: the same swing time in the tooltip")
+playerBuffs = {}
+weapon.speed = 2.6
+fire("UNIT_AURA", "player")
+flush()
 
 -- Cat Form and Dire Bear Form: their attack power counts at the form's own swing time (1.0 and
 -- 2.5 sec in SpellShapeshiftForm), not the 2.6 sec weapon the warrior-shaped player holds now
