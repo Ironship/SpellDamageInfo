@@ -627,7 +627,8 @@ local function weaponEN(t)
   if p then return { kind = "weapon", pct = num(p), bonus = 0, school = SCHOOL_EN[b] } end
   if find(t, "chance", 1, true) or find(t, "with each weapon", 1, true) then return nil end
   local lo, hi, school = match(t, "each melee attack an additional (" .. NUM .. ") to (" .. NUM .. ") ([a-z]+) damage")
-  if not lo then lo, hi, school = match(t, "each hit causes (" .. NUM .. ") to (" .. NUM .. ") additional ([a-z]+) damage") end
+  -- "Each hit causes 6 to 22 additional ..."; later Flametongue Totem ranks: "Each main hand hit causes  9 to 31 ..."
+  if not lo then lo, hi, school = match(t, "each [a-z ]-hit causes +(" .. NUM .. ") to (" .. NUM .. ") additional ([a-z]+) damage") end
   if lo then return { kind = "perhit", min = num(lo), max = num(hi), school = SCHOOL_EN[school] } end
   a, school = match(t, "melee attacks to deal an additional (" .. NUM .. ") ([a-z]+) damage")
   if a then return { kind = "perhit", min = num(a), max = num(a), school = SCHOOL_EN[school] } end
@@ -697,9 +698,10 @@ local function weaponDE(t)
     lo, hi, school = match(t, "jeder treffer f" .. UE .. "gt zus" .. AE .. "tzlich (" .. NUM .. ") bis (" .. NUM
       .. ") punkt%(e%) ([a-z]*)schaden")
   end
-  -- Forever's own German: "Jeder Treffer fügt 3 bis 14 zusätzlichen Feuerschaden zu"
+  -- Forever's own German: "Jeder Treffer fügt 3 bis 14 zusätzlichen Feuerschaden zu", and for the later
+  -- Flametongue Totem ranks "Jeder Treffer der Haupthand fügt 9 bis 31 ..."
   if not lo then
-    lo, hi, school = match(t, "jeder treffer f" .. UE .. "gt (" .. NUM .. ") bis (" .. NUM .. ") zus" .. AE
+    lo, hi, school = match(t, "jeder treffer [a-z ]-f" .. UE .. "gt (" .. NUM .. ") bis (" .. NUM .. ") zus" .. AE
       .. "tzlichen ([a-z]*)schaden")
   end
   if lo then return { kind = "perhit", min = num(lo), max = num(hi), school = SCHOOL_DE[school] } end

@@ -875,21 +875,27 @@ fire("PLAYER_EQUIPMENT_CHANGED")
 flush()
 T.eq(shown(ActionButton1), "922", "gear change updates")
 
--- Resurrection Sickness: while it lasts the client's descriptions show a quarter of the damage, and when it
--- ends no SPELL_TEXT_UPDATE comes. The number follows the text whenever the text changes.
+-- A description that changes with no SPELL_TEXT_UPDATE (as after Resurrection Sickness): read again once
+-- two seconds have passed since that spell was last looked at, not on every update.
 local corruptionText = descriptions[172]
 descriptions[172] = "Verdirbt das Ziel und verursacht 18 Sek. lang 206 Punkt(e) Schattenschaden."
 fire("UNIT_AURA", "player")
 flush()
-T.eq(shown(ActionButton1), "306", "a description changed without SPELL_TEXT_UPDATE is read again (206 + 100)")
+T.eq(shown(ActionButton1), "922", "within two seconds of the last look: the text is not read again")
+clock = clock + 3
+fire("UNIT_AURA", "player")
+flush()
+T.eq(shown(ActionButton1), "306", "after two seconds a changed description is read again (206 + 100)")
 descriptions[172] = SECRET
+clock = clock + 3
 fire("UNIT_AURA", "player")
 flush()
-T.eq(shown(ActionButton1), "306", "a secret description (in combat) keeps the text read last")
+T.eq(shown(ActionButton1), "306", "a description that cannot be read keeps the text read last")
 descriptions[172] = corruptionText
+clock = clock + 3
 fire("UNIT_AURA", "player")
 flush()
-T.eq(shown(ActionButton1), "922", "the sickness gone: the full number again, without a /reload")
+T.eq(shown(ActionButton1), "922", "the text back: the full number again, without a /reload")
 
 -- /sdi: language
 local langBefore = #messages

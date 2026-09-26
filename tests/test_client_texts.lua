@@ -137,6 +137,22 @@ for _, c in ipairs(client) do
 end
 T.check(tranquility >= 4, "the Tranquility ranks were checked: " .. tranquility)
 
+-- Flametongue Totem: every rank is a bonus on each weapon hit, the later ones worded "Each main hand hit
+-- causes N to N" / "Jeder Treffer der Haupthand fügt N bis N", never the totem's own damage
+local flametongue = 0
+for _, c in ipairs(client) do
+  local lo, hi = c.text:match("[Ee]ach [a-z ]-hit causes +(%d+) to (%d+) additional")
+  if not lo then lo, hi = c.text:match("Jeder Treffer [a-z ]-f9588gt (%d+) bis (%d+) zus") end
+  if lo and (c.name:find("Flametongue", 1, true) or c.name:find("Flammenzunge", 1, true)) then
+    local v = P.Read(c.text, c.lang)
+    local w = v.show == "weapon" and v.weapon
+    T.check(w and w.kind == "perhit" and w.min == tonumber(lo) and w.max == tonumber(hi),
+      ("%s %d (%s): %s-%s on each hit"):format(c.name, c.id, c.lang, lo, hi))
+    flametongue = flametongue + 1
+  end
+end
+T.check(flametongue >= 8, "the Flametongue Totem ranks were checked: " .. flametongue)
+
 -- An English text of the German client: its German numbers and units the English way
 local dark
 for _, c in ipairs(client) do if c.id == 1277327 and c.lang == "de" then dark = c.text end end

@@ -64,14 +64,24 @@ local function requestLoad(spellID)
   end
 end
 
--- A spell's parsed description, read again whenever its text changes. The text can change with no event
--- saying so: Resurrection Sickness cuts the numbers in it to a quarter, and when it ends no
--- SPELL_TEXT_UPDATE comes, so a text kept until SPELLS_CHANGED showed the sick numbers until /reload. A
--- text that cannot be read now (secret in combat) leaves the last one in use.
+-- A spell's parsed description, read again when its text has changed, looked at no more than every
+-- RECHECK seconds a spell. A text can change with no event saying so: after Resurrection Sickness only a
+-- /reload brought the numbers back, and the one thing a /reload renews that nothing else did is this
+-- cache. (That the sickness is in the text is not proven: no sick description has been read.) A text
+-- that cannot be read now leaves the last one in use.
+local RECHECK = 2
+local function textClock()
+  local ok, t = pcall(GetTime)
+  return ok and type(t) == "number" and t or 0
+end
 local function getEntry(spellID)
   local entry = parsedCache[spellID]
+  if entry and entry.checked and textClock() - entry.checked < RECHECK then return entry end
   local text = getDescription(spellID)
-  if entry and (text == nil or text == entry.text) then return entry end
+  if entry and (text == nil or text == entry.text) then
+    entry.checked = textClock()
+    return entry
+  end
   if not text then -- not loaded yet; SPELL_TEXT_UPDATE will ask again
     requestLoad(spellID)
     return nil
@@ -79,6 +89,7 @@ local function getEntry(spellID)
   -- Parser.Read runs every reader and decides what is shown; see there.
   entry = Parser.Read(text, ns.DescriptionLang(), ns.IsRetail and ns.IsRetail())
   entry.text = text
+  entry.checked = textClock()
   parsedCache[spellID] = entry
   return entry
 end
