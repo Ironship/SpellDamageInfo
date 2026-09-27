@@ -735,14 +735,15 @@ local function buttonText(view, reduction)
     mainText = (w.gain and "+" or "") .. Format.Short(value)
     mainColor = Format.WEAPON_COLOR
     if reduction then
-      local t = Format.ReductionText(reduction, ns.L)
+      local t = Format.ReductionAmount(reduction, ns.L)
       if #t <= SIDE_MAX_CHARS then sideText = t end
     end
   elseif value then
     mainText = Format.Short(value)
     mainColor = (kind == "heal") and Format.HEAL_COLOR or Format.DAMAGE_COLOR
     if reduction then
-      local t = Format.ReductionText(reduction, ns.L)
+      -- the small red number beside the damage: the amount alone, "-100 AP" does not fit there
+      local t = Format.ReductionAmount(reduction, ns.L)
       if #t <= SIDE_MAX_CHARS then sideText = t end
     end
   elseif view and view.absorb and view.absorb >= 0.5 then

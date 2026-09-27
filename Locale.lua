@@ -19,6 +19,7 @@ Locales.en = {
   ESTIMATE = "incl. +%s from spell power, estimate",
   REDUCE_DAMAGE = "Enemy damage: %s",
   REDUCE_AP = "Enemy attack power: %s",
+  AP_SHORT = "AP", -- after a reduction of attack power on the button: "-48 AP"
   PET = "pet",
   ON = "on",
   OFF = "off",
@@ -136,6 +137,7 @@ Locales.de = {
   ESTIMATE = "inkl. +%s durch Zaubermacht, gesch\195\164tzt",
   REDUCE_DAMAGE = "Schaden des Gegners: %s",
   REDUCE_AP = "Angriffskraft des Gegners: %s",
+  AP_SHORT = "AK",
   PET = "Begleiter",
   ON = "an",
   OFF = "aus",
@@ -357,9 +359,9 @@ local ABSORB_COLOR = { 0.8, 0.7, 1 }
 -- Notes under a number.
 local NOTE_COLOR = { 0.7, 0.7, 0.7 }
 
--- A reduction from Parser.ParseReduction as button text: "-3", "-146", "-10%", "-7.5%".
+-- The amount of a reduction from Parser.ParseReduction: "-3", "-146", "-10%", "-7.5%".
 -- L (optional) gives the decimal mark.
-function Format.ReductionText(r, L)
+local function reductionAmount(r, L)
   if r.percent then
     local s
     if r.amount == floor(r.amount) then s = tostring(floor(r.amount)) else s = string.format("%.1f", r.amount) end
@@ -368,11 +370,20 @@ function Format.ReductionText(r, L)
   end
   return "-" .. Format.Short(r.amount)
 end
+Format.ReductionAmount = reductionAmount
+
+-- A reduction as button text: the amount, and for attack power its short name, so "-48 AP" is not
+-- read as 48 damage ("-3", "-10%" for damage). L (optional) gives the decimal mark and the name.
+function Format.ReductionText(r, L)
+  local s = reductionAmount(r, L)
+  if r.stat == "attackpower" then s = s .. " " .. ((L and L.AP_SHORT) or "AP") end
+  return s
+end
 
 -- The tooltip line for a reduction: { text, r, g, b }.
 function Format.ReductionLine(r, L)
   local template = (r.stat == "attackpower") and L.REDUCE_AP or L.REDUCE_DAMAGE
-  local amount = r.percent and Format.ReductionText(r, L) or ("-" .. Format.Thousands(r.amount, L))
+  local amount = r.percent and reductionAmount(r, L) or ("-" .. Format.Thousands(r.amount, L))
   return { string.format(template, amount), REDUCTION_COLOR[1], REDUCTION_COLOR[2], REDUCTION_COLOR[3] }
 end
 

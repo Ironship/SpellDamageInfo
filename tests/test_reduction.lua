@@ -132,6 +132,15 @@ T.eq(F.ReductionText({ amount = 146, percent = false }), "-146", "flat reduction
 T.eq(F.ReductionText({ amount = 10, percent = true }), "-10%", "percent reduction")
 T.eq(F.ReductionText({ amount = 7.5, percent = true }), "-7.5%", "percent with a decimal")
 T.eq(F.ReductionText({ amount = 12500, percent = false }), "-13k", "large flat reduction")
+T.eq(F.ReductionText({ amount = 3, percent = false, stat = "damage" }), "-3", "damage: the number alone")
+T.eq(F.ReductionText({ amount = 48, percent = false, stat = "attackpower" }), "-48 AP",
+  "attack power says so, not read as 48 damage")
+T.eq(F.ReductionText({ amount = 48, percent = false, stat = "attackpower" }, { decimal = ",", AP_SHORT = "AK" }), "-48 AK",
+  "  in the interface language")
+T.eq(F.ReductionLine({ amount = 48, percent = false, stat = "attackpower" }, { thousands = ",", decimal = ".",
+  REDUCE_AP = "Enemy attack power: %s" })[1], "Enemy attack power: -48", "  the tooltip line names it once, not '-48 AP'")
+T.eq(F.ReductionLine({ amount = 10, percent = true, stat = "attackpower" }, { thousands = ",", decimal = ".",
+  REDUCE_AP = "Enemy attack power: %s" })[1], "Enemy attack power: -10%", "  nor a percentage")
 T.check(F.REDUCTION_COLOR[1] == 1 and F.REDUCTION_COLOR[2] < 0.5 and F.REDUCTION_COLOR[3] < 0.5, "reduction colour is red")
 
 print(("Fixture texts: %d; with a reduction: %d, read correctly: %d; without: %d"):format(counts.texts, counts.want,
