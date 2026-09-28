@@ -20,6 +20,7 @@ Locales.en = {
   REDUCE_DAMAGE = "Enemy damage: %s",
   REDUCE_AP = "Enemy attack power: %s",
   AP_SHORT = "AP", -- after a reduction of attack power on the button: "-48 AP"
+  REDUCE_AP_HIT = "Enemy attack power: %s, about -%s damage per hit from your target (it attacks every %s sec)",
   PET = "pet",
   ON = "on",
   OFF = "off",
@@ -138,6 +139,7 @@ Locales.de = {
   REDUCE_DAMAGE = "Schaden des Gegners: %s",
   REDUCE_AP = "Angriffskraft des Gegners: %s",
   AP_SHORT = "AK",
+  REDUCE_AP_HIT = "Angriffskraft des Gegners: %s, etwa -%s Schaden pro Treffer Eures Ziels (es greift alle %s Sek. an)",
   PET = "Begleiter",
   ON = "an",
   OFF = "aus",
@@ -373,17 +375,25 @@ end
 Format.ReductionAmount = reductionAmount
 
 -- A reduction as button text: the amount, and for attack power its short name, so "-48 AP" is not
--- read as 48 damage ("-3", "-10%" for damage). L (optional) gives the decimal mark and the name.
-function Format.ReductionText(r, L)
+-- read as 48 damage ("-3", "-10%" for damage). perHit: what a lower attack power takes off each of the
+-- target's hits (Core's ns.ReductionPerHit), shown instead: "-7". L (optional) gives the decimal mark
+-- and the name.
+function Format.ReductionText(r, L, perHit)
+  if perHit then return "-" .. Format.Short(perHit) end
   local s = reductionAmount(r, L)
   if r.stat == "attackpower" then s = s .. " " .. ((L and L.AP_SHORT) or "AP") end
   return s
 end
 
--- The tooltip line for a reduction: { text, r, g, b }.
-function Format.ReductionLine(r, L)
+-- The tooltip line for a reduction: { text, r, g, b }. perHit and speed: what a lower attack power
+-- takes off each hit of the target, which attacks every speed seconds.
+function Format.ReductionLine(r, L, perHit, speed)
   local template = (r.stat == "attackpower") and L.REDUCE_AP or L.REDUCE_DAMAGE
   local amount = r.percent and reductionAmount(r, L) or ("-" .. Format.Thousands(r.amount, L))
+  if r.stat == "attackpower" and perHit and speed and L.REDUCE_AP_HIT then
+    local text = string.format(L.REDUCE_AP_HIT, amount, Format.Thousands(perHit, L), Format.Seconds(speed, L))
+    return { text, REDUCTION_COLOR[1], REDUCTION_COLOR[2], REDUCTION_COLOR[3] }
+  end
   return { string.format(template, amount), REDUCTION_COLOR[1], REDUCTION_COLOR[2], REDUCTION_COLOR[3] }
 end
 

@@ -141,6 +141,17 @@ T.eq(F.ReductionLine({ amount = 48, percent = false, stat = "attackpower" }, { t
   REDUCE_AP = "Enemy attack power: %s" })[1], "Enemy attack power: -48", "  the tooltip line names it once, not '-48 AP'")
 T.eq(F.ReductionLine({ amount = 10, percent = true, stat = "attackpower" }, { thousands = ",", decimal = ".",
   REDUCE_AP = "Enemy attack power: %s" })[1], "Enemy attack power: -10%", "  nor a percentage")
+-- with the target's attack speed: what it takes off each of its hits (50 x 2.0 / 14 = 7.1)
+T.eq(F.ReductionText({ amount = 50, percent = false, stat = "attackpower" }, nil, 50 * 2.0 / 14), "-7",
+  "attack power per hit of the target: '-7', not '-50 AP'")
+local EN = { thousands = ",", decimal = ".", REDUCE_AP = "Enemy attack power: %s",
+  REDUCE_AP_HIT = "Enemy attack power: %s, about -%s damage per hit from your target (it attacks every %s sec)" }
+T.eq(F.ReductionLine({ amount = 50, percent = false, stat = "attackpower" }, EN, 50 * 2.0 / 14, 2.0)[1],
+  "Enemy attack power: -50, about -7 damage per hit from your target (it attacks every 2 sec)", "  the tooltip says both")
+T.eq(F.ReductionLine({ amount = 50, percent = false, stat = "attackpower" }, EN, 50 * 1.5 / 14, 1.5)[1],
+  "Enemy attack power: -50, about -5 damage per hit from your target (it attacks every 1.5 sec)", "  a faster target")
+T.eq(F.ReductionLine({ amount = 3, percent = false, stat = "damage" }, { thousands = ",", decimal = ".",
+  REDUCE_DAMAGE = "Enemy damage: %s", REDUCE_AP_HIT = "x" }, 7, 2)[1], "Enemy damage: -3", "  a damage reduction is per hit already")
 T.check(F.REDUCTION_COLOR[1] == 1 and F.REDUCTION_COLOR[2] < 0.5 and F.REDUCTION_COLOR[3] < 0.5, "reduction colour is red")
 
 print(("Fixture texts: %d; with a reduction: %d, read correctly: %d; without: %d"):format(counts.texts, counts.want,

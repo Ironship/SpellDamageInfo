@@ -35,7 +35,7 @@ local KNOWN_EVENTS = {
   PLAYER_REGEN_ENABLED = true, SPELLS_CHANGED = true, CHARACTER_POINTS_CHANGED = true,
   SPELL_TEXT_UPDATE = true, UNIT_AURA = true, PET_BAR_UPDATE = true, UNIT_PET = true,
   UNIT_ATTACK_POWER = true, UNIT_RANGED_ATTACK_POWER = true, UNIT_DAMAGE = true, UNIT_ATTACK_SPEED = true,
-  UNIT_RANGEDDAMAGE = true, UNIT_MAXHEALTH = true, UNIT_SPELLCAST_SUCCEEDED = true,
+  UNIT_RANGEDDAMAGE = true, UNIT_MAXHEALTH = true, UNIT_SPELLCAST_SUCCEEDED = true, PLAYER_TARGET_CHANGED = true,
   -- PLAYER_TALENT_UPDATE and PET_BAR_UPDATE_USABLE are left out on purpose: registering an
   -- event the client does not know must not break loading
 }
@@ -255,7 +255,14 @@ for _, id in ipairs({ 25286, 16316, 9850, 20904 }) do descriptions[id] = weaponT
 -- The player's weapons: a 2.6 sec melee weapon hitting for 100-140, a 3.0 sec bow for 150-170.
 local weapon = { lo = 100, hi = 140, speed = 2.6, rSpeed = 3.0, rLo = 150, rHi = 170 }
 function UnitDamage(unit) if unit == "player" then return weapon.lo, weapon.hi end end
-function UnitAttackSpeed(unit) if unit == "player" then return weapon.speed end end
+-- The target: none until a test sets one (guid, speed, friend).
+local target = {}
+function UnitAttackSpeed(unit)
+  if unit == "player" then return weapon.speed elseif unit == "target" then return target.speed end
+end
+function UnitExists(unit) return unit == "target" and target.guid ~= nil end
+function UnitCanAttack(a, b) return a == "player" and b == "target" and not target.friend end
+function UnitGUID(unit) if unit == "target" then return target.guid end end
 function UnitRangedDamage(unit) if unit == "player" then return weapon.rSpeed, weapon.rLo, weapon.rHi end end
 function GetBuildInfo() return "1.60.1", "70009", "Sep 23 2026", 16001 end
 local spellNames = { [5138] = "Mana entziehen", [20293] = "Siegel der Rechtschaffenheit", [20920] = "Siegel des Befehls" }
@@ -595,6 +602,42 @@ postCalls[1].fn(tip, { id = 24579, type = 1 })
 T.eq(tip.lines[1], "Schaden: 26-46", "tooltip: Screech damage")
 T.eq(tip.lines[2], "Angriffskraft des Gegners: -100", "tooltip: Screech reduction")
 tip.lines = {}
+
+-- A target whose attack speed is known: Screech's -100 attack power is what it takes off each of the
+-- target's hits, 100 x 2.0 / 14 = 14
+target.speed, target.guid = 2.0, "Creature-0-1-2-3-299-0000000001"
+fire("PLAYER_TARGET_CHANGED") -- reaches the addon only if it registered the event
+flush()
+T.eq(side10.text, "-14", "a target attacking every 2.0 sec: Screech takes 14 off each of its hits")
+postCalls[1].fn(tip, { id = 24579, type = 1 })
+T.eq(tip.lines[2], "Angriffskraft des Gegners: -100, etwa -14 Schaden pro Treffer Eures Ziels (es greift alle 2 Sek. an)",
+  "tooltip: the attack power and what it takes off each hit")
+tip.lines = {}
+-- in combat the speed turns secret: the one read before for the same target stays
+target.speed = SECRET
+fire("UNIT_ATTACK_SPEED", "target")
+flush()
+T.eq(side10.text, "-14", "secret speed in combat: the speed read before for this target")
+-- a new target in combat, its speed secret and never read: attack power as it is
+target.guid = "Creature-0-1-2-3-300-0000000002"
+fire("PLAYER_TARGET_CHANGED")
+flush()
+T.eq(side10.text, "-100", "a new target with a secret speed: the attack power, no guess")
+-- a faster target out of combat
+target.speed = 1.2
+fire("PLAYER_REGEN_ENABLED")
+flush()
+T.eq(side10.text, "-9", "out of combat the new target's speed is read: 100 x 1.2 / 14 = 9")
+-- a friend: no hits to take off
+target.friend = true
+fire("PLAYER_TARGET_CHANGED")
+flush()
+T.eq(side10.text, "-100", "a friendly target: the attack power")
+-- no target
+target.guid, target.speed, target.friend = nil, nil, nil
+fire("PLAYER_TARGET_CHANGED")
+flush()
+T.eq(side10.text, "-100", "no target: the attack power")
 postCalls[1].fn(tip, { id = 90001, type = 1 })
 T.eq(tip.lines[2], "Schaden des Gegners: -12,5%", "tooltip: percent reduction in German")
 tip.lines = {}

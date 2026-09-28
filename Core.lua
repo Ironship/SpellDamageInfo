@@ -249,6 +249,56 @@ local function readWeapon()
   end
 end
 
+-- The target's attack speed, for what a lower attack power takes off each of its hits: Classic's
+-- rule, 14 attack power are 1 damage for each second of weapon speed (the rule WeaponView uses for
+-- the player's own weapon). UnitAttackSpeed can be secret in combat (SecretWhenUnitStatsRestricted):
+-- then the speed read before for the same unit, by its GUID when that is not secret too, or none, and
+-- the reduction stays in attack power ("-50 AP").
+local AP_PER_DPS = 14
+local SPEEDS_KEPT = 500 -- GUIDs remembered; past that the list starts again
+local targetSpeed
+local speedByGUID, speedCount = {}, 0
+
+local function readTargetSpeed()
+  targetSpeed = nil
+  if type(UnitExists) ~= "function" or type(UnitAttackSpeed) ~= "function" then return end
+  local ok, exists = pcall(UnitExists, "target")
+  if not ok or isSecret(exists) or not exists then return end
+  if type(UnitCanAttack) == "function" then
+    local okA, can = pcall(UnitCanAttack, "player", "target")
+    if okA and not isSecret(can) and not can then return end -- a friend: no hits to take off
+  end
+  local guid
+  if type(UnitGUID) == "function" then
+    local okG, g = pcall(UnitGUID, "target")
+    if okG and not isSecret(g) and type(g) == "string" then guid = g end
+  end
+  local okS, speed = pcall(UnitAttackSpeed, "target")
+  speed = okS and number(speed) or nil
+  if speed and speed > 0 then
+    targetSpeed = speed
+    if guid then
+      if not speedByGUID[guid] then
+        if speedCount >= SPEEDS_KEPT then speedByGUID, speedCount = {}, 0 end
+        speedCount = speedCount + 1
+      end
+      speedByGUID[guid] = speed
+    end
+  elseif guid then
+    targetSpeed = speedByGUID[guid]
+  end
+end
+ns.ReadTargetSpeed = readTargetSpeed
+function ns.TargetSpeed() return targetSpeed end
+
+-- What a reduction of attack power takes off each hit of the target, or nil: no target speed, a
+-- percentage, or a reduction of damage (per hit already).
+function ns.ReductionPerHit(r)
+  if type(r) ~= "table" or r.stat ~= "attackpower" or r.percent or not targetSpeed then return nil end
+  local v = r.amount * targetSpeed / AP_PER_DPS
+  return v >= 0.5 and v or nil
+end
+
 -- Attack power a point of strength or agility gives, by class (Classic's rules). Agility gives
 -- melee attack power only to rogues and hunters, and to a druid in Cat Form (form 1).
 local STR_AP = { WARRIOR = 2, PALADIN = 2, SHAMAN = 2, DRUID = 2 }
@@ -735,22 +785,25 @@ local function buttonText(view, reduction)
     mainText = (w.gain and "+" or "") .. Format.Short(value)
     mainColor = Format.WEAPON_COLOR
     if reduction then
-      local t = Format.ReductionAmount(reduction, ns.L)
+      local perHit = ns.ReductionPerHit(reduction)
+      local t = perHit and Format.ReductionText(reduction, ns.L, perHit) or Format.ReductionAmount(reduction, ns.L)
       if #t <= SIDE_MAX_CHARS then sideText = t end
     end
   elseif value then
     mainText = Format.Short(value)
     mainColor = (kind == "heal") and Format.HEAL_COLOR or Format.DAMAGE_COLOR
     if reduction then
-      -- the small red number beside the damage: the amount alone, "-100 AP" does not fit there
-      local t = Format.ReductionAmount(reduction, ns.L)
+      -- the small red number beside the damage: per hit where the target's speed is known, else the
+      -- amount alone ("-100 AP" does not fit there)
+      local perHit = ns.ReductionPerHit(reduction)
+      local t = perHit and Format.ReductionText(reduction, ns.L, perHit) or Format.ReductionAmount(reduction, ns.L)
       if #t <= SIDE_MAX_CHARS then sideText = t end
     end
   elseif view and view.absorb and view.absorb >= 0.5 then
     mainText = Format.Short(view.absorb)
     mainColor = Format.ABSORB_COLOR
   elseif reduction then
-    mainText = Format.ReductionText(reduction, ns.L)
+    mainText = Format.ReductionText(reduction, ns.L, ns.ReductionPerHit(reduction))
     mainColor = Format.REDUCTION_COLOR
   end
   return mainText, mainColor, sideText
@@ -986,7 +1039,9 @@ local function addTooltipLines(tooltip, spellID, pet)
   if judgement then lines[#lines + 1] = Format.JudgementLine(judgement, L) end
   if db.reduction then
     local reduction = ns.Reduction(spellID)
-    if reduction then lines[#lines + 1] = Format.ReductionLine(reduction, L) end
+    if reduction then
+      lines[#lines + 1] = Format.ReductionLine(reduction, L, ns.ReductionPerHit(reduction), ns.TargetSpeed())
+    end
   end
   for _, line in ipairs(lines) do
     local text = pet and (line[1] .. " (" .. L.PET .. ")") or line[1]
@@ -1291,7 +1346,8 @@ frame:SetScript("OnEvent", function(_, event, arg1, _, arg3)
     for _, e in ipairs({ "UNIT_AURA", "UNIT_PET", "UNIT_ATTACK_POWER", "UNIT_RANGED_ATTACK_POWER", "UNIT_DAMAGE",
       "UNIT_ATTACK_SPEED", "UNIT_RANGEDDAMAGE", "UNIT_MAXHEALTH", "UNIT_SPELLCAST_SUCCEEDED" }) do
       if type(frame.RegisterUnitEvent) == "function" then
-        pcall(frame.RegisterUnitEvent, frame, e, "player")
+        -- the target's attack speed too, for a reduction of its attack power per hit
+        pcall(frame.RegisterUnitEvent, frame, e, "player", e == "UNIT_ATTACK_SPEED" and "target" or nil)
       else
         register(e)
       end
@@ -1301,8 +1357,13 @@ frame:SetScript("OnEvent", function(_, event, arg1, _, arg3)
         pcall(bar.HookScript, bar, "OnShow", requestUpdate)
       end
     end
+    register("PLAYER_TARGET_CHANGED")
     readBonus()
     readWeapon()
+    readTargetSpeed()
+    requestUpdate()
+  elseif event == "PLAYER_TARGET_CHANGED" then
+    readTargetSpeed()
     requestUpdate()
   elseif event == "SPELL_TEXT_UPDATE" then
     if not isSecret(arg1) and type(arg1) == "number" then parsedCache[arg1] = nil end
@@ -1314,12 +1375,19 @@ frame:SetScript("OnEvent", function(_, event, arg1, _, arg3)
     end
   elseif event == "UNIT_AURA" or event == "UNIT_PET" or event == "UNIT_ATTACK_POWER" or event == "UNIT_RANGED_ATTACK_POWER"
     or event == "UNIT_DAMAGE" or event == "UNIT_ATTACK_SPEED" or event == "UNIT_RANGEDDAMAGE" or event == "UNIT_MAXHEALTH" then
-    if not isSecret(arg1) and arg1 == "player" then requestUpdate() end
+    if not isSecret(arg1) and arg1 == "player" then
+      requestUpdate()
+    elseif event == "UNIT_ATTACK_SPEED" and not isSecret(arg1) and arg1 == "target" then
+      readTargetSpeed()
+      requestUpdate()
+    end
   elseif event == "PET_BAR_UPDATE" then
     collectPetButtons()
     requestUpdate()
   else
     if isReset[event] then clearCache() end
+    -- out of combat the target's speed can be read again
+    if event == "PLAYER_REGEN_ENABLED" then readTargetSpeed() end
     requestUpdate()
   end
 end)
