@@ -459,6 +459,7 @@ end
 
 local function specialView(s, spellID, pet, noBonus)
   if s.absorb then return { absorb = s.absorb } end
+  if s.healthCost then return { healthCost = s.healthCost, manaGain = s.manaGain } end
   if s.healMaxHealth then
     local mh = weaponStats.maxHealth
     if pet or not mh then return nil end
@@ -771,6 +772,15 @@ ns.PetSpellOnSlot = petSpellOnSlot
 -- next to it (or nil). The options window's preview draws its sample spells through this too.
 local function buttonText(view, reduction)
   if db.button == "off" then return nil end
+  -- Life Tap: vertical dual-label, green -HP on top, blue +mana below.
+  if view and view.healthCost then
+    local mainText = "-" .. Format.Short(view.healthCost) .. " HP"
+    local sideText
+    if view.manaGain and view.manaGain >= 0.5 then
+      sideText = "+" .. Format.Short(view.manaGain) .. " mana"
+    end
+    return mainText, Format.HEAL_COLOR, sideText, Format.WEAPON_COLOR
+  end
   if not db.reduction then reduction = nil end
   local value, kind = Estimate.ButtonValue(view, db.button)
   if value and value < 0.5 then value = nil end
@@ -812,7 +822,7 @@ ns.ButtonText = buttonText
 
 -- Draws the text from buttonText on a button: fs is the main FontString, side the reduction's
 -- (may be nil when there is no sideText). countShown: the button shows a count bottom right.
-local function drawNumber(button, fs, side, mainText, mainColor, sideText, countShown)
+local function drawNumber(button, fs, side, mainText, mainColor, sideText, countShown, sideColor)
   if not mainText then
     hide(fs)
     hide(side)
@@ -828,7 +838,7 @@ local function drawNumber(button, fs, side, mainText, mainColor, sideText, count
   if sideText and side then
     placeSide(side, button)
     setFont(side, fontSize(button, SIDE_SHARE))
-    local c = Format.REDUCTION_COLOR
+    local c = sideColor or Format.REDUCTION_COLOR
     side:SetTextColor(c[1], c[2], c[3])
     side:SetText(sideText)
     side:Show()
@@ -987,14 +997,14 @@ local function updateButton(button, pet)
       noteMiss(spellID)
     end
   end
-  local mainText, mainColor, sideText = buttonText(view, reduction)
+  local mainText, mainColor, sideText, sideColor = buttonText(view, reduction)
   if not mainText then
     hide(labels[button])
     hide(sideLabels[button])
     return
   end
   local side = sideText and getSideLabel(button) or sideLabels[button]
-  drawNumber(button, getLabel(button), side, mainText, mainColor, sideText, not pet and hasCount(button.action))
+  drawNumber(button, getLabel(button), side, mainText, mainColor, sideText, not pet and hasCount(button.action), sideColor)
 end
 
 local function updateAllButtons()

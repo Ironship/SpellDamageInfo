@@ -941,6 +941,9 @@ local function specialEN(t)
   if n then return { heal = D(n) } end
   n = match(t, "absorbing (" .. NUM .. ") damage") or match(t, "absorbs (" .. NUM .. ") [a-z]* ?damage")
   if n then return { absorb = num(n) } end
+  -- Life Tap: "Converts 58 Health into 58 Mana for you."
+  local hc, mg = match(t, "converts (" .. NUM .. ") health into (" .. NUM .. ") mana")
+  if hc then return { healthCost = num(hc), manaGain = num(mg) } end
   return nil
 end
 
@@ -1129,8 +1132,8 @@ end
 -- shield, the paladin's own health, a totem's attack or pulse, damage per block, per strike or
 -- per extra rage, several hits; or where it reads a part Parse missed (Forever's German Holy
 -- Shock, whose damage Parse does not find beside the heal). Where both read the same numbers
--- (Rend, Blizzard), Parse stays.
-local SPECIAL_FLAGS = { "absorb", "healMaxHealth", "perAttack", "perBlock", "perStrike", "every", "perRage", "hits", "first" }
+-- (Rend, Blizzard), Parse stays. Life Tap's health cost is its own flag.
+local SPECIAL_FLAGS = { "absorb", "healMaxHealth", "perAttack", "perBlock", "perStrike", "every", "perRage", "hits", "first", "healthCost" }
 local SLOTS = { "direct", "dot", "heal", "hot" }
 
 local function specialWins(s, parsed)

@@ -471,6 +471,13 @@ function Format.TooltipLines(view, L)
     lines[1] = { string.format(L.ABSORB_LINE, Format.Thousands(view.absorb, L)), ABSORB_COLOR[1], ABSORB_COLOR[2], ABSORB_COLOR[3] }
     return lines
   end
+  if view.healthCost then
+    lines[1] = { "-" .. Format.Thousands(view.healthCost, L) .. " HP", HEAL_COLOR[1], HEAL_COLOR[2], HEAL_COLOR[3] }
+    if view.manaGain and view.manaGain >= 0.5 then
+      lines[2] = { "+" .. Format.Thousands(view.manaGain, L) .. " mana", WEAPON_COLOR[1], WEAPON_COLOR[2], WEAPON_COLOR[3] }
+    end
+    return lines
+  end
   -- what the number is for, after the first figure: per totem attack, per block, per pulse, in
   -- how many hits, or the paladin's own health
   local note = ""

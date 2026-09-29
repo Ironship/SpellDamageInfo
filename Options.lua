@@ -100,8 +100,8 @@ end
 local function updatePreview()
   if not window then return end
   for _, mock in ipairs(window.mocks) do
-    local mainText, mainColor, sideText = sampleText(mock.sample)
-    ns.DrawNumber(mock, mock.main, mock.side, mainText, mainColor, sideText, false)
+    local mainText, mainColor, sideText, sideColor = sampleText(mock.sample)
+    ns.DrawNumber(mock, mock.main, mock.side, mainText, mainColor, sideText, false, sideColor)
   end
   window.offNote:SetShown(db().button == "off")
 end
