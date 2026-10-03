@@ -918,6 +918,16 @@ local function specialEN(t)
   if n then return { hot = { total = num(n) * floor(num(dur) / num(every) + 0.5), duration = num(dur) } } end
   n, dur = match(t, "restore (" .. NUM .. ") health over (" .. NUM .. ") sec")
   if n then return { hot = { total = num(n), duration = num(dur) } } end
+  -- Instant restores on use-items: healthstones ("restores 120 life"), potions
+  -- ("restores 1050 to 1751 health/mana"). A plain instant heal, no duration.
+  -- (Lua patterns have no alternation: one match per noun.)
+  lo, hi = match(t, "restores (" .. NUM .. ") to (" .. NUM .. ") health")
+  if not lo then lo, hi = match(t, "restores (" .. NUM .. ") to (" .. NUM .. ") mana") end
+  if not lo then lo, hi = match(t, "restores (" .. NUM .. ") to (" .. NUM .. ") life") end
+  if not lo then lo = match(t, "restores (" .. NUM .. ") health") end
+  if not lo then lo = match(t, "restores (" .. NUM .. ") mana") end
+  if not lo then lo = match(t, "restores (" .. NUM .. ") life") end
+  if lo then return { heal = D(lo, hi) } end
   local per
   n, per = match(t, "causing (" .. NUM .. ") damage and converting each extra point of rage into (" .. NUM .. ") additional damage")
   if n then return { direct = D(n), school = "physical", perRage = num(per) } end
@@ -972,6 +982,15 @@ local function specialDE(t)
   if n0 then return { hot = { total = num(n0) * floor(num(dur0) / num(every0) + 0.5), duration = num(dur0) } } end
   local n, dur = match(t, "um im verlauf von (" .. NUM .. ") sek%.? (" .. NUM .. ") gesundheit wiederherzustellen")
   if n then return { hot = { total = num(dur), duration = num(n) } } end
+  -- Healthstones/Potions: "Stellt sofort 120 Leben wieder her."
+  -- (Lua patterns have no alternation: one match per noun.)
+  lo, hi = match(t, "stellt sofort (" .. NUM .. ") bis (" .. NUM .. ") leben wieder her")
+  if not lo then lo, hi = match(t, "stellt sofort (" .. NUM .. ") bis (" .. NUM .. ") gesundheit wieder her") end
+  if not lo then lo, hi = match(t, "stellt sofort (" .. NUM .. ") bis (" .. NUM .. ") mana wieder her") end
+  if not lo then lo = match(t, "stellt sofort (" .. NUM .. ") leben wieder her") end
+  if not lo then lo = match(t, "stellt sofort (" .. NUM .. ") gesundheit wieder her") end
+  if not lo then lo = match(t, "stellt sofort (" .. NUM .. ") mana wieder her") end
+  if lo then return { heal = D(lo, hi) } end
   local per
   n, per = match(t, "verursacht (" .. NUM .. ") punkt%(e%) schaden und jeder zus" .. AE .. "tzliche wutpunkt wird in (" .. NUM .. ")")
   if n then return { direct = D(n), school = "physical", perRage = num(per) } end

@@ -549,6 +549,19 @@ for i, case in ipairs(extra) do
     case[3].none and "nil" or describe(case[3])))
 end
 
+-- Use-items (healthstones, potions) read through ParseSpecial, not Parse.
+local useitems = {
+  { "en", "Use: Instantly restores 120 life.", { heal = D(120) } },
+  { "de", "Stellt sofort 120 Leben wieder her.", { heal = D(120) } },
+  { "en", "Use: Restores 1050 to 1751 health.", { heal = D(1050, 1751) } },
+  { "en", "Use: Restores 700 to 900 mana.", { heal = D(700, 900) } },
+}
+for i, case in ipairs(useitems) do
+  local got = ns.Parser.ParseSpecial(case[2], case[1])
+  T.check(same(got, case[3]), ("useitem %d [%s] %q: got %s, want %s"):format(i, case[1], case[2], describe(got),
+    describe(case[3])))
+end
+
 -- Language detection when no language is given
 T.check(same(Parse("Verdirbt das Ziel und verursacht 18 Sek. lang 822 Punkt(e) Schattenschaden."), { dot = O(822, 18), school = "shadow" }), "detects German")
 T.check(same(Parse("Corrupts the target, causing 1,132 Shadow damage over 14 sec."), { dot = O(1132, 14), school = "shadow" }), "detects English")
