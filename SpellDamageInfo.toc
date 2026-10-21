@@ -1,4 +1,4 @@
-## Interface: 16001, 11509, 120100, 120105
+## Interface: 16001, 11509, 120100, 120105, 120107
 ## Title: SpellDamageInfo
 ## Notes: Shows the damage and healing from each spell's own description on your action buttons and in the spell tooltip, with an optional spell power estimate, and in red how much a debuff lowers the enemy's damage. /sdi
 ## Notes-deDE: Zeigt Schaden und Heilung aus der Zauberbeschreibung auf den Aktionstasten und im Zauber-Tooltip, auf Wunsch mit geschätzter Zaubermacht, und in Rot, um wie viel ein Schwächungszauber den Schaden des Gegners senkt. /sdi
